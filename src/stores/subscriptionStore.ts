@@ -744,19 +744,30 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
     // 0.3.0 multi-subscription bootstrap. Сценарии:
     //   A) localStorage SUBS_INDEX_KEY есть → читаем все по списку из
     //      keyring `subscription_url:${id}` / `hwid_override:${id}`.
-    //   B) Списка нет, но legacy URL_KEYRING есть (юзер обновился с
-    //      0.2.x) → создаём subscriptions[0] из этого URL, сохраняем
-    //      его и в новые per-id ключи (миграция). Legacy URL_KEYRING
-    //      продолжает синхронизироваться с primary для backward compat.
+    //   B) Списка нет (или Scenario A не нашёл ни одной живой записи),
+    //      но legacy URL_KEYRING есть → создаём subscriptions[0] из
+    //      этого URL, сохраняем его и в новые per-id ключи (миграция).
     //   C) Всё пусто → subscriptions = [], primaryId = null. Welcome.
     const ids = loadSubsIndex();
+    let scenarioASucceeded = false;
     if (ids.length > 0) {
       // Сценарий A
       const subs: Subscription[] = [];
+      let allReadEmpty = true;
       for (const id of ids) {
         const u = await keyringGet(`${URL_KEYRING}:${id}`);
         const h = await keyringGet(`${HWID_KEYRING}:${id}`);
-        if (!u) continue; // потерянная запись — пропускаем (cleanup ниже)
+        if (!u) {
+          // 0.3.3 fix: НЕ удаляем ID из индекса. Транзиентная ошибка
+          // Credential Manager на старте app (race с инициализацией
+          // SCM, или CredRead returns NoEntry до того как закончилась
+          // подгрузка credentials profile) приводила к permanent
+          // data loss — мы покарали индекс, на следующем старте
+          // нечего восстановить. Лучше показать Welcome (если ВСЕ
+          // прочитались пустыми) и retry'нуть на следующем запуске.
+          continue;
+        }
+        allReadEmpty = false;
         subs.push({
           id,
           url: u,
@@ -770,16 +781,28 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
           pings: [],
         });
       }
-      // Если из-за потерянных записей итог отличается — обновляем индекс.
-      if (subs.length !== ids.length) saveSubsIndex(subs.map((s) => s.id));
       if (subs.length > 0) {
         set({ subscriptions: subs, primaryId: subs[0].id });
         // Legacy fields синхронизируются с primary (для callsites,
         // которые ещё читают `url`/`hwid`/`meta`).
         set({ url: subs[0].url, hwid: subs[0].hwid });
+        scenarioASucceeded = true;
+        // Index НЕ переписываем — даже если из 5 ids только 3
+        // прочитались (2 транзиентно фейлят), на следующем запуске
+        // те 2 могут восстановиться. Permanent purge — это решение
+        // юзера через removeSubscription, не наше.
+      } else if (allReadEmpty) {
+        // Все ids вернули пустой keyring. **Не трогаем индекс** —
+        // оставляем для retry на следующем запуске. Падаем в
+        // Сценарий B ниже как fallback.
+        console.warn(
+          `[subscription] все ${ids.length} ID вернули пустой keyring — индекс сохранён для retry, fallback на legacy URL_KEYRING`
+        );
       }
-    } else if (urlFromKeyring) {
-      // Сценарий B — миграция legacy single-sub в multi.
+    }
+    if (!scenarioASucceeded && urlFromKeyring) {
+      // Сценарий B — миграция legacy single-sub в multi
+      // ИЛИ recovery после транзиентной ошибки Scenario A.
       const id = genId();
       const sub: Subscription = {
         id,
@@ -793,13 +816,26 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
         servers: [],
         pings: [],
       };
-      // Сохраняем в новые per-id ключи. Legacy URL_KEYRING остаётся.
-      await keyringSet(`${URL_KEYRING}:${id}`, urlFromKeyring);
-      if (hwidFromKeyring) {
-        await keyringSet(`${HWID_KEYRING}:${id}`, hwidFromKeyring);
+      // 0.3.3 fix: keyring-write СНАЧАЛА (await), потом index. Если
+      // keyring write упал — index не обновляется → нет phantom id
+      // которые попадут в next-start scenario A с пустым keyring.
+      const ok = await keyringSet(`${URL_KEYRING}:${id}`, urlFromKeyring);
+      if (ok) {
+        if (hwidFromKeyring) {
+          await keyringSet(`${HWID_KEYRING}:${id}`, hwidFromKeyring);
+        }
+        set({ subscriptions: [sub], primaryId: id });
+        // Если Scenario A создал устаревший индекс с мертвыми ids —
+        // здесь его перезапишем валидным. Если index был пуст — тоже
+        // OK, пишем новый.
+        saveSubsIndex([id]);
+      } else {
+        // Keyring write упал — оставляем все state как есть, юзеру
+        // придётся ввести URL заново. Это лучше чем сломать индекс.
+        console.warn(
+          "[subscription] Scenario B keyring write failed — Welcome будет показан, юзер введёт URL вручную"
+        );
       }
-      set({ subscriptions: [sub], primaryId: id });
-      saveSubsIndex([id]);
     }
   },
 
@@ -828,13 +864,26 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
         servers: [],
         pings: [],
       };
-      set({ subscriptions: [bootstrapSub], primaryId: bootstrapId });
-      saveSubsIndex([bootstrapId]);
-      // Сохраняем в новые per-id ключи (legacy URL_KEYRING продолжает
-      // синхронизироваться через setUrl).
-      await keyringSet(`${URL_KEYRING}:${bootstrapId}`, url);
-      if (hwid.trim()) {
-        await keyringSet(`${HWID_KEYRING}:${bootstrapId}`, hwid);
+      // 0.3.3 fix: keyring СНАЧАЛА (await), потом state + index. Если
+      // keyring write упал — index не обновляется → нет phantom id
+      // в индексе который покараем на следующем старте. До 0.3.3 был
+      // обратный порядок: saveSubsIndex → keyringSet, что при тихом
+      // failure'е keyring (наш wrapper глотает ошибки) приводил к
+      // permanent data loss.
+      const urlOk = await keyringSet(`${URL_KEYRING}:${bootstrapId}`, url);
+      if (urlOk) {
+        if (hwid.trim()) {
+          await keyringSet(`${HWID_KEYRING}:${bootstrapId}`, hwid);
+        }
+        set({ subscriptions: [bootstrapSub], primaryId: bootstrapId });
+        saveSubsIndex([bootstrapId]);
+      } else {
+        // Keyring недоступен — ставим только in-memory state без
+        // index'а. На след. старте Welcome заново; индекс не сломан.
+        set({ subscriptions: [bootstrapSub], primaryId: bootstrapId });
+        console.warn(
+          "[subscription] bootstrap keyring write failed — index НЕ обновлён, данные не переживут restart"
+        );
       }
     }
 

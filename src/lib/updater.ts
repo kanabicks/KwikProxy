@@ -125,6 +125,14 @@ export async function downloadAndInstall(
   }
   await new Promise((r) => setTimeout(r, 1500));
 
+  // 0.3.3 fix: ещё ~300мс на дренаж IPC-очереди фронта. Subscription
+  // store может иметь in-flight `secure_storage_set` (URL подписки),
+  // которые если не успели долететь до Rust до relaunch'а — теряются,
+  // и при следующем старте URL «исчезает» (loadSecureCreds не находит
+  // запись в keyring, а индекс в localStorage уже есть → корявое
+  // состояние). 300мс — короткое окно, юзер уже видит progress NSIS.
+  await new Promise((r) => setTimeout(r, 300));
+
   // installMode=passive в tauri.conf.json — NSIS запускается с минимумом
   // UI и сам перезапускает app, но Tauri рекомендует звать relaunch()
   // на случай если NSIS не успел перехватить.

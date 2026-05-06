@@ -134,6 +134,14 @@ pub fn quit_app(app: &AppHandle) {
     let _ = platform::proxy::clear_system_proxy();
     // Helper-сервис не трогаем — он остаётся жить, ждёт следующего запуска
     // приложения (так быстрее first-connect, не нужно UAC заново).
+    //
+    // 0.3.3 fix: грейс-период перед exit. Фронт может иметь in-flight
+    // IPC-команды (особенно `secure_storage_set` от subscription store)
+    // которые не успели долететь до Rust-handler'ов. exit(0) их
+    // прерывает — keyring остаётся без записанных данных, на следующем
+    // старте URL подписки «исчезает». 200мс — короткое окно которое
+    // юзер не замечает, но обычно достаточно для дренажа очереди IPC.
+    std::thread::sleep(std::time::Duration::from_millis(200));
     app.exit(0);
 }
 
