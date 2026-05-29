@@ -1,6 +1,6 @@
 [package]
 name = "vpn-client"
-version = "0.3.3"
+version = "0.3.4"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -67,7 +67,14 @@ winreg = "0.52"
 windows-service = "0.7"
 # Защищённое хранилище для секретов (URL подписки, HWID-override).
 # Использует Windows Credential Manager через keyring-rs (этап 6.A).
-keyring = "3"
+#
+# КРИТИЧНО: фича `windows-native` обязательна. В keyring v3 платформенные
+# backend'ы стали feature-gated (в v2 были включены по умолчанию). Без неё
+# крейт молча использует in-memory mock-store: `set_password` возвращает
+# Ok, но в Credential Manager НИЧЕГО не пишется → после перезапуска
+# `get_password` → NoEntry → URL подписки «исчезает». Это была корневая
+# причина бага «подписка не сохраняется при перезапуске» (0.3.4).
+keyring = { version = "3", features = ["windows-native"] }
 windows-sys = { version = "0.59", features = [
     "Win32_Foundation",
     "Win32_Security",
