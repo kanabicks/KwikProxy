@@ -20,7 +20,7 @@ use ipc::commands::{
     mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_servers, preview_server_config,
     read_xray_log, recover_network, restore_proxy_backup, routing_add_static, routing_add_url,
     routing_list, routing_refresh, routing_remove, routing_set_active, secure_storage_delete,
-    secure_storage_get, secure_storage_set, show_floating_window, shutdown_helper,
+    secure_storage_get, secure_storage_set, set_servers, show_floating_window, shutdown_helper,
     tray_set_status, KillSwitchState,
 };
 use vpn::{MihomoState, SingBoxState};
@@ -176,6 +176,7 @@ pub fn run() {
             is_xray_running,
             fetch_subscription,
             get_servers,
+            set_servers,
             get_subscription_meta,
             get_hwid,
             ping_servers,

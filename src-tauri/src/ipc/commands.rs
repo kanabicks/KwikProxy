@@ -333,6 +333,24 @@ pub fn get_servers(sub: State<'_, SubscriptionState>) -> Vec<ProxyEntry> {
     sub.servers.lock().map(|g| g.clone()).unwrap_or_default()
 }
 
+/// Заменить runtime-список серверов без сетевого запроса.
+///
+/// `SubscriptionState` живёт только в памяти и теряется на рестарте.
+/// Фронт кеширует серверы в localStorage и на старте заливает их обратно
+/// сюда этой командой — чтобы `connect` (индексирует `sub.servers` по
+/// номеру) работал сразу, без обязательного re-fetch'а подписки по сети.
+/// Это закрывает баг «после перезапуска надо вручную жать загрузить»
+/// (0.3.5). Лишнее поле `subscriptionId` из фронтового ProxyEntry serde
+/// молча игнорирует (нет `deny_unknown_fields`).
+#[tauri::command]
+pub fn set_servers(
+    servers: Vec<ProxyEntry>,
+    sub: State<'_, SubscriptionState>,
+) -> Result<(), String> {
+    *sub.servers.lock().map_err(|e| e.to_string())? = servers;
+    Ok(())
+}
+
 /// Вернуть закешированные метаданные подписки (трафик, срок).
 #[tauri::command]
 pub fn get_subscription_meta(sub: State<'_, SubscriptionState>) -> Option<SubscriptionMeta> {

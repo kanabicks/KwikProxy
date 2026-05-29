@@ -361,6 +361,76 @@ const saveSubsIndex = (ids: string[]) => {
   }
 };
 
+/** localStorage key для кеша серверов всех подписок. `SubscriptionState`
+ *  в Rust живёт только в памяти и теряется на рестарте; без этого кеша
+ *  после перезапуска список серверов пуст и юзеру приходится вручную
+ *  жать «загрузить» (баг 0.3.5). Кешируем servers+meta по subId; на старте
+ *  гидрируем UI мгновенно и заливаем серверы primary обратно в Rust через
+ *  `set_servers` — чтобы connect работал без обязательного сетевого fetch'а. */
+const SERVERS_CACHE_KEY = "nemefisto.servers.cache.v1";
+
+type ServersCacheEntry = {
+  servers: ProxyEntry[];
+  meta: SubscriptionMeta | null;
+};
+type ServersCache = Record<string, ServersCacheEntry>;
+
+const loadServersCache = (): ServersCache => {
+  try {
+    const raw = localStorage.getItem(SERVERS_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as ServersCache)
+      : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveServersCache = (cache: ServersCache) => {
+  try {
+    localStorage.setItem(SERVERS_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // квота/приватный режим — не критично, просто потеряем instant-старт
+  }
+};
+
+/** Записать/обновить кеш серверов одной подписки. */
+const cacheServersFor = (
+  id: string,
+  servers: ProxyEntry[],
+  meta: SubscriptionMeta | null
+) => {
+  const cache = loadServersCache();
+  cache[id] = { servers, meta };
+  saveServersCache(cache);
+};
+
+/** Удалить из кеша записи подписок, которых больше нет (по списку живых id). */
+const pruneServersCache = (liveIds: string[]) => {
+  const cache = loadServersCache();
+  const live = new Set(liveIds);
+  let changed = false;
+  for (const id of Object.keys(cache)) {
+    if (!live.has(id)) {
+      delete cache[id];
+      changed = true;
+    }
+  }
+  if (changed) saveServersCache(cache);
+};
+
+/** Залить список серверов в Rust runtime-state (для connect-by-index без
+ *  сетевого fetch'а). Best-effort — ошибки логируем, не валим старт. */
+const pushServersToRust = async (servers: ProxyEntry[]): Promise<void> => {
+  try {
+    await invoke("set_servers", { servers });
+  } catch (e) {
+    console.warn("[subscription] set_servers failed:", e);
+  }
+};
+
 const genId = (): string => {
   // Безопасный uuid v4 без external crypto.randomUUID для старых runtime'ов.
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -504,6 +574,8 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
     const remaining = subs.filter((s) => s.id !== id);
     set({ subscriptions: remaining });
     saveSubsIndex(remaining.map((s) => s.id));
+    // 0.3.5: вычищаем кеш серверов удалённой подписки.
+    pruneServersCache(remaining.map((s) => s.id));
 
     if (wasPrimary) {
       // Promote first remaining to primary, или если пусто — полная очистка.
@@ -596,6 +668,9 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
             : s
         ),
       });
+      // Кешируем servers+meta в localStorage — переживут рестарт, на
+      // старте гидрируются мгновенно (0.3.5).
+      cacheServersFor(id, tagged, normalized);
       // Если primary — синхронизируем legacy state для backward compat
       // (компоненты вроде vpnStore.connect и старого ServerSelector).
       if (get().primaryId === id) {
@@ -607,6 +682,9 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
           lastFetchedAt: now,
           loading: false,
         });
+        // Rust runtime-state получает серверы primary — connect-by-index
+        // работает без re-fetch'а.
+        void pushServersToRust(tagged);
         // Restore selectedIndex по сохранённому имени (как и в legacy fetch).
         const restoredIndex = findSelectedIndexByName(tagged);
         if (restoredIndex >= 0) {
@@ -837,6 +915,55 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
         );
       }
     }
+
+    // 0.3.5: гидрация серверов из localStorage-кеша. Rust SubscriptionState
+    // пуст на холодном старте, поэтому без этого список серверов пропадает и
+    // юзеру приходится вручную жать «загрузить». Восстанавливаем servers+meta
+    // в UI мгновенно и заливаем серверы primary в Rust (connect-by-index).
+    {
+      const subs = get().subscriptions;
+      const primaryId = get().primaryId;
+      if (subs.length > 0) {
+        const cache = loadServersCache();
+        // Чистим кеш от записей подписок, которых уже нет.
+        pruneServersCache(subs.map((s) => s.id));
+        let hydratedAny = false;
+        const hydrated = subs.map((s) => {
+          const c = cache[s.id];
+          if (c && c.servers.length > 0) {
+            hydratedAny = true;
+            // Перетегируем serversId на случай если кеш писался под другим
+            // (id стабилен, но дешевле гарантировать корректность).
+            const tagged = c.servers.map((e) => ({
+              ...e,
+              subscriptionId: s.id,
+            }));
+            return { ...s, servers: tagged, meta: c.meta ?? s.meta };
+          }
+          return s;
+        });
+        if (hydratedAny) {
+          set({ subscriptions: hydrated });
+          const primary = hydrated.find((s) => s.id === primaryId);
+          if (primary && primary.servers.length > 0) {
+            set({
+              servers: primary.servers,
+              meta: primary.meta,
+              pings: [],
+            });
+            // Rust runtime-state получает серверы primary — connect работает
+            // без обязательного сетевого fetch'а.
+            void pushServersToRust(primary.servers);
+            const restoredIndex = findSelectedIndexByName(primary.servers);
+            if (restoredIndex >= 0) {
+              useVpnStore.setState({ selectedIndex: restoredIndex });
+            } else if (primary.servers.length === 1) {
+              useVpnStore.setState({ selectedIndex: 0 });
+            }
+          }
+        }
+      }
+    }
   },
 
   async fetchSubscription() {
@@ -941,6 +1068,9 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
               : s
           ),
         });
+        // Кешируем для instant-старта после рестарта (0.3.5). Rust
+        // runtime-state уже наполнен самой командой fetch_subscription.
+        cacheServersFor(primaryId, tagged, normalized);
       }
       // 0.2.4: восстанавливаем выбранный сервер ПО ИМЕНИ. После refetch
       // массив пересоздаётся, индексы сбиваются — поэтому ищем по
@@ -1131,9 +1261,13 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       localStorage.removeItem(LAST_FETCH_KEY);
       localStorage.removeItem("nemefisto.selectedServerName.v1");
       localStorage.removeItem(SUBS_INDEX_KEY);
+      localStorage.removeItem(SERVERS_CACHE_KEY);
     } catch {
       // приватный режим — игнорируем
     }
+    // Rust runtime-state тоже обнуляем — иначе orphan-серверы прошлой
+    // подписки останутся в памяти до рестарта.
+    void pushServersToRust([]);
 
     // 3. Сбрасываем in-memory state (multi + legacy) и selectedIndex в vpnStore.
     set({

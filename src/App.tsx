@@ -150,9 +150,22 @@ function App() {
     // (с миграцией из localStorage при первом запуске). Делаем до
     // refreshOnOpen, чтобы fetchSubscription использовал актуальный URL.
     void loadSecureCreds().then(() => {
+      // 0.3.5: loadSecureCreds гидрирует серверы из localStorage-кеша.
+      const st = useSubscriptionStore.getState();
+      const hasServers = st.servers.length > 0;
+      const hasSubscription =
+        st.subscriptions.length > 0 || st.url.trim().length > 0;
       if (refreshOnOpen) {
+        // Явное обновление: UI уже показывает кеш, фетч обновит в фоне.
+        void fetchSubscription();
+      } else if (!hasServers && hasSubscription) {
+        // Кеша серверов нет (первый старт после апдейта, или cache-miss),
+        // но подписка есть — делаем один тихий фетч, чтобы юзеру НЕ
+        // приходилось вручную жать «загрузить». Дальше серверы кешируются
+        // и последующие старты — мгновенные без сети.
         void fetchSubscription();
       } else if (pingOnOpen) {
+        // Серверы из кеша уже на экране — просто пингуем.
         void pingAll();
       }
     });
