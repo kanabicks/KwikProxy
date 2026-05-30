@@ -1,10 +1,10 @@
-//! Cleanup orphan TUN-ресурсов (legacy от tun2proxy + sing-box/mihomo
-//! built-in TUN, если они упали kill -9 не убрав адаптер) и поиск
-//! активного нашего TUN-адаптера для kill-switch'а.
+//! Cleanup orphan TUN-ресурсов (legacy от tun2proxy + mihomo built-in
+//! TUN, а также адаптеры старых версий со sing-box, если они упали
+//! kill -9 не убрав адаптер) и поиск активного нашего TUN-адаптера для
+//! kill-switch'а.
 //!
-//! sing-box миграция (0.1.2): tun2proxy spawn (`start()` / `stop()`)
-//! выпилен — sing-box и mihomo делают TUN сами через built-in inbound.
-//! Этот модуль остался только для:
+//! TUN делает сам движок Mihomo через built-in inbound (tun2proxy spawn
+//! давно выпилен). Этот модуль остался только для:
 //!
 //! 1. **`cleanup_orphan_resources()`** — на старте helper-сервиса чистит
 //!    остатки от упавших сессий: nemefisto-* WinTUN-адаптеры и наши

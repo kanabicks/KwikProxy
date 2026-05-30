@@ -17,13 +17,14 @@ use ipc::commands::{
     get_servers,
     get_subscription_meta, has_proxy_backup, hide_floating_window, is_xray_running,
     kill_switch_apply, kill_switch_force_cleanup, kill_switch_heartbeat, leak_test,
-    mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_servers, preview_server_config,
+    mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_mihomo_nodes, ping_servers,
+    preview_server_config,
     read_xray_log, recover_network, restore_proxy_backup, routing_add_static, routing_add_url,
     routing_list, routing_refresh, routing_remove, routing_set_active, secure_storage_delete,
     secure_storage_get, secure_storage_set, set_servers, show_floating_window, shutdown_helper,
     tray_set_status, KillSwitchState,
 };
-use vpn::{MihomoState, SingBoxState};
+use vpn::MihomoState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -69,7 +70,6 @@ pub fn run() {
         // под именем productName из tauri.conf.json.
         .plugin(tauri_plugin_notification::init())
         .manage(MihomoState::new())
-        .manage(SingBoxState::new())
         .manage(vpn::MihomoApiState::new())
         .manage(SubscriptionState::new())
         .manage(KillSwitchState::new())
@@ -202,6 +202,7 @@ pub fn run() {
             get_subscription_meta,
             get_hwid,
             ping_servers,
+            ping_mihomo_nodes,
             read_xray_log,
             has_proxy_backup,
             restore_proxy_backup,

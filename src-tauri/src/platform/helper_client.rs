@@ -73,16 +73,6 @@ pub enum HelperRequest {
     },
     /// 13.L: остановить SYSTEM-spawned mihomo. Идемпотентно.
     MihomoStop,
-    /// sing-box миграция (v7): запустить sing-box как SYSTEM-процесс
-    /// для built-in TUN-режима (CreateAdapter WinTUN требует админа).
-    SingBoxStart {
-        config_path: String,
-        singbox_exe_path: String,
-        data_dir: String,
-    },
-    /// sing-box миграция (v7): остановить SYSTEM-spawned sing-box.
-    /// Идемпотентно.
-    SingBoxStop,
     /// 0.3.1 / installer file-lock fix: graceful self-shutdown helper'а.
     /// Helper закрывает свой `.exe`-handle через SCM, после чего installer
     /// может перезаписать файл без admin-прав.
@@ -276,38 +266,6 @@ pub async fn mihomo_start(
 /// не запускал mihomo, вернёт Ok сразу.
 pub async fn mihomo_stop() -> Result<()> {
     let resp = send(HelperRequest::MihomoStop).await?;
-    match resp {
-        HelperResponse::Ok => Ok(()),
-        HelperResponse::Error { message } => bail!("{message}"),
-        other => bail!("неожиданный ответ helper: {other:?}"),
-    }
-}
-
-/// sing-box миграция: spawn sing-box как SYSTEM-процесс через helper.
-/// Используется в built-in TUN-режиме где требуются админ-права на
-/// CreateAdapter. Семантически зеркалит `mihomo_start`.
-pub async fn singbox_start(
-    config_path: String,
-    singbox_exe_path: String,
-    data_dir: String,
-) -> Result<()> {
-    let resp = send(HelperRequest::SingBoxStart {
-        config_path,
-        singbox_exe_path,
-        data_dir,
-    })
-    .await?;
-    match resp {
-        HelperResponse::Ok => Ok(()),
-        HelperResponse::Error { message } => bail!("{message}"),
-        other => bail!("неожиданный ответ helper: {other:?}"),
-    }
-}
-
-/// Остановить SYSTEM-spawned sing-box. Идемпотентно — если helper не
-/// запускал sing-box, вернёт Ok сразу.
-pub async fn singbox_stop() -> Result<()> {
-    let resp = send(HelperRequest::SingBoxStop).await?;
     match resp {
         HelperResponse::Ok => Ok(()),
         HelperResponse::Error { message } => bail!("{message}"),

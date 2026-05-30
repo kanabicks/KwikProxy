@@ -48,20 +48,21 @@ export async function checkForUpdates(): Promise<AvailableUpdate | null> {
 }
 
 /**
- * Скачивает и устанавливает обновление. После успешной установки
- * автоматически перезапускает приложение через `plugin-process`.
+ * Шаг 1 — СКАЧАТЬ обновление в фоне. **VPN не выключается** — это просто
+ * загрузка байтов NSIS-installer'а (~44 МБ) на диск, движок продолжает
+ * работать. Установка (с disconnect'ом и перезапуском) — отдельным шагом
+ * `installUpdate()` после явного согласия пользователя.
  *
- * `onProgress` зовётся после каждого chunk'а с прогрессом 0..1
- * (downloaded / contentLength). NSIS у нас обычно ~44 МБ.
+ * `onProgress` зовётся после каждого chunk'а с прогрессом 0..1.
  */
-export async function downloadAndInstall(
+export async function downloadUpdate(
   update: AvailableUpdate,
   onProgress?: (fraction: number) => void,
 ): Promise<void> {
   let downloaded = 0;
   let total = 0;
 
-  await update.handle.downloadAndInstall((event) => {
+  await update.handle.download((event) => {
     switch (event.event) {
       case "Started":
         total = event.data.contentLength ?? 0;
@@ -78,63 +79,42 @@ export async function downloadAndInstall(
         break;
     }
   });
+}
 
-  // 0.3.2 / sing-box file-lock fix: перед shutdown'ом helper'а нужно
-  // полноценно дисконнектить VPN — иначе sing-box (либо как Tauri
-  // sidecar в proxy-mode, либо как SYSTEM-spawned child helper'а в
-  // TUN-mode) продолжит работать как orphan-процесс и залочит свой
-  // .exe. NSIS installer не сможет перезаписать `sing-box-*.exe`.
-  //
-  // `disconnect` грациозно стопит ОБА движка через нормальный pipeline
-  // (sing_box::stop / mihomo::stop в commands.rs). После этого sing-box
-  // и mihomo .exe-файлы свободны для перезаписи installer'ом.
+/**
+ * Шаг 2 — УСТАНОВИТЬ уже скачанное обновление и перезапустить приложение.
+ * Вот здесь (и только здесь) VPN отключается: NSIS-installer не сможет
+ * перезаписать `mihomo-*.exe` / `nemefisto-helper.exe` пока они залочены
+ * запущенными процессами. Поэтому грациозно стопим движок и helper, ждём
+ * освобождения файлов, затем `install()` + `relaunch()`.
+ */
+export async function installUpdate(update: AvailableUpdate): Promise<void> {
+  // 0.3.2 / file-lock fix: дисконнектим VPN — иначе mihomo (Tauri sidecar
+  // в proxy-mode или SYSTEM-spawned child helper'а в TUN-mode) останется
+  // orphan-процессом и залочит свой .exe.
   try {
     await invoke("disconnect");
   } catch (e) {
-    // Если disconnect упал — продолжаем. Возможно VPN уже отключён,
-    // либо помешал internal error. NSIS hook (Fix C / installer-hooks.nsh)
-    // и helper-side stop_self с stop'ом детей (Fix 2) — defensive backup.
     console.warn("[updater] disconnect failed:", e);
   }
   await new Promise((r) => setTimeout(r, 1500));
 
-  // 0.3.1 / installer file-lock fix: перед перезапуском (которое
-  // запускает NSIS installer в passive mode) грациозно стопим helper.
-  // Иначе NSIS не сможет перезаписать `nemefisto-helper.exe` (Windows
-  // service держит open handle на файл) → "невозможно открыть файл для
-  // записи" + abort. Helper после этого недоступен ~до первого connect,
-  // там helper_bootstrap поднимет его заново.
-  //
-  // 0.3.2: helper при ShutdownHelper также стопит своих детей
-  // (sing-box, mihomo) — на случай если frontend disconnect выше
-  // не отработал и helper остался с running child'ами.
-  //
-  // Ждём ~1.5с после команды чтобы SCM успел маршрутизировать
-  // SERVICE_CONTROL_STOP, helper'у завершить pipe-loop и SCM пометить
-  // сервис STOPPED. Эмпирически 200мс задержки внутри helper'а + ~300мс
-  // на pipe-disconnect и SCM-state-update должно укладываться, но
-  // 1500мс — щедрый запас на медленных машинах.
+  // 0.3.1: грациозно стопим helper (Windows service держит handle на
+  // nemefisto-helper.exe). 0.3.2: helper при ShutdownHelper также стопит
+  // своих детей (mihomo). 1500мс — запас на SCM routing + pipe-disconnect.
   try {
     await invoke("shutdown_helper");
   } catch (e) {
-    // Не критично: если helper уже не работает или pipe сломан — мы
-    // всё равно идём дальше. NSIS попытается перезаписать, и в худшем
-    // случае пользователь увидит тот же диалог что и раньше — это не
-    // регрессия по сравнению с поведением до фикса.
     console.warn("[updater] shutdown_helper failed:", e);
   }
   await new Promise((r) => setTimeout(r, 1500));
 
-  // 0.3.3 fix: ещё ~300мс на дренаж IPC-очереди фронта. Subscription
-  // store может иметь in-flight `secure_storage_set` (URL подписки),
-  // которые если не успели долететь до Rust до relaunch'а — теряются,
-  // и при следующем старте URL «исчезает» (loadSecureCreds не находит
-  // запись в keyring, а индекс в localStorage уже есть → корявое
-  // состояние). 300мс — короткое окно, юзер уже видит progress NSIS.
+  // 0.3.3: ещё ~300мс на дренаж IPC-очереди (in-flight secure_storage_set
+  // с URL подписки — иначе при следующем старте URL «исчезает»).
   await new Promise((r) => setTimeout(r, 300));
 
-  // installMode=passive в tauri.conf.json — NSIS запускается с минимумом
-  // UI и сам перезапускает app, но Tauri рекомендует звать relaunch()
-  // на случай если NSIS не успел перехватить.
+  // Запускаем уже скачанный installer (installMode=passive) и
+  // перезапускаем app.
+  await update.handle.install();
   await relaunch();
 }

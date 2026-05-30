@@ -2,10 +2,15 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { useVpnStore, findSelectedIndexByName } from "../stores/vpnStore";
-import { useSubscriptionStore } from "../stores/subscriptionStore";
+import {
+  useSubscriptionStore,
+  type ProxyEntry,
+} from "../stores/subscriptionStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { showToast } from "../stores/toastStore";
 import { Welcome } from "./Welcome";
 import { ModeSegment } from "./ModeSegment";
+import { MihomoGroupsInline } from "./MihomoGroupsInline";
 import {
   PowerIcon,
   SettingsIcon,
@@ -51,6 +56,13 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
   const [sheet, setSheet] = useState<null | "pick" | "add">(null);
   // Фаза закрытия: проигрываем exit-анимацию, затем размонтируем.
   const [closing, setClosing] = useState(false);
+  // Идёт delay-test групп mihomo (для спиннера на кнопке пинга).
+  const [mihomoTesting, setMihomoTesting] = useState(false);
+  // Pre-connect TCP-пинги нод mihomo-профиля (имя → мс|null). До подключения
+  // живого latency нет — показываем эти на карточках сетки.
+  const [mihomoPings, setMihomoPings] = useState<Record<string, number | null>>(
+    {}
+  );
   const closeSheet = () => {
     setClosing(true);
     window.setTimeout(() => {
@@ -63,6 +75,80 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
   const isBusy = status === "starting" || status === "stopping";
   const selected = selectedIndex !== null ? servers[selectedIndex] : null;
   const activeSub = subscriptions.find((s) => s.id === primaryId) ?? null;
+  // Full-mihomo подписка (YAML с proxy-groups) приходит одной синтетической
+  // записью protocol="mihomo-profile". Её ноды разворачиваем сеткой через
+  // MihomoGroupsInline (страновые карточки), а не показываем одинокую строку
+  // «Профиль Mihomo».
+  const isMihomoProfile = servers.some((s) => s.protocol === "mihomo-profile");
+
+  // Пинг для mihomo-профиля.
+  //  • ДО connect: TCP-пинг адресов нод (server:port из raw.proxies) через
+  //    backend `ping_mihomo_nodes` — как обычный server-list. Результат
+  //    кладём в mihomoPings → сетка показывает его на карточках.
+  //  • ПОСЛЕ connect: delay-test нод через external-controller; результат
+  //    подхватит MihomoGroupsInline своим 3-сек поллингом (live latency).
+  const pingMihomo = async () => {
+    if (mihomoTesting) return;
+    const profile = servers.find((s) => s.protocol === "mihomo-profile");
+    setMihomoTesting(true);
+    try {
+      if (isRunning) {
+        // live: имена берём из движка, гоняем delay-test (пул 12).
+        const SKIP = new Set([
+          "GLOBAL",
+          "DIRECT",
+          "REJECT",
+          "REJECT-DROP",
+          "COMPATIBLE",
+          "PASS",
+        ]);
+        let names: string[] = [];
+        try {
+          const snap = await invoke<{
+            proxies: Record<string, { name: string; type: string }>;
+          }>("mihomo_proxies");
+          names = Object.values(snap.proxies)
+            .filter((p) => !SKIP.has(p.name))
+            .map((p) => p.name);
+        } catch {
+          names = nodeListOf(profile).map((n) => n.name);
+        }
+        if (names.length === 0) {
+          showToast({ kind: "info", title: "Пинг", message: "Нет нод" });
+          return;
+        }
+        const POOL = 12;
+        let i = 0;
+        const worker = async () => {
+          while (i < names.length) {
+            const name = names[i++];
+            await invoke("mihomo_delay_test", { name }).catch(() => {});
+          }
+        };
+        await Promise.all(
+          Array.from({ length: Math.min(POOL, names.length) }, worker)
+        );
+      } else {
+        // pre-connect: TCP-пинг адресов нод.
+        const nodes = nodeListOf(profile);
+        if (nodes.length === 0) {
+          showToast({ kind: "info", title: "Пинг", message: "Нет нод" });
+          return;
+        }
+        const res = await invoke<Array<[string, number | null]>>(
+          "ping_mihomo_nodes",
+          { nodes }
+        );
+        const map: Record<string, number | null> = {};
+        for (const [name, ms] of res) map[name] = ms;
+        setMihomoPings(map);
+      }
+    } catch (e) {
+      showToast({ kind: "error", title: "Пинг", message: String(e) });
+    } finally {
+      setMihomoTesting(false);
+    }
+  };
 
   const toggle = () => {
     if (isBusy) return;
@@ -174,8 +260,10 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
 
       <main className="soft-sheet">
         <div className="soft-sheet-head">
-          <span className="soft-sheet-title">Серверы</span>
-          <span className="soft-sheet-count">{servers.length}</span>
+          <span className="soft-sheet-title">
+            {isMihomoProfile ? "Локации" : "Серверы"}
+          </span>
+          <span className="soft-sheet-count">{nodeCountOf(servers)}</span>
           <span className="soft-sheet-spacer" />
           <button
             type="button"
@@ -186,40 +274,53 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
           >
             <RefreshIcon />
           </button>
+          {/* Тест пинга. Обычный список — pingAll (ping_servers).
+              mihomo-профиль — pingMihomo: до connect TCP-пинг адресов нод,
+              после connect — delay-test через external-controller. */}
           <button
             type="button"
-            className={`soft-iconbtn${pingsLoading ? " is-pulse" : ""}`}
+            className={`soft-iconbtn${
+              (isMihomoProfile ? mihomoTesting : pingsLoading) ? " is-pulse" : ""
+            }`}
             title="Тест пинга"
-            disabled={pingsLoading}
-            onClick={() => void pingAll()}
+            disabled={isMihomoProfile ? mihomoTesting : pingsLoading}
+            onClick={() =>
+              isMihomoProfile ? void pingMihomo() : void pingAll()
+            }
           >
             <PulseIcon />
           </button>
         </div>
 
-        <div className="soft-rows">
-          {servers.map((s, i) => {
-            const ping = pings[i];
-            const sel = i === selectedIndex;
-            const { flag, label } = splitFlag(s.name);
-            return (
-              <button
-                key={`${s.subscriptionId ?? "x"}-${s.name}-${i}`}
-                type="button"
-                className="soft-row"
-                data-sel={sel}
-                onClick={() => selectServer(i)}
-              >
-                <span className="soft-row-check" aria-hidden />
-                {flag && <span className="soft-row-flag">{flag}</span>}
-                <span className="soft-row-title">{label}</span>
-                <span className={`soft-row-ping${pingClass(ping)}`}>
-                  {ping != null ? `${ping} ms` : "—"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {isMihomoProfile ? (
+          <div className="soft-rows soft-mihomo">
+            <MihomoGroupsInline staticPings={mihomoPings} />
+          </div>
+        ) : (
+          <div className="soft-rows">
+            {servers.map((s, i) => {
+              const ping = pings[i];
+              const sel = i === selectedIndex;
+              const { flag, label } = splitFlag(s.name);
+              return (
+                <button
+                  key={`${s.subscriptionId ?? "x"}-${s.name}-${i}`}
+                  type="button"
+                  className="soft-row"
+                  data-sel={sel}
+                  onClick={() => selectServer(i)}
+                >
+                  <span className="soft-row-check" aria-hidden />
+                  {flag && <span className="soft-row-flag">{flag}</span>}
+                  <span className="soft-row-title">{label}</span>
+                  <span className={`soft-row-ping${pingClass(ping)}`}>
+                    {ping != null ? `${ping} ms` : "—"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       <SoftDock
@@ -358,7 +459,7 @@ function PickSheet({
                     {active && <span className="soft-pick-badge">активна</span>}
                   </span>
                   <span className="soft-pick-meta">
-                    {trafficLabel(s.meta)} · {s.servers.length} серв.
+                    {trafficLabel(s.meta)} · {nodeCountOf(s.servers)} серв.
                   </span>
                 </button>
                 {confirmId === s.id ? (
@@ -463,6 +564,38 @@ function AddSheet({
       </div>
     </div>
   );
+}
+
+/** Кол-во нод для отображения. Для mihomo-профиля одна запись-«профиль»
+ *  представляет N нод — берём их число из raw.proxy_count / raw.proxies,
+ *  а не длину массива servers (=1). Для обычного списка — число серверов. */
+function nodeCountOf(list: ProxyEntry[]): number {
+  const prof = list.find((s) => s.protocol === "mihomo-profile");
+  if (!prof) return list.length;
+  const raw = prof.raw as
+    | { proxy_count?: number; proxies?: unknown[] }
+    | undefined;
+  if (typeof raw?.proxy_count === "number" && raw.proxy_count > 0)
+    return raw.proxy_count;
+  if (Array.isArray(raw?.proxies)) return raw.proxies.length;
+  return list.length;
+}
+
+/** Список нод mihomo-профиля для TCP-пинга: {name, server, port}.
+ *  Поля совпадают с backend-структурой MihomoNodePing. */
+function nodeListOf(
+  profile: ProxyEntry | undefined
+): Array<{ name: string; server: string; port: number }> {
+  const raw = profile?.raw as
+    | { proxies?: Array<{ name?: string; server?: string; port?: number }> }
+    | undefined;
+  return (raw?.proxies ?? [])
+    .filter((p) => p.name)
+    .map((p) => ({
+      name: p.name as string,
+      server: p.server ?? "",
+      port: p.port ?? 0,
+    }));
 }
 
 /** Цветовой класс пинга: зелёный/жёлтый/красный. */

@@ -27,7 +27,7 @@ static RUNNING: AtomicBool = AtomicBool::new(false);
 /// в KB/s / MB/s. `iface` опционально — если null, измерения нет
 /// (default-route не определён, например только что после reboot).
 ///
-/// `engine_memory_bytes` — Working Set всех запущенных sing-box / mihomo
+/// `engine_memory_bytes` — Working Set всех запущенных mihomo
 /// процессов суммарно в байтах. `None` если ни одного движка не запущено
 /// (VPN отключён, или старт ещё не завершился). Эмитим в том же tick'е
 /// чтобы фронт не открывал второй listener — поллинг 1Hz одинаковый.
@@ -71,7 +71,7 @@ pub fn start(app: AppHandle) {
                 );
             }
 
-            // 13.X: память движков (sing-box + mihomo). Дёшево — один
+            // 13.X: память движка mihomo. Дёшево — один
             // EnumProcesses + GetProcessMemoryInfo per matching process.
             // Если ни одного — None, фронт прячет индикатор.
             let engine_memory_bytes = super::process_memory::engine_memory_bytes();

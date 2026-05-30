@@ -5,8 +5,10 @@
  *   idle ──checkForUpdates()──▶ checking
  *   checking ─update найден─▶ available
  *   checking ─нет update'а──▶ idle
- *   available ─юзер нажал «обновить»─▶ downloading (progress)
- *   downloading ─успех──▶ installed (relaunch автоматом)
+ *   available ─юзер нажал «скачать»─▶ downloading (progress) — VPN РАБОТАЕТ
+ *   downloading ─успех──▶ downloaded — скачано, ждём согласия установить
+ *   downloaded ─юзер нажал «обновить»─▶ installing — VPN отключается
+ *   installing ─успех──▶ installed (relaunch автоматом)
  *   any ─ошибка──▶ error → idle через 5с
  *
  * `dismissed` — в settings.dismissedUpdateVersions, не здесь.
@@ -21,6 +23,8 @@ export type UpdateState =
   | { kind: "checking" }
   | { kind: "available"; update: AvailableUpdate }
   | { kind: "downloading"; update: AvailableUpdate; progress: number }
+  | { kind: "downloaded"; update: AvailableUpdate }
+  | { kind: "installing"; update: AvailableUpdate }
   | { kind: "installed" }
   | { kind: "error"; message: string };
 

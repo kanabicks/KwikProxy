@@ -529,10 +529,10 @@ fn build_subscription_meta(headers: &reqwest::header::HeaderMap) -> Option<Subsc
         &["none", "fluent", "cupertino", "vice", "arcade", "glacier"],
     );
     meta.mode = header_enum("x-nemefisto-mode", &["proxy", "tun"]);
-    // sing-box миграция (0.1.2): принимаем "xray" из старых подписок
-    // (server-driven X-Nemefisto-Engine) — на фронте это маппится в
-    // "sing-box". Whitelist расширяем чтобы не дропать legacy-значение.
-    meta.engine = header_enum("x-nemefisto-engine", &["sing-box", "mihomo", "xray"]);
+    // Mihomo-only: единственный движок. Заголовок X-Nemefisto-Engine
+    // принимаем только со значением "mihomo"; legacy "xray"/"sing-box"
+    // молча игнорируем (фронт всё равно форсит mihomo).
+    meta.engine = header_enum("x-nemefisto-engine", &["mihomo"]);
 
     // Anti-DPI заголовки (этап 10)
     let header_bool = |name: &str| -> Option<bool> {
@@ -663,17 +663,18 @@ fn parse_proxy_uri(uri: &str) -> Result<ProxyEntry> {
     }
 }
 
-/// Стандартная пара движков для протоколов, поддерживаемых обоими ядрами.
-/// sing-box миграция (0.1.2): "xray" → "sing-box". sing-box покрывает
-/// все xray-совместимые протоколы (vless/vmess/trojan/ss/hy2/wg/socks)
-/// плюс TUIC.
+/// Маркер совместимости движка для стандартных протоколов.
+/// Mihomo-only архитектура: единственный движок — Mihomo, который
+/// покрывает все актуальные протоколы (vless/vmess/trojan/ss/hy2/wg/
+/// socks/tuic/anytls). Имя функции сохранено для совместимости с
+/// многочисленными call-site'ами в парсерах.
 fn engines_both() -> Vec<String> {
-    vec!["sing-box".to_string(), "mihomo".to_string()]
+    vec!["mihomo".to_string()]
 }
 
-/// Только Mihomo. Используется для протоколов, которые sing-box upstream
-/// нативно НЕ поддерживает: **AnyTLS**. TUIC поддержан и sing-box и Mihomo
-/// (теперь в `engines_both()`).
+/// Только Mihomo. Сейчас эквивалентно `engines_both()` (движок один),
+/// но имя сохранено для семантической ясности на call-site'ах
+/// (AnyTLS и т.п.).
 fn engines_mihomo_only() -> Vec<String> {
     vec!["mihomo".to_string()]
 }
@@ -1115,10 +1116,13 @@ fn parse_xray_json(text: &str) -> Result<Vec<ProxyEntry>> {
                 server: "127.0.0.1".to_string(),
                 port: 0,
                 raw: cfg,
-                // sing-box миграция (0.1.2): xray-json конвертируется в
-                // sing-box JSON через `convert_xray_json_to_singbox`.
-                // Mihomo формат не понимает — поэтому только sing-box.
-                engine_compat: vec!["sing-box".to_string()],
+                // Mihomo-only: не-нормализуемый xray-json (balancer /
+                // кастомный routing / экзотический протокол) движок Mihomo
+                // не понимает. Помечаем как `xray-json` — это НЕ "mihomo",
+                // поэтому connect() корректно отклонит такой сервер с
+                // понятным сообщением. Нормализуемые конфиги выше уже
+                // вернули обычный ProxyEntry с engine_compat=mihomo.
+                engine_compat: vec!["xray-json".to_string()],
             }
         })
         .collect();
@@ -1678,10 +1682,18 @@ fn mihomo_profile_entry(
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .to_string();
+                    // port нужен для pre-connect TCP-пинга нод (UI «тест
+                    // пинга» до подключения). YAML может хранить port как
+                    // число или строку — берём оба варианта.
+                    let port = m
+                        .get("port")
+                        .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+                        .unwrap_or(0);
                     Some(serde_json::json!({
                         "name": name,
                         "type": proxy_type,
                         "server": server,
+                        "port": port,
                     }))
                 })
                 .collect()

@@ -898,6 +898,7 @@ input, textarea { font: inherit; cursor: text; }
   flex-direction: column;
   gap: 2px;
   margin-top: 0;
+  padding-top: 0;
 }
 .sub-meta-servers .mihomo-card {
   display: flex;
@@ -2033,7 +2034,7 @@ input, textarea { font: inherit; cursor: text; }
   color: var(--text);
 }
 
-/* ── ServerPreviewModal: превью конфига (raw + generated sing-box) ─── */
+/* ── ServerPreviewModal: превью конфига (raw + generated mihomo) ─── */
 .preview-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2669,7 +2670,9 @@ input, textarea { font: inherit; cursor: text; }
   flex-shrink: 0;
 }
 
-/* ── Engine badge (8.B) ──────────────────────────────────────────────── */
+/* ── Engine badge ─────────────────────────────────────────────────────
+   Mihomo-only: бейдж теперь маркирует только серверы, несовместимые
+   с Mihomo (не-нормализуемый xray-json) — предупреждающий "!". */
 .engine-badge {
   font-family: var(--mono);
   font-size: 8px;
@@ -2682,13 +2685,9 @@ input, textarea { font: inherit; cursor: text; }
   color: var(--fg-mute);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.engine-badge[data-engine="mihomo"] {
-  color: #ffb74d;
-  border-color: rgba(255, 183, 77, 0.3);
-}
-.engine-badge[data-engine="xray"] {
-  color: #81c784;
-  border-color: rgba(129, 199, 132, 0.3);
+.engine-badge[data-engine="incompatible"] {
+  color: #ff7878;
+  border-color: rgba(240, 96, 96, 0.3);
 }
 
 /* ── Пинги ───────────────────────────────────────────────────────────── */
@@ -2839,11 +2838,28 @@ input, textarea { font: inherit; cursor: text; }
   text-align: center;
 }
 
+/* Обёртка для анимации разворота/сворота группы: grid-template-rows
+   1fr↔0fr — плавное схлопывание высоты (Chromium/WebView2 поддерживает
+   transition на этом свойстве). Внутренний .mihomo-grid с overflow:hidden
+   + min-height:0 позволяет ему сжаться ниже content-size. */
+.mihomo-grid-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.28s ease, opacity 0.22s ease;
+}
+.mihomo-grid-wrap.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
 .mihomo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
-  margin-top: 12px;
+  /* padding-top (не margin-top) — чтобы спейсинг клипался overflow:hidden
+     при сворачивании, а не оставлял зазор в свёрнутом состоянии. */
+  padding-top: 12px;
+  overflow: hidden;
+  min-height: 0;
 }
 .mihomo-card {
   position: relative;

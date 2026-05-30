@@ -29,10 +29,11 @@
   ; реагирует на SERVICE_CONTROL_STOP), пробуем kill. Тоже требует
   ; админа на SYSTEM-процесс.
   nsExec::ExecToLog 'taskkill /F /T /IM nemefisto-helper-x86_64-pc-windows-msvc.exe'
-  ; 0.3.2: VPN-движки (sing-box / mihomo) могут остаться orphan'ами после
-  ; helper-shutdown — kill'им их тоже. Tauri-sidecar запущен под user'ом
-  ; (taskkill работает без админа), SYSTEM-spawned требует админ-прав.
-  ; Frontend disconnect должен был их остановить нормально, это backup.
+  ; 0.3.2: движок Mihomo может остаться orphan'ом после helper-shutdown —
+  ; kill'им его тоже. Tauri-sidecar запущен под user'ом (taskkill работает
+  ; без админа), SYSTEM-spawned требует админ-прав. Frontend disconnect
+  ; должен был остановить движок нормально, это backup.
+  ; sing-box-* — legacy cleanup orphan'ов от старых версий клиента.
   nsExec::ExecToLog 'taskkill /F /T /IM sing-box-x86_64-pc-windows-msvc.exe'
   nsExec::ExecToLog 'taskkill /F /T /IM mihomo-x86_64-pc-windows-msvc.exe'
   Sleep 500
@@ -43,7 +44,7 @@
   nsExec::ExecToLog 'sc stop NemefistoHelper'
   Sleep 1500
   nsExec::ExecToLog 'taskkill /F /T /IM nemefisto-helper-x86_64-pc-windows-msvc.exe'
-  ; 0.3.2: kill VPN-движки если ещё живы
+  ; 0.3.2: kill движок Mihomo если ещё жив (+ legacy sing-box orphans)
   nsExec::ExecToLog 'taskkill /F /T /IM sing-box-x86_64-pc-windows-msvc.exe'
   nsExec::ExecToLog 'taskkill /F /T /IM mihomo-x86_64-pc-windows-msvc.exe'
   Sleep 500

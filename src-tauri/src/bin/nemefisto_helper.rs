@@ -1,8 +1,8 @@
 //! Nemefisto VPN Helper — Windows-сервис, выполняющий привилегированные
-//! операции от имени SYSTEM: SYSTEM-spawn VPN-движков (sing-box / mihomo),
-//! настройка WFP-фильтров для kill-switch, очистка orphan-ресурсов.
-//! Built-in TUN inbound движков создаёт WinTUN-адаптер изнутри
-//! SYSTEM-процесса (CreateAdapter требует админа).
+//! операции от имени SYSTEM: SYSTEM-spawn VPN-движка Mihomo, настройка
+//! WFP-фильтров для kill-switch, очистка orphan-ресурсов. Built-in TUN
+//! inbound движка создаёт WinTUN-адаптер изнутри SYSTEM-процесса
+//! (CreateAdapter требует админа).
 //!
 //! User-mode Tauri-приложение общается с этим helper-ом через named pipe
 //! `\\.\pipe\nemefisto-helper` line-delimited JSON-RPC протоколом.
@@ -25,7 +25,6 @@ mod nemefisto_helper {
     pub mod routing;
     pub mod security;
     pub mod service;
-    pub mod sing_box;
     pub mod tun;
     pub mod wfp;
 }
@@ -81,7 +80,7 @@ fn main() {
 
 /// Foreground-режим: pipe-сервер крутится прямо в этой консоли без
 /// регистрации Windows-сервиса. Нужны admin-права (для CreateAdapter
-/// WinTUN внутри sing-box/mihomo и для WFP kill-switch фильтров).
+/// WinTUN внутри mihomo и для WFP kill-switch фильтров).
 /// Ctrl+C — корректное завершение через shutdown-флаг.
 #[cfg(windows)]
 fn run_debug_foreground() -> anyhow::Result<()> {

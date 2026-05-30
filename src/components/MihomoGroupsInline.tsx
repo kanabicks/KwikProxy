@@ -116,12 +116,17 @@ export type MihomoGroupsInlineProps = {
   entry?: ProxyEntry;
   onActivate?: () => void | Promise<void>;
   showSelection?: boolean;
+  /** Pre-connect TCP-пинги нод (имя → мс|null). Когда заданы и движок
+   *  ещё не запущен — показываем их на карточках (до connect живого
+   *  latency нет). После connect используется live-latency из поллинга. */
+  staticPings?: Record<string, number | null>;
 };
 
 export function MihomoGroupsInline({
   entry: entryProp,
   onActivate,
   showSelection = true,
+  staticPings,
 }: MihomoGroupsInlineProps = {}) {
   const { t } = useTranslation();
   const status = useVpnStore((s) => s.status);
@@ -202,8 +207,15 @@ export function MihomoGroupsInline({
     for (const g of all) {
       for (const member of g.all) referenced.add(member);
     }
-    const roots = all.filter((g) => !referenced.has(g.name));
-    return (roots.length > 0 ? roots : all).sort((a, b) =>
+    // Показываем root-группы + ВСЕ Selector-группы (даже вложенные).
+    // Selector — точка ручного выбора пользователя: если её спрятать как
+    // «не-root», вложенные локации (страны) станут недостижимы. Auto-типы
+    // (url-test / fallback / load-balance), на которые ссылается родитель,
+    // остаются карточками внутри родителя — отдельной секцией не дублируем.
+    const visible = all.filter(
+      (g) => !referenced.has(g.name) || g.type === "Selector"
+    );
+    return (visible.length > 0 ? visible : all).sort((a, b) =>
       a.name.localeCompare(b.name)
     );
   }, [snap]);
@@ -377,10 +389,20 @@ export function MihomoGroupsInline({
               </span>
             </header>
 
-            {!isCollapsed && (
+            {/* Сетка всегда смонтирована — сворачивание идёт через CSS
+                (grid-template-rows 1fr↔0fr), чтобы была плавная анимация
+                высоты и opacity, а не мгновенное появление/исчезновение. */}
+            <div
+              className={`mihomo-grid-wrap${isCollapsed ? " is-collapsed" : ""}`}
+            >
               <div className="mihomo-grid">
                 {memberInfos.map((m) => {
-                  const d = lastDelay(m);
+                  // live-режим — latency из поллинга; до connect — из
+                  // переданных pre-connect TCP-пингов (staticPings).
+                  const d = liveMode
+                    ? lastDelay(m)
+                    : staticPings?.[m.name] ?? null;
+                  const showDelay = liveMode || staticPings != null;
                   const isActive = m.name === displayActive;
                   return (
                     <button
@@ -407,7 +429,7 @@ export function MihomoGroupsInline({
                         <span className="mihomo-card-proto">
                           {m.type}
                         </span>
-                        {liveMode && (
+                        {showDelay && (
                           <span className={"mihomo-card-delay " + delayClass(d)}>
                             {delayLabel(d)}
                           </span>
@@ -418,7 +440,7 @@ export function MihomoGroupsInline({
                   );
                 })}
               </div>
-            )}
+            </div>
           </section>
         );
       })}

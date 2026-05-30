@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { effectiveUserAgent, useSettingsStore } from "./settingsStore";
+import { effectiveUserAgent, useSettingsStore, type Engine } from "./settingsStore";
 import { findSelectedIndexByName, useVpnStore } from "./vpnStore";
 import i18n from "../i18n";
 import { showToast } from "./toastStore";
@@ -136,8 +136,9 @@ export type Subscription = {
   loading: boolean;
   error: string | null;
   /** Per-subscription engine override через ⋯ меню карточки.
-   *  null = авто (header X-Nemefisto-Engine → settings.engine fallback). */
-  engineOverride: "sing-box" | "mihomo" | null;
+   *  Mihomo-only: фактически всегда mihomo. Поле сохранено для
+   *  совместимости persisted-структуры. */
+  engineOverride: Engine | null;
   /** 0.3.0 multi-server-list: серверы этой подписки. Tagged
    *  с subscriptionId для group-by-source. */
   servers: ProxyEntry[];
@@ -160,12 +161,9 @@ type SubscriptionStore = {
   /** Назначить primary (обычно UI-переключатель в Welcome / Settings). */
   setPrimaryId: (id: string) => void;
   /** Set engineOverride для подписки (через ⋯ меню → radio выбор). */
-  setEngineOverride: (
-    id: string,
-    engine: "sing-box" | "mihomo" | null
-  ) => void;
-  /** Получить effective engine для подписки: override → header → fallback. */
-  getEffectiveEngine: (id: string) => "sing-box" | "mihomo";
+  setEngineOverride: (id: string, engine: Engine | null) => void;
+  /** Получить effective engine для подписки. Mihomo-only — всегда "mihomo". */
+  getEffectiveEngine: (id: string) => Engine;
   /** Fetch конкретной подписки. Если эта подписка primary, синхронизирует
    *  legacy state.servers/meta для backward compat. Если не primary —
    *  обновляет только sub.servers/meta. Internally делает swap+restore
@@ -612,17 +610,13 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
     });
   },
 
-  getEffectiveEngine(id) {
-    const sub = get().subscriptions.find((s) => s.id === id);
-    if (!sub) return useSettingsStore.getState().engine;
-    // Приоритет: per-subscription override → header X-Nemefisto-Engine
-    // → settings.engine (default fallback). Header «xray» нормализуется
-    // в «sing-box» (после миграции 0.1.2 xray = sing-box семантически).
-    if (sub.engineOverride) return sub.engineOverride;
-    const headerEngine = sub.meta?.engine;
-    if (headerEngine === "mihomo") return "mihomo";
-    if (headerEngine === "sing-box" || headerEngine === "xray") return "sing-box";
-    return useSettingsStore.getState().engine;
+  getEffectiveEngine(_id) {
+    // Mihomo-only (миграция 2026-05): движок всегда Mihomo. sing-box
+    // выпиливается, поэтому per-subscription override и header
+    // X-Nemefisto-Engine больше не влияют — подписка всегда запрашивается
+    // с clash-verge UA и подключается через Mihomo. Сигнатура сохранена
+    // для совместимости вызовов (fetch UA + vpn_connect).
+    return "mihomo";
   },
 
   async fetchSubscriptionById(id) {
@@ -1015,16 +1009,12 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
     }
 
     const settings = useSettingsStore.getState();
-    // 8.B / 0.3.0: эффективный UA зависит от движка. Когда есть primary
-    // подписка с engineOverride или header X-Nemefisto-Engine — берём
-    // её engine, иначе settings.engine. Per-subscription UA для
-    // вторичных подписок реализуется в Этапе 3 через fetchSubscriptionById.
     const primaryId = get().primaryId;
-    const effectiveEngine = primaryId
-      ? get().getEffectiveEngine(primaryId)
-      : settings.engine;
+    // Mihomo-only: движок всегда Mihomo → UA = clash-verge (если юзер не
+    // переопределил userAgent вручную). effectiveUserAgent сам отдаст
+    // DEFAULT_USER_AGENT_MIHOMO при engine="mihomo".
     const ua = effectiveUserAgent(
-      effectiveEngine,
+      "mihomo",
       settings.userAgent,
       settings.userAgentTouched
     );

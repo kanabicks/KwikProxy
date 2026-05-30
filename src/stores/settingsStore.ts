@@ -18,18 +18,16 @@ export type Background = "crystal" | "tunnel" | "globe" | "particles";
 export type ButtonStyle = "glass" | "flat" | "neon" | "metallic";
 
 /**
- * VPN-движок. Выбирается per-session, не миксуется.
- * - **sing-box** (default с 0.1.2 — заменил xray) — современный движок
- *   с built-in TUN (gVisor stack), нативной поддержкой
- *   vless+REALITY/Vision, hy2, tuic, wireguard, и встроенным
- *   anti-DPI (`tls.fragment`, server-resolve через DoH). Подписка
- *   запрашивается с UA `Happ/2.7.0` — Marzban-панели отдают xray-JSON
- *   (мы конвертируем), Remnawave — sing-box JSON (passthrough).
- * - **mihomo** — Clash Meta форк. AnyTLS, Mieru, native PROCESS-NAME
- *   routing. Используется когда сервер из подписки `engine_compat`
- *   содержит "mihomo" либо пользователь явно выбрал.
+ * VPN-движок. Mihomo-only архитектура — единственный движок.
+ * - **mihomo** — Clash Meta форк. Built-in TUN, vless+REALITY/Vision,
+ *   hy2, tuic, wireguard, AnyTLS, native PROCESS-NAME routing.
+ *   Подписка запрашивается с UA `clash-verge/v2.0.0` — панели отдают
+ *   clash YAML с routing-группами.
+ *
+ * Тип сохранён (а не заменён на литерал "mihomo" в каждом месте) для
+ * совместимости с многочисленными call-site'ами в сторах и UI.
  */
-export type Engine = "sing-box" | "mihomo";
+export type Engine = "mihomo";
 
 /**
  * Правило per-process routing (этап 8.D). Применяется только в Mihomo
@@ -248,18 +246,14 @@ export type Settings = {
    *    (TUN-режим). Полная цепочка TCP+TLS+HTTP. */
   pingMethod: "tcp" | "http-get" | "http-head";
 
-  /** Mux (multiplexing) для sing-box URI-серверов — vless/vmess/
-   *  trojan/ss/socks. Логические потоки мультиплексируются одним
-   *  TCP-соединением, что уменьшает overhead на TLS-handshake.
-   *  Для hy2/tuic/wireguard и для xray-json/singbox-json passthrough
-   *  игнорируется (свой stream multiplexing или конфиг приходит
-   *  готовым из подписки). Серверная сторона должна быть совместима
-   *  (3x-ui / Marzban / x-ui это умеют). */
+  /** Устаревшая опция mux (multiplexing) от sing-box-движка. Mihomo её
+   *  не использует — поля сохранены для совместимости и backup/restore,
+   *  но на конфиг не влияют. */
   mux: boolean;
-  /** Протокол mux: `smux` (default), `yamux`, `h2mux`. */
+  /** Протокол mux: `smux` (default), `yamux`, `h2mux`. (не используется) */
   muxProtocol: "smux" | "yamux" | "h2mux";
   /** Макс. число параллельных потоков на одно TCP-соединение.
-   *  0 = unlimited (sing-box default). Рекомендуется 4-16. */
+   *  (не используется) */
   muxMaxStreams: number;
 
   /** URL для HTTP-методов ping'а (см. `pingMethod`). Для TCP метода
@@ -277,8 +271,7 @@ export type Settings = {
   engineTouched: boolean;
 
   /** Touched-флаг для userAgent. Если false — `effectiveUserAgent`
-   *  возвращает зависящий от движка дефолт (Happ/* для Xray —
-   *  Marzban-style xray-json; clash-verge для Mihomo — clash YAML).
+   *  возвращает дефолт Mihomo (`clash-verge/v2.0.0` — clash YAML).
    *  Когда пользователь явно правит поле в UI → флаг ставится в true,
    *  и используется ровно то значение что вписано. */
   userAgentTouched: boolean;
@@ -303,7 +296,7 @@ export type Settings = {
    *  toggle: фронт зовёт `show_floating_window` / `hide_floating_window`. */
   floatingWindow: boolean;
 
-  /** Показывать индикатор памяти движка (sing-box / mihomo) на главном
+  /** Показывать индикатор памяти движка (mihomo) на главном
    *  экране рядом с bandwidth-метром. Working Set резидентной памяти
    *  процесса в МБ. Polling 1Hz через `bandwidth-tick` event (один
    *  pipeline). Default off — для тех кто не хочет «технический» вид. */
@@ -371,49 +364,32 @@ export type Settings = {
 };
 
 /**
- * UA по умолчанию для Xray-движка.
- *
- * Большинство панелей подписок (Marzban, 3x-ui, sing-box-panel)
- * детектят `Happ/*` UA и отдают полный Xray JSON-конфиг с готовыми
- * routing-правилами (RU-сайты direct, ads block и т.д.). Для Xray это
- * то что надо.
- */
-/**
- * UA по умолчанию для sing-box-движка (default с 0.1.2).
- *
- * `Happ/2.7.0` — стандартный UA современных VPN-клиентов. Marzban-панели
- * по этому UA отдают полный Xray JSON-конфиг (мы конвертируем его в
- * sing-box JSON через `convert_xray_json_to_singbox`). Remnawave-панели
- * по этому же UA отдают **sing-box JSON** напрямую — мы используем его
- * через passthrough (`patch_singbox_json`).
- */
-export const DEFAULT_USER_AGENT_SINGBOX = "Happ/2.7.0";
-
-/**
  * UA по умолчанию для Mihomo-движка.
  *
- * Те же панели на `clash-verge/*` UA отдают clash YAML с такими же
- * routing-группами, но в формате Mihomo. Это позволяет владельцу
- * подписки тонко настраивать конфиги под каждое ядро отдельно.
+ * Панели подписок (Marzban, 3x-ui, Remnawave) на `clash-verge/*` UA
+ * отдают clash YAML с routing-группами в формате Mihomo (RU-сайты
+ * direct, ads block и т.д.).
  */
 export const DEFAULT_USER_AGENT_MIHOMO = "clash-verge/v2.0.0";
 
-/** Backwards-compat alias — используется в местах где UA всё ещё
- *  «общий». Equivalent to `DEFAULT_USER_AGENT_XRAY`. */
-export const DEFAULT_USER_AGENT = DEFAULT_USER_AGENT_SINGBOX;
+/** Дефолтный UA — Mihomo-only архитектура. */
+export const DEFAULT_USER_AGENT = DEFAULT_USER_AGENT_MIHOMO;
 
 /**
  * Эффективный UA для запроса подписки. Если пользователь явно правил
  * поле (`userAgentTouched`) — возвращаем его значение «как есть»,
- * иначе — дефолт под выбранный движок.
+ * иначе — дефолт Mihomo (`clash-verge/v2.0.0`).
+ *
+ * Параметр `engine` сохранён в сигнатуре для совместимости call-site'ов,
+ * но не влияет на результат (движок всегда Mihomo).
  */
 export function effectiveUserAgent(
-  engine: Engine,
+  _engine: Engine,
   userAgent: string,
   userAgentTouched: boolean
 ): string {
   if (userAgentTouched) return userAgent;
-  return engine === "mihomo" ? DEFAULT_USER_AGENT_MIHOMO : DEFAULT_USER_AGENT_SINGBOX;
+  return DEFAULT_USER_AGENT_MIHOMO;
 }
 
 const DEFAULTS: Settings = {
@@ -463,7 +439,7 @@ const DEFAULTS: Settings = {
   mux: false,
   muxProtocol: "smux",
   muxMaxStreams: 8,
-  engine: "sing-box",
+  engine: "mihomo",
   engineTouched: false,
   userAgentTouched: false,
   appRules: [],
@@ -491,13 +467,10 @@ const load = (): Settings => {
     if (!raw) return DEFAULTS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
     const merged: Settings = { ...DEFAULTS, ...parsed };
-    // sing-box миграция (0.1.2): "xray" → "sing-box". Старые конфиги
-    // должны автоматически переехать на новый default-движок без
-    // сбрасывания engineTouched (уважаем что пользователь раньше
-    // явно выбрал не-Mihomo).
-    if ((merged.engine as unknown as string) === "xray") {
-      merged.engine = "sing-box";
-    }
+    // Mihomo-only миграция: любое legacy-значение движка ("xray" /
+    // "sing-box") из старых конфигов принудительно переезжает на "mihomo"
+    // — единственный поддерживаемый движок.
+    merged.engine = "mihomo";
     return merged;
   } catch {
     return DEFAULTS;

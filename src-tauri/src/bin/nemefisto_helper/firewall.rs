@@ -10,8 +10,8 @@
 //!
 //! Архитектура фильтров (по убыванию weight):
 //! - **W_DHCP=16** — DHCP/BOOTP UDP 67/68 (для получения IP в новой сети)
-//! - **W_APP=14** — наши процессы по абсолютному пути (sing-box.exe,
-//!   mihomo.exe, nemefisto-helper.exe, vpn-client.exe)
+//! - **W_APP=14** — наши процессы по абсолютному пути (mihomo.exe,
+//!   nemefisto-helper.exe, vpn-client.exe)
 //! - **W_SERVER=12** — IP VPN-сервера (резолв на стороне Tauri-main)
 //! - **W_LOOPBACK=10** — 127.0.0.0/8 (наш SOCKS5/HTTP inbound) + ::1/128
 //! - **W_LAN=8** — 10/8, 172.16/12, 192.168/16, 169.254/16 (если allow_lan=true)
@@ -114,8 +114,8 @@ unsafe impl Send for WfpEngine {}
 ///
 /// `allow_lan` — пускать ли локальную сеть (10/8, 172.16/12, 192.168/16).
 ///
-/// `allow_app_paths` — абсолютные пути к нашим бинарям (sing-box,
-/// mihomo, helper, vpn-client). Без них VPN-движок не сможет достучаться
+/// `allow_app_paths` — абсолютные пути к нашим бинарям (mihomo, helper,
+/// vpn-client). Без них VPN-движок не сможет достучаться
 /// до сервера даже если IP есть в server_ips (мы используем оба
 /// condition'а как разные allow-rules — match-any семантика WFP).
 ///
@@ -313,8 +313,8 @@ fn enable_blocking(
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_else(|| path.display().to_string());
 
-            // 13.S strict mode: НЕ давать общий outbound-allow для VPN-движков
-            // (sing-box/mihomo). Они смогут соединяться только на server_ips —
+            // 13.S strict mode: НЕ давать общий outbound-allow для движка
+            // mihomo. Он сможет соединяться только на server_ips —
             // это уже разрешено выше через add_filter_allow_v4_addr_port_proto.
             // Direct outbound движка (например `geosite:ru → DIRECT` в правилах
             // подписки) будет заблокирован WFP. Helper и vpn-client.exe

@@ -817,6 +817,89 @@ html[data-maximized="true"] .soft {
 }
 
 /* ════════════════════════════════════════════════════════════════════════
+   MIHOMO-ГРУППЫ внутри белой soft-шторки (full-mihomo профиль).
+   Базовые .mihomo-* в App.css заточены под тёмный фон — здесь переопределяем
+   под светлую шторку: белые карточки, тёмный ink-текст, лаймовый active.
+   ═══════════════════════════════════════════════════════════════════════ */
+[data-look="soft"] .soft-mihomo .mihomo-groups {
+  gap: 10px;
+}
+[data-look="soft"] .soft-mihomo .mihomo-group {
+  background: #fbfbf8;
+  border: 1px solid var(--s-line);
+  border-radius: var(--s-r-row);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 12px 12px 10px;
+}
+[data-look="soft"] .soft-mihomo .mihomo-group-title {
+  color: var(--s-ink);
+  font-family: var(--display);
+  font-weight: 600;
+  text-transform: none;
+}
+[data-look="soft"] .soft-mihomo .mihomo-group-sub {
+  color: var(--s-sub);
+  font-family: var(--body);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 11px;
+}
+[data-look="soft"] .soft-mihomo .mihomo-group-active {
+  color: #56564f;
+}
+[data-look="soft"] .soft-mihomo .mihomo-group-arrow {
+  color: #adada3;
+}
+[data-look="soft"] .soft-mihomo .mihomo-test-btn {
+  color: #56564f;
+  border-color: var(--s-line);
+  background: #f3f3f0;
+  letter-spacing: 0.04em;
+}
+[data-look="soft"] .soft-mihomo .mihomo-test-btn:hover:not(:disabled) {
+  color: var(--s-ink);
+  border-color: #d8d8d2;
+  background: #ebebe6;
+}
+[data-look="soft"] .soft-mihomo .mihomo-card {
+  background: #ffffff;
+  border: 1px solid var(--s-line);
+  border-radius: 12px;
+  color: var(--s-ink);
+}
+[data-look="soft"] .soft-mihomo .mihomo-card:hover {
+  border-color: #e2e2dc;
+  background: #fafaf7;
+}
+[data-look="soft"] .soft-mihomo .mihomo-card.is-active {
+  border-color: var(--s-ink);
+  background: var(--s-lime-tint);
+  box-shadow: none;
+}
+[data-look="soft"] .soft-mihomo .mihomo-card.is-readonly:hover {
+  background: #ffffff;
+  border-color: var(--s-line);
+}
+[data-look="soft"] .soft-mihomo .mihomo-card-name {
+  color: var(--s-ink);
+  font-family: var(--display);
+  font-weight: 600;
+  text-transform: none;
+}
+[data-look="soft"] .soft-mihomo .mihomo-card-meta {
+  color: var(--s-sub);
+  letter-spacing: 0.02em;
+}
+[data-look="soft"] .soft-mihomo .mihomo-card-check {
+  color: var(--s-ink);
+}
+[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-good { color: var(--s-green); }
+[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-ok   { color: var(--s-amber); }
+[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-slow { color: #c2702a; }
+[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-bad  { color: var(--s-red); }
+
+/* ════════════════════════════════════════════════════════════════════════
    SETTINGS в soft-стиле — тёмный фон как у главного экрана, карточки-секции,
    лаймовые акценты. Только под [data-look="soft"].
    ═══════════════════════════════════════════════════════════════════════ */

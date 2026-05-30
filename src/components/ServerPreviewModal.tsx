@@ -16,8 +16,9 @@ type ServerPreview = {
   port: number;
   engine_compat: string[];
   raw: string;
-  /** sing-box JSON если URI/xray-json/singbox-json; `null` для mihomo-profile (там raw — это YAML). */
-  generated_singbox: string | null;
+  /** Сгенерированный mihomo-YAML для URI-серверов; `null` для
+   *  mihomo-profile (там raw — это YAML напрямую). */
+  generated_mihomo: string | null;
 };
 
 type Tab = "raw" | "generated";
@@ -43,9 +44,9 @@ export function ServerPreviewModal({
       .then((data) => {
         if (cancelled) return;
         setPreview(data);
-        // Если для этого entry sing-box-конфиг не генерируется
+        // Если для этого entry mihomo-конфиг не генерируется
         // (mihomo-profile) — сразу переключаемся на raw-таб.
-        if (!data.generated_singbox) setTab("raw");
+        if (!data.generated_mihomo) setTab("raw");
       })
       .catch((e) => {
         if (cancelled) return;
@@ -66,7 +67,7 @@ export function ServerPreviewModal({
   }, [onClose]);
 
   const content =
-    tab === "generated" ? preview?.generated_singbox ?? "" : preview?.raw ?? "";
+    tab === "generated" ? preview?.generated_mihomo ?? "" : preview?.raw ?? "";
 
   const copy = async () => {
     if (!content) return;
@@ -110,7 +111,7 @@ export function ServerPreviewModal({
           </button>
         </div>
 
-        {preview && preview.generated_singbox && (
+        {preview && preview.generated_mihomo && (
           <div className="preview-modal-tabs">
             <button
               className={`preview-modal-tab${tab === "generated" ? " is-active" : ""}`}

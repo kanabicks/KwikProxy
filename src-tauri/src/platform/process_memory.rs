@@ -21,10 +21,10 @@ pub fn engine_memory_bytes() -> Option<u64> {
 
     // Имена exe нашего sidecar pipeline'а. Tauri-shell спавнит без
     // переименования, поэтому имя содержит target-triple (например
-    // `sing-box-x86_64-pc-windows-msvc.exe`). Helper-spawn (TUN-режим)
+    // `mihomo-x86_64-pc-windows-msvc.exe`). Helper-spawn (TUN-режим)
     // запускает тот же exe с тем же именем. Сравнение по `starts_with`
     // переживает обе формы.
-    const ENGINE_PREFIXES: &[&str] = &["sing-box", "mihomo"];
+    const ENGINE_PREFIXES: &[&str] = &["mihomo"];
 
     unsafe {
         let mut pids = vec![0u32; 4096];

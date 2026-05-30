@@ -100,7 +100,6 @@ function App() {
   // Кнопка «личный кабинет» показывается только когда подписка
   // прислала `profile-web-page-url` (захардкоженный fallback убран).
   const hasDashboardUrl = useHasDashboardUrl();
-  const engine = useSettingsStore((x) => x.engine);
   const selectedServer =
     selectedIndex !== null ? servers[selectedIndex] : null;
   // 8.F (UI v2): mihomo-профиль рендерится не как одна-карточка-«профиль»
@@ -108,8 +107,7 @@ function App() {
   // MihomoGroupsInline (страновые карточки, FlClash-style). Когда true —
   // ServerSelector скрываем (синтетическая запись «Профиль Mihomo»
   // одинокая в списке смысла не несёт).
-  const showMihomoGroups =
-    engine === "mihomo" && selectedServer?.protocol === "mihomo-profile";
+  const showMihomoGroups = selectedServer?.protocol === "mihomo-profile";
   const socksPort = useVpnStore((s) => s.socksPort);
 
   const [settingsOpen, setSettingsOpen] = useState(false);

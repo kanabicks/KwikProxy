@@ -104,7 +104,7 @@
   "bandwidth": {
     "titleIface": "интерфейс: {{iface}}",
     "titleNoIface": "интерфейс не определён",
-    "memTitle": "working set sing-box / mihomo (резидентная память)"
+    "memTitle": "working set mihomo (резидентная память)"
   },
   "announce": {
     "openLink": "открыть ссылку"
@@ -133,9 +133,6 @@
     "neverUpdated": "не обновлялась",
     "refreshTitle": "обновить подписку",
     "menuAria": "меню подписки",
-    "menuEngineTitle": "движок",
-    "menuEngineAuto": "авто",
-    "menuEngineAutoHint": "из заголовка подписки или системный",
     "deleteAction": "удалить подписку",
     "deleteConfirmTitle": "удалить подписку?",
     "deleteConfirmMessage": "ссылка, серверы и сохранённые настройки сервера будут удалены. вернуть подписку можно вставив URL заново.",
@@ -167,8 +164,7 @@
     "refreshPings": "обновить пинги",
     "searchPlaceholder": "поиск по имени",
     "viewConfig": "посмотреть конфиг",
-    "engineBadgeMihomo": "поддерживается только Mihomo",
-    "engineBadgeSingbox": "только sing-box (Mihomo-несовместимый формат)"
+    "engineBadgeIncompatible": "формат несовместим с Mihomo — сервер нельзя подключить"
   },
   "toast": {
     "crashDetected": {
@@ -299,10 +295,6 @@
         "title": "Подключение",
         "desc": "поведение при запуске, сортировка серверов"
       },
-      "engine": {
-        "title": "Движок",
-        "desc": "sing-box / Mihomo, правила приложений"
-      },
       "tunnel": {
         "title": "Туннель",
         "desc": "LAN, маскировка TUN-имени"
@@ -343,7 +335,7 @@
       "userAgent": {
         "label": "user agent",
         "autoBadge": "авто по движку",
-        "hint": "автоматически: Happ/2.7.0 для sing-box (Marzban-style xray-json с готовым routing — мы конвертируем в sing-box JSON), clash-verge для Mihomo (clash YAML напрямую). если правишь вручную — фиксируется как есть, на оба движка."
+        "hint": "автоматически: clash-verge для Mihomo (clash YAML с готовым routing напрямую). если правишь вручную — фиксируется как есть."
       }
     },
     "hwid": {
@@ -377,14 +369,9 @@
         "name": "по алфавиту"
       }
     },
-    "engine": {
-      "title": "vpn-ядро",
-      "label": "движок",
-      "hint": "sing-box — современный движок с быстрым стартом и встроенным TUN. оптимально для vless/vmess/trojan/ss/hy2/tuic/wireguard. mihomo — нужен для anytls / mieru, для XHTTP-серверов и для per-process routing (правила приложений)"
-    },
     "appRules": {
       "title": "правила приложений",
-      "tunWarning": "при активном Mihomo в TUN-режиме правила работают только когда подписка отдала полный mihomo-config (тип сервера mihomo-profile). Для URI-серверов (vless/vmess/trojan/hy2/...) в TUN с Mihomo правила не применяются — переключи движок на sing-box или режим на proxy.",
+      "tunWarning": "правила приложений в TUN-режиме работают только когда подписка отдала полный mihomo-config (тип сервера mihomo-profile). Для URI-серверов (vless/vmess/trojan/hy2/...) в TUN правила не применяются — переключи режим на proxy.",
       "intro": "правила вида «<exe> → action» применяются движком к процессам по имени исполняемого файла. например, можно пустить telegram через VPN, а steam — направить direct. имя exe берётся из диспетчера задач (telegram.exe, steam.exe).",
       "actionTitles": {
         "proxy": "через VPN",
@@ -411,31 +398,12 @@
         "hint": "скрыть переключатель proxy/tun на главном экране и работать только через TUN-адаптер. без локального SOCKS5-сокета на loopback — для параноиков, не желающих оставлять никакой VPN-поверхности на 127.0.0.1"
       }
     },
-    "mux": {
-      "title": "Mux (multiplexing)",
-      "intro": "мультиплексирование stream-протоколов одним TCP-соединением. уменьшает overhead на TLS-handshake и помогает обходить connection-rate-limit'ы. применяется к vless / vmess / trojan / shadowsocks / socks для URI-серверов sing-box. для hy2 / tuic / wireguard игнорируется (свой multiplexing). для xray-json / sing-box-json конфигов из подписки тоже не применяется (mux должен прийти от провайдера). серверная сторона должна поддерживать совместимый mux",
-      "mihomoWarning": "активен mihomo — настройки mux сейчас применяются только при движке sing-box. для mihomo mux включается через подписочный YAML",
-      "enable": {
-        "label": "включить mux",
-        "hint": "если сервер не поддерживает совместимый mux — sing-box автоматически fall-back на обычный режим"
-      },
-      "protocol": {
-        "label": "протокол",
-        "hint": "smux — рекомендуется (быстрый, проверенный). yamux — более fault-tolerant. h2mux — поверх HTTP/2 фреймов"
-      },
-      "maxStreams": {
-        "label": "макс. потоков на соединение: {{count}}",
-        "hint": "0 = unlimited (sing-box default). рекомендуется 4-16. большее значение — больше потоков на одну TCP-сессию, но и больше head-of-line blocking"
-      }
-    },
     "antiDpi": {
       "title": "anti-dpi",
-      "mihomoWarning": "активен mihomo — фрагментация и шумы не применяются (anti-DPI обвязка реализована только для sing-box). doh-резолв продолжает работать через dns mihomo.",
-      "singboxInfo": "фрагментация TLS работает с дефолтными значениями sing-box — тонкие параметры (size/sleep/interval) на upstream-движок не влияют. шумы (noises) реализованы только в xray-ядре, в sing-box их нет.",
+      "mihomoWarning": "фрагментация и шумы движком Mihomo не применяются (anti-DPI обвязка для них не реализована). doh-резолв продолжает работать через dns mihomo.",
       "fragmentation": {
         "label": "фрагментация tcp",
         "hint": "режет tls clienthello на куски — обходит большинство dpi",
-        "singboxOnly": " (только sing-box)",
         "packetsLabel": "какие пакеты",
         "packetsAll": "все",
         "lengthLabel": "длина (байт)",
@@ -460,7 +428,7 @@
       },
       "strict": {
         "label": "строгий режим",
-        "hint": "даже сам sing-box/mihomo может ходить только на vpn-сервер. direct-маршруты (например geosite:ru → DIRECT из вашего конфига) блокируются. для тех кто хочет гарантированно «всё через vpn». ⚠️ ru-сайты в split-routing перестанут открываться. требует включённого kill-switch"
+        "hint": "даже сам mihomo может ходить только на vpn-сервер. direct-маршруты (например geosite:ru → DIRECT из вашего конфига) блокируются. для тех кто хочет гарантированно «всё через vpn». ⚠️ ru-сайты в split-routing перестанут открываться. требует включённого kill-switch"
       },
       "dnsLeak": {
         "label": "блокировать прямые dns-запросы",
@@ -478,7 +446,7 @@
     },
     "diagnostics": {
       "label": "выгрузить диагностику",
-      "hint": "сохранит zip с логами sing-box/mihomo, версией приложения, текущим состоянием и списком запущенных vpn-процессов в папку Documents. без телеметрии — только локально, ты сам решаешь кому отправить файл если нужна помощь",
+      "hint": "сохранит zip с логами mihomo, версией приложения, текущим состоянием и списком запущенных vpn-процессов в папку Documents. без телеметрии — только локально, ты сам решаешь кому отправить файл если нужна помощь",
       "button": "выгрузить"
     },
     "routingTable": {
@@ -537,7 +505,7 @@
       }
     },
     "routing": {
-      "intro": "routing-профили задают какие домены/IP идут через VPN, какие напрямую, какие блокируются. правила применяются к sing-box и Mihomo при connect. для xray-json / sing-box-json конфигов из подписки (с собственным routing) — НЕ применяются (приоритет у подписки)",
+      "intro": "routing-профили задают какие домены/IP идут через VPN, какие напрямую, какие блокируются. правила применяются к Mihomo при connect. для mihomo-profile конфигов из подписки (с собственным routing) — НЕ применяются (приоритет у подписки)",
       "autoTemplate": {
         "title": "авто-шаблон",
         "label": "«минимальные правила РФ» если профиль не выбран",
@@ -588,7 +556,7 @@
       },
       "memoryMonitor": {
         "label": "память движка на главном экране",
-        "hint": "рядом с bandwidth-метром показывает working set sing-box / mihomo в МБ. дёшево — один EnumProcesses раз в секунду. помогает заметить утечки памяти и видеть «живо ли ядро»"
+        "hint": "рядом с bandwidth-метром показывает working set mihomo в МБ. дёшево — один EnumProcesses раз в секунду. помогает заметить утечки памяти и видеть «живо ли ядро»"
       },
       "floating": {
         "title": "плавающее окно",
@@ -747,7 +715,7 @@
     "serverPreview": {
       "title": "конфиг сервера",
       "closeAria": "закрыть",
-      "tabGenerated": "sing-box (generated)",
+      "tabGenerated": "mihomo (generated)",
       "tabRaw": "raw (из подписки)",
       "errorPrefix": "ошибка: {{message}}",
       "loading": "загрузка…",
@@ -768,7 +736,7 @@
     "step2": {
       "title": "1 · добавь подписку",
       "bodyBefore": "получи URL подписки у своего VPN-провайдера и вставь в поле на главном экране. формат: ",
-      "footnote": "поддерживаются Marzban, 3x-ui, sing-box, base64-списки, Mihomo YAML — всё что отдают современные панели."
+      "footnote": "поддерживаются Marzban, 3x-ui, Remnawave, base64-списки, Mihomo YAML — всё что отдают современные панели."
     },
     "step3": {
       "title": "2 · выбери сервер и подключайся",

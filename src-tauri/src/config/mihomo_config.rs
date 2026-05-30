@@ -25,7 +25,43 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::{Mapping, Value};
 
 use super::server::ProxyEntry;
-use super::sing_box_config::AntiDpiOptions;
+
+/// Опции анти-DPI обвязки. Приходят из фронта через `connect()`.
+///
+/// Mihomo нативно поддерживает только server-resolve через DoH
+/// (`dns.nameserver` + bootstrap). Поля `fragmentation*` / `noises*`
+/// Mihomo не умеет — они игнорируются (UI скрывает эти секции для
+/// текущего движка). Поля сохранены в структуре для совместимости
+/// IPC-контракта с фронтом.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AntiDpiOptions {
+    pub fragmentation: bool,
+    pub fragmentation_packets: String,
+    pub fragmentation_length: String,
+    pub fragmentation_interval: String,
+    pub noises: bool,
+    pub noises_type: String,
+    pub noises_packet: String,
+    pub noises_delay: String,
+    pub server_resolve: bool,
+    pub server_resolve_doh: String,
+    pub server_resolve_bootstrap: String,
+}
+
+/// Mux (multiplexing) — устаревшая опция от sing-box-движка.
+///
+/// Mihomo не использует этот блок (мультиплексирование настраивается
+/// в самом proxy-конфиге YAML). Структура сохранена только для
+/// совместимости IPC-контракта `connect()` — фронт может прислать
+/// поле `mux`, мы его молча игнорируем.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MuxOptions {
+    pub enabled: bool,
+    pub protocol: String,
+    pub max_streams: u32,
+}
 
 /// Per-process routing rule (этап 8.D). Принимается из фронта через
 /// `connect()` и транслируется в Mihomo `PROCESS-NAME,<exe>,<action>`.

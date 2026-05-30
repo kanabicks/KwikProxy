@@ -7,25 +7,20 @@ import { PingBadge } from "./PingBadge";
 import { ServerPreviewModal } from "./ServerPreviewModal";
 
 /**
- * Маленький бейдж рядом с пингом — показывает движок-совместимость
- * сервера (этап 8.B). Скрывается если совместимы оба ядра (общий случай) —
- * чтобы не захламлять список. Видим только для эксклюзивных протоколов:
- * TUIC/AnyTLS/Mieru → "M" (mihomo only), готовый Xray JSON → "X" (xray only).
+ * Маленький предупреждающий бейдж рядом с пингом. Mihomo-only
+ * архитектура: показываем "!" только для серверов, несовместимых с
+ * Mihomo (например, не-нормализуемый xray-json с кастомным routing —
+ * `engine_compat` не содержит "mihomo"). Такой сервер нельзя
+ * подключить — connect() вернёт ошибку. Для обычных mihomo-серверов
+ * бейдж скрыт.
  */
 function EngineBadge({ compat }: { compat?: string[] }) {
   const { t } = useTranslation();
-  if (!compat || compat.length === 0 || compat.length > 1) return null;
-  const e = compat[0];
-  const normalized = e === "xray" ? "sing-box" : e;
-  if (normalized !== "sing-box" && normalized !== "mihomo") return null;
-  const label = normalized === "mihomo" ? "M" : "S";
-  const title =
-    normalized === "mihomo"
-      ? t("serverSelector.engineBadgeMihomo")
-      : t("serverSelector.engineBadgeSingbox");
+  if (!compat || compat.length === 0) return null;
+  if (compat.includes("mihomo")) return null;
   return (
-    <span className="engine-badge" title={title} data-engine={normalized}>
-      {label}
+    <span className="engine-badge" title={t("serverSelector.engineBadgeIncompatible")} data-engine="incompatible">
+      !
     </span>
   );
 }

@@ -2,17 +2,17 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useUpdateStore } from "../stores/updateStore";
 import { useSettingsStore } from "../stores/settingsStore";
-import { downloadAndInstall } from "../lib/updater";
+import { downloadUpdate, installUpdate } from "../lib/updater";
 import { showToast } from "../stores/toastStore";
 
 /**
- * 14.A: модалка предложения обновления.
+ * 14.A: модалка предложения обновления (двухшаговая, 0.5.0).
  *
- * Открывается когда `useAutoUpdateCheck` нашёл новую версию. Юзер
- * выбирает между «обновить сейчас», «позже» (dismiss этой версии до
- * следующей) и закрытием. При «обновить» — переключаемся в
- * `downloading` state, показываем прогресс-бар, после успешной
- * установки приложение перезапускается автоматически.
+ * Открывается когда `useAutoUpdateCheck` нашёл новую версию. Поток:
+ *  1. «Скачать обновление» → загрузка в фоне, **VPN не выключается**;
+ *  2. после загрузки — «Обновить и перезапустить» → только теперь
+ *     VPN отключается, ставится installer, app перезапускается.
+ * Так пользователь не теряет соединение на время скачивания (~44 МБ).
  */
 export function UpdateModal() {
   const { t } = useTranslation();
@@ -22,15 +22,23 @@ export function UpdateModal() {
   const dismissedList = useSettingsStore((s) => s.dismissedUpdateVersions);
   const [progress, setProgress] = useState(0);
 
-  if (state.kind !== "available" && state.kind !== "downloading") {
+  if (
+    state.kind !== "available" &&
+    state.kind !== "downloading" &&
+    state.kind !== "downloaded" &&
+    state.kind !== "installing"
+  ) {
     return null;
   }
 
   const update = state.update;
   const isDownloading = state.kind === "downloading";
+  const isDownloaded = state.kind === "downloaded";
+  const isInstalling = state.kind === "installing";
+  const busy = isDownloading || isInstalling;
 
   const onDismiss = () => {
-    if (isDownloading) return;
+    if (busy) return;
     if (!dismissedList.includes(update.version)) {
       dismissedSet("dismissedUpdateVersions", [
         ...dismissedList,
@@ -40,15 +48,31 @@ export function UpdateModal() {
     setState({ kind: "idle" });
   };
 
-  const onInstall = async () => {
+  // Шаг 1 — скачивание (VPN продолжает работать).
+  const onDownload = async () => {
     setState({ kind: "downloading", update, progress: 0 });
     try {
-      await downloadAndInstall(update, (fraction) => {
+      await downloadUpdate(update, (fraction) => {
         setProgress(fraction);
         setState({ kind: "downloading", update, progress: fraction });
       });
-      // relaunch() в downloadAndInstall — сюда обычно не доходим,
-      // app уже перезапустился. На случай fallback'а:
+      setState({ kind: "downloaded", update });
+    } catch (e) {
+      showToast({
+        kind: "error",
+        title: t("modal.update.updateFailedTitle"),
+        message: String(e),
+      });
+      setState({ kind: "idle" });
+    }
+  };
+
+  // Шаг 2 — установка (VPN отключается, app перезапускается).
+  const onInstall = async () => {
+    setState({ kind: "installing", update });
+    try {
+      await installUpdate(update);
+      // relaunch() обычно не возвращается — app уже перезапустился.
       setState({ kind: "installed" });
     } catch (e) {
       showToast({
@@ -95,9 +119,8 @@ export function UpdateModal() {
               className="recovery-text"
               style={{ marginBottom: 6, fontSize: 12 }}
             >
-              {t("modal.update.downloading", {
-                percent: Math.round(progress * 100),
-              })}
+              Скачивается… {Math.round(progress * 100)}% — VPN продолжает
+              работать
             </div>
             <div
               style={{
@@ -118,23 +141,46 @@ export function UpdateModal() {
             </div>
           </div>
         ) : null}
+        {isDownloaded ? (
+          <div
+            className="recovery-text"
+            style={{ marginTop: 16, fontSize: 13 }}
+          >
+            Обновление загружено. При установке VPN отключится, приложение
+            перезапустится (несколько секунд).
+          </div>
+        ) : null}
+        {isInstalling ? (
+          <div
+            className="recovery-text"
+            style={{ marginTop: 16, fontSize: 13 }}
+          >
+            Устанавливаем обновление… приложение сейчас перезапустится.
+          </div>
+        ) : null}
         <div className="recovery-actions" style={{ marginTop: 16 }}>
           <button
             type="button"
             className="btn-ghost"
             onClick={onDismiss}
-            disabled={isDownloading}
+            disabled={busy}
           >
             {t("modal.update.later")}
           </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={onInstall}
-            disabled={isDownloading}
-          >
-            {isDownloading ? "…" : t("modal.update.installAndRestart")}
-          </button>
+          {isDownloaded ? (
+            <button type="button" className="btn-primary" onClick={onInstall}>
+              {t("modal.update.installAndRestart")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={onDownload}
+              disabled={busy}
+            >
+              {isDownloading ? "…" : "Скачать обновление"}
+            </button>
+          )}
         </div>
       </div>
     </div>

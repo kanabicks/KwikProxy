@@ -147,7 +147,6 @@ function SubscriptionCard({ sub, isLegacy = false }: SubscriptionCardProps) {
   );
   const deleteSubscription = useSubscriptionStore((s) => s.deleteSubscription);
   const removeSubscription = useSubscriptionStore((s) => s.removeSubscription);
-  const setEngineOverride = useSubscriptionStore((s) => s.setEngineOverride);
   const setPrimaryId = useSubscriptionStore((s) => s.setPrimaryId);
   const subscriptions = useSubscriptionStore((s) => s.subscriptions);
   const primaryId = useSubscriptionStore((s) => s.primaryId);
@@ -326,46 +325,6 @@ function SubscriptionCard({ sub, isLegacy = false }: SubscriptionCardProps) {
     }
   };
 
-  const renderEngineRadio = (
-    opt: "auto" | "sing-box" | "mihomo",
-    label: string
-  ) => {
-    const current = sub.engineOverride;
-    const isActive =
-      (opt === "auto" && current === null) || opt === current;
-    return (
-      <button
-        key={opt}
-        type="button"
-        role="menuitemradio"
-        aria-checked={isActive}
-        className={`sub-meta-menu-item${isActive ? " is-active" : ""}`}
-        onClick={() => {
-          if (isLegacy) return; // legacy одиночный — engine только в Settings
-          setEngineOverride(sub.id, opt === "auto" ? null : opt);
-          setMenuOpen(false);
-          // Smart-refetch: новый engine → новый UA → подписка отдаст
-          // другой формат (xray-json для sing-box, clash YAML для mihomo).
-          // Без refetch остаются старые servers с прежним engine_compat.
-          if (sub.url.trim()) {
-            if (isPrimary) {
-              void fetchSubscription();
-            } else {
-              void fetchSubscriptionById(sub.id);
-            }
-          }
-        }}
-        disabled={isLegacy}
-        title={
-          opt === "auto" ? t("subMeta.menuEngineAutoHint") : undefined
-        }
-      >
-        <span className="sub-meta-menu-radio">{isActive ? "●" : "○"}</span>
-        <span>{label}</span>
-      </button>
-    );
-  };
-
   return (
     <div className={`sub-meta${isPrimary ? " is-active" : ""}${expanded ? " is-expanded" : ""}`}>
       <div className="sub-meta-menu">
@@ -428,13 +387,6 @@ function SubscriptionCard({ sub, isLegacy = false }: SubscriptionCardProps) {
               right: popupPos.right,
             }}
           >
-            <div className="sub-meta-menu-section-title">
-              {t("subMeta.menuEngineTitle")}
-            </div>
-            {renderEngineRadio("auto", t("subMeta.menuEngineAuto"))}
-            {renderEngineRadio("sing-box", "sing-box")}
-            {renderEngineRadio("mihomo", "Mihomo")}
-            <div className="sub-meta-menu-divider" />
             <button
               type="button"
               role="menuitem"

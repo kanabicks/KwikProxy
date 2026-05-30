@@ -8,7 +8,6 @@ import { useSubscriptionStore } from "../stores/subscriptionStore";
 import { useRuntimeStore } from "../stores/runtimeStore";
 import {
   DEFAULT_USER_AGENT_MIHOMO,
-  DEFAULT_USER_AGENT_SINGBOX,
   PRESET_BACKGROUND,
   PRESET_BUTTON_STYLE,
   useSettingsStore,
@@ -16,7 +15,6 @@ import {
   type AppRuleAction,
   type Background,
   type ButtonStyle,
-  type Engine,
   type Preset,
   type SortMode,
   type Theme,
@@ -53,7 +51,6 @@ import { Toggle } from "./Toggle";
 type SettingsCategory =
   | "subscription"
   | "connection"
-  | "engine"
   | "tunnel"
   | "security"
   | "routing"
@@ -85,12 +82,8 @@ const CATEGORIES: CategoryMeta[] = [
     titleKey: "settings.categories.connection.title",
     descKey: "settings.categories.connection.desc",
   },
-  {
-    id: "engine",
-    icon: "⚙️",
-    titleKey: "settings.categories.engine.title",
-    descKey: "settings.categories.engine.desc",
-  },
+  // Mihomo-only архитектура: выбор движка убран — движок всегда Mihomo.
+  // Per-process правила (8.D) переехали в категорию "routing".
   {
     id: "tunnel",
     icon: "🛡️",
@@ -136,12 +129,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
   const fetchSubscription = useSubscriptionStore((x) => x.fetchSubscription);
   const subLoading = useSubscriptionStore((x) => x.loading);
   const subError = useSubscriptionStore((x) => x.error);
-  // 8.B: для smart-reconnect при смене движка нужны connect/disconnect
-  // и текущий статус — иначе пользователь меняет engine, подписка
-  // refetch'ится, но активная сессия остаётся на старом движке.
-  const vpnStatus = useVpnStore((s) => s.status);
-  const vpnConnect = useVpnStore((s) => s.connect);
-  const vpnDisconnect = useVpnStore((s) => s.disconnect);
   const [hwidCopied, setHwidCopied] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -155,19 +142,10 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
     window.setTimeout(onClose, 240);
   };
 
-  // 8.B: эффективный движок (с override-логикой для server-driven UX).
-  // sing-box миграция (0.1.2): legacy header "xray" автоматически
-  // мапится в "sing-box".
-  const headerEngineRaw = subMeta?.engine;
-  const headerEngine: Engine | null =
-    headerEngineRaw === "mihomo"
-      ? "mihomo"
-      : headerEngineRaw === "sing-box" || headerEngineRaw === "xray"
-      ? "sing-box"
-      : null;
-  const effectiveEngine: Engine =
-    !s.engineTouched && headerEngine ? headerEngine : s.engine;
-  const mihomoActive = effectiveEngine === "mihomo";
+  // Mihomo-only архитектура: движок всегда Mihomo, выбор убран из меню.
+  // mihomoActive — константа, на неё опираются UI-гейты ниже (app-rules,
+  // anti-DPI предупреждения).
+  const mihomoActive = true;
 
   const copyHwid = async () => {
     if (!deviceHwid) return;
@@ -336,7 +314,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                     type="text"
                     value={s.userAgent}
                     onChange={(e) => s.set("userAgent", e.target.value)}
-                    placeholder={mihomoActive ? DEFAULT_USER_AGENT_MIHOMO : DEFAULT_USER_AGENT_SINGBOX}
+                    placeholder={DEFAULT_USER_AGENT_MIHOMO}
                     className="input"
                   />
                   <div className="settings-row-hint">
@@ -472,52 +450,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
           )}
 
           {/* ── Движок ──────────────────────────────────────────────────── */}
-          {category === "engine" && (
-            <>
-              <section className="settings-section">
-                <div className="settings-section-title">{t("settings.engine.title")}</div>
-                <div className="settings-row">
-                  <div>
-                    <div className="settings-row-label">
-                      {t("settings.engine.label")}
-                      {!s.engineTouched && subMeta?.engine && (
-                        <span className="hint-badge" style={{ marginLeft: 8 }}>
-                          {t("settings.fromSubscription")}
-                        </span>
-                      )}
-                    </div>
-                    <div className="settings-row-hint">
-                      {t("settings.engine.hint")}
-                    </div>
-                  </div>
-                  <select
-                    className="select-field"
-                    value={effectiveEngine}
-                    onChange={(e) => {
-                      const next = e.target.value as Engine;
-                      s.set("engine", next);
-                      if (!subUrl.trim()) return;
-                      // 8.B: smart reconnect при смене движка — если активна
-                      // VPN-сессия, гасим, рефетчим подписку с новым UA,
-                      // поднимаем сессию обратно уже на новом движке.
-                      const wasRunning = vpnStatus === "running";
-                      void (async () => {
-                        if (wasRunning) await vpnDisconnect();
-                        await fetchSubscription();
-                        if (wasRunning) await vpnConnect();
-                      })();
-                    }}
-                  >
-                    <option value="sing-box">sing-box</option>
-                    <option value="mihomo">Mihomo</option>
-                  </select>
-                </div>
-              </section>
-
-              <AppRulesSection mihomoActive={mihomoActive} />
-            </>
-          )}
-
           {/* ── Туннель ─────────────────────────────────────────────────── */}
           {category === "tunnel" && (
             <>
@@ -563,89 +495,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                 </div>
               </section>
 
-              <section className="settings-section">
-                <div className="settings-section-title">
-                  {t("settings.mux.title")}
-                </div>
-                {mihomoActive && (
-                  <div className="hint-warning">
-                    {t("settings.mux.mihomoWarning")}
-                  </div>
-                )}
-                <p
-                  className="hint"
-                  style={{
-                    textTransform: "none",
-                    letterSpacing: 0,
-                    color: "var(--fg-dim)",
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    marginBottom: 8,
-                  }}
-                >
-                  {t("settings.mux.intro")}
-                </p>
-                <div className="settings-row">
-                  <div>
-                    <div className="settings-row-label">{t("settings.mux.enable.label")}</div>
-                    <div className="settings-row-hint">
-                      {t("settings.mux.enable.hint")}
-                    </div>
-                  </div>
-                  <Toggle
-                    on={s.mux}
-                    onChange={(v) => s.set("mux", v)}
-                  />
-                </div>
-                {s.mux && (
-                  <>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">{t("settings.mux.protocol.label")}</div>
-                        <div className="settings-row-hint">
-                          {t("settings.mux.protocol.hint")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="ping-method-radios">
-                      {(["smux", "yamux", "h2mux"] as const).map((p) => (
-                        <label key={p} className="radio-row">
-                          <input
-                            type="radio"
-                            name="muxProtocol"
-                            checked={s.muxProtocol === p}
-                            onChange={() => s.set("muxProtocol", p)}
-                          />
-                          <span>{p}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">
-                          {t("settings.mux.maxStreams.label", {
-                            count: s.muxMaxStreams,
-                          })}
-                        </div>
-                        <div className="settings-row-hint">
-                          {t("settings.mux.maxStreams.hint")}
-                        </div>
-                      </div>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={32}
-                      step={1}
-                      value={s.muxMaxStreams}
-                      onChange={(e) =>
-                        s.set("muxMaxStreams", Number(e.target.value))
-                      }
-                      style={{ width: "100%" }}
-                    />
-                  </>
-                )}
-              </section>
             </>
           )}
 
@@ -665,28 +514,17 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                     )}
                 </div>
 
-                {/* Anti-DPI имеет разный support по движкам.
-                    sing-box: tls.fragment (boolean, без тонкой настройки size/sleep)
-                    + DoH-резолв адреса сервера. UDP noises upstream sing-box
-                    НЕ поддерживает.
-                    mihomo: anti-DPI обвязка не реализована (DNS-resolve работает). */}
-                {mihomoActive && (
-                  <div className="hint-warning">
-                    {t("settings.antiDpi.mihomoWarning")}
-                  </div>
-                )}
-                {!mihomoActive && (
-                  <div className="hint-info" style={{ marginBottom: 8 }}>
-                    {t("settings.antiDpi.singboxInfo")}
-                  </div>
-                )}
+                {/* Mihomo-only: anti-DPI fragmentation / noises движок не
+                    реализует — работает только DoH-резолв адреса сервера. */}
+                <div className="hint-warning">
+                  {t("settings.antiDpi.mihomoWarning")}
+                </div>
 
                 <div className="settings-row">
                   <div>
                     <div className="settings-row-label">{t("settings.antiDpi.fragmentation.label")}</div>
                     <div className="settings-row-hint">
                       {t("settings.antiDpi.fragmentation.hint")}
-                      {mihomoActive && t("settings.antiDpi.fragmentation.singboxOnly")}
                     </div>
                   </div>
                   <Toggle
@@ -1024,6 +862,9 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                   />
                 </div>
               </section>
+
+              {/* 8.D: per-process правила (Mihomo PROCESS-NAME matcher). */}
+              <AppRulesSection mihomoActive={mihomoActive} />
             </>
           )}
 
@@ -1296,8 +1137,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                 <div className="about-grid">
                   <span className="about-key">{t("settings.about.version")}</span>
                   <span className="about-val">v.{APP_VERSION} · build 2026.4</span>
-                  <span className="about-key">sing-box</span>
-                  <span className="about-val">1.13.x</span>
                   <span className="about-key">mihomo</span>
                   <span className="about-val">v1.19.24</span>
                   {subMeta?.webPageUrl && (
@@ -1413,13 +1252,12 @@ function CategoryList({
 // ── App rules (per-process routing, 8.D) ─────────────────────────────────────
 
 /**
- * Секция Settings → Движок → «правила приложений (Mihomo)». Список
- * правил `<exe-name> → PROXY|DIRECT|BLOCK` + форма добавления нового.
+ * Секция Settings → Маршрутизация → «правила приложений (Mihomo)».
+ * Список правил `<exe-name> → PROXY|DIRECT|BLOCK` + форма добавления.
  *
- * Mihomo нативно умеет PROCESS-NAME matcher; sing-box на Windows — нет
- * (рассматривается через WFP в этапе 13.G). Если активен sing-box —
- * баннер сверху предупреждает что правила игнорируются. Хранятся всегда —
- * при переключении движка на Mihomo сразу применятся.
+ * Mihomo нативно умеет PROCESS-NAME matcher (требует
+ * `find-process-mode: always` в YAML). Параметр `mihomoActive` всегда
+ * true в Mihomo-only архитектуре — оставлен для совместимости сигнатуры.
  */
 function AppRulesSection({ mihomoActive }: { mihomoActive: boolean }) {
   const { t } = useTranslation();
@@ -1470,10 +1308,9 @@ function AppRulesSection({ mihomoActive }: { mihomoActive: boolean }) {
     <section className="settings-section">
       <div className="settings-section-title">{t("settings.appRules.title")}</div>
 
-      {/* sing-box нативно поддерживает per-process matching через
-          `process_name` route rule (works in both proxy и TUN). Для
-          Mihomo URI в TUN правила всё ещё не работают — там pipeline
-          через tun2socks теряет PID исходного процесса. */}
+      {/* Mihomo PROCESS-NAME правила в TUN работают только для
+          mihomo-profile подписок (full clash YAML с built-in TUN). Для
+          URI-серверов Mihomo+TUN правила не применяются. */}
       {mihomoActive && tunMode && (
         <div className="hint-warning">
           {t("settings.appRules.tunWarning")}
@@ -1655,9 +1492,9 @@ function BackupBlock() {
 
 /**
  * Кнопка «сообщить о проблеме» — открывает GitHub Issues с
- * pre-filled телом (версия app + sing-box + mihomo + OS из user-agent
- * + текущий движок + текущий режим). Юзеру не надо писать «у меня
- * Win11, версия X.Y.Z», всё уже в шаблоне.
+ * pre-filled телом (версия app + движок Mihomo + OS из user-agent
+ * + текущий режим). Юзеру не надо писать «у меня Win11, версия X.Y.Z»,
+ * всё уже в шаблоне.
  */
 function FeedbackButton() {
   const { t } = useTranslation();
@@ -1684,7 +1521,7 @@ function FeedbackButton() {
       `- UA: \`${ua}\``,
       "",
       "<!-- если связано с kill-switch / TUN — прикрепи `C:\\ProgramData\\NemefistoVPN\\helper.log` -->",
-      "<!-- если sing-box ругается — `%TEMP%\\NemefistoVPN\\sing-box-stderr.log` -->",
+      "<!-- если mihomo ругается — `%TEMP%\\NemefistoVPN\\mihomo-stderr.log` -->",
       "<!-- Settings → System → диагностика собирает ZIP со всем разом -->",
     ].join("\n");
     const url = new URL(`${GITHUB_URL}/issues/new`);

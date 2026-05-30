@@ -310,12 +310,13 @@ export const useVpnStore = create<VpnState>((set, get) => ({
     // Если у server'а нет subscriptionId (legacy state до миграции) —
     // используем primary, иначе settings.engine.
     const subStore = useSubscriptionStore.getState();
-    const settings = useSettingsStore.getState();
     const selectedServer = subStore.servers[selectedIndex];
     const sourceId = selectedServer?.subscriptionId ?? subStore.primaryId;
-    const engine: "sing-box" | "mihomo" = sourceId
+    // Mihomo-only: движок всегда Mihomo. getEffectiveEngine тоже возвращает
+    // "mihomo"; передаём его в connect для совместимости IPC-контракта.
+    const engine = sourceId
       ? subStore.getEffectiveEngine(sourceId)
-      : settings.engine;
+      : "mihomo";
     set({ status: "starting", errorMessage: null });
     try {
       const result = await invoke<ConnectResult>("connect", {

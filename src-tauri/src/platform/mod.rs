@@ -7,6 +7,7 @@ pub mod bandwidth;
 pub mod crash_dumps;
 pub mod helper_bootstrap;
 pub mod helper_client;
+pub mod icmp;
 pub mod network;
 pub mod network_watcher;
 pub mod process_memory;

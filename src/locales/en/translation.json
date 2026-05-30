@@ -104,7 +104,7 @@
   "bandwidth": {
     "titleIface": "interface: {{iface}}",
     "titleNoIface": "interface not detected",
-    "memTitle": "sing-box / mihomo working set (resident memory)"
+    "memTitle": "mihomo working set (resident memory)"
   },
   "announce": {
     "openLink": "open link"
@@ -131,9 +131,6 @@
     "neverUpdated": "never updated",
     "refreshTitle": "refresh subscription",
     "menuAria": "subscription menu",
-    "menuEngineTitle": "engine",
-    "menuEngineAuto": "auto",
-    "menuEngineAutoHint": "from subscription header or system default",
     "deleteAction": "delete subscription",
     "deleteConfirmTitle": "delete subscription?",
     "deleteConfirmMessage": "the link, servers and saved server selection will be removed. you can paste a new URL anytime.",
@@ -159,8 +156,7 @@
     "refreshPings": "refresh pings",
     "searchPlaceholder": "search by name",
     "viewConfig": "view config",
-    "engineBadgeMihomo": "Mihomo only",
-    "engineBadgeSingbox": "sing-box only (Mihomo-incompatible format)"
+    "engineBadgeIncompatible": "format incompatible with Mihomo — server can't be connected"
   },
   "toast": {
     "crashDetected": {
@@ -289,10 +285,6 @@
         "title": "Connection",
         "desc": "startup behavior, server sorting"
       },
-      "engine": {
-        "title": "Engine",
-        "desc": "sing-box / Mihomo, app rules"
-      },
       "tunnel": {
         "title": "Tunnel",
         "desc": "LAN, TUN name masking"
@@ -333,7 +325,7 @@
       "userAgent": {
         "label": "user agent",
         "autoBadge": "auto by engine",
-        "hint": "automatic: Happ/2.7.0 for sing-box (Marzban-style xray-json with built-in routing — we convert it to sing-box JSON), clash-verge for Mihomo (clash YAML directly). if you set it manually it stays as-is for both engines."
+        "hint": "automatic: clash-verge for Mihomo (clash YAML with built-in routing directly). if you set it manually it stays as-is."
       }
     },
     "hwid": {
@@ -367,14 +359,9 @@
         "name": "alphabetical"
       }
     },
-    "engine": {
-      "title": "vpn core",
-      "label": "engine",
-      "hint": "sing-box — modern engine with fast startup and built-in TUN. best for vless/vmess/trojan/ss/hy2/tuic/wireguard. mihomo — needed for anytls / mieru, XHTTP servers, and per-process routing (app rules)"
-    },
     "appRules": {
       "title": "app rules",
-      "tunWarning": "with Mihomo active in TUN mode rules only work when the subscription delivers a full mihomo-config (server type mihomo-profile). For URI servers (vless/vmess/trojan/hy2/...) in TUN with Mihomo, rules are not applied — switch the engine to sing-box or the mode to proxy.",
+      "tunWarning": "app rules in TUN mode only work when the subscription delivers a full mihomo-config (server type mihomo-profile). For URI servers (vless/vmess/trojan/hy2/...) in TUN, rules are not applied — switch the mode to proxy.",
       "intro": "rules of the form «<exe> → action» are applied by the engine to processes by their executable file name. for example, send telegram through the VPN while routing steam direct. the exe name is taken from task manager (telegram.exe, steam.exe).",
       "actionTitles": {
         "proxy": "through VPN",
@@ -401,31 +388,12 @@
         "hint": "hide the proxy/tun switch on the main screen and operate via the TUN adapter only. no local SOCKS5 socket on loopback — for paranoiacs who refuse to leave any VPN surface on 127.0.0.1"
       }
     },
-    "mux": {
-      "title": "Mux (multiplexing)",
-      "intro": "multiplexes stream protocols over a single TCP connection. reduces TLS-handshake overhead and helps bypass connection-rate limits. applies to vless / vmess / trojan / shadowsocks / socks for sing-box URI servers. ignored for hy2 / tuic / wireguard (own multiplexing). also not applied to xray-json / sing-box-json subscription configs (mux must come from the provider). server-side must support a compatible mux",
-      "mihomoWarning": "mihomo is active — mux settings currently only apply with the sing-box engine. for mihomo, mux is enabled via subscription YAML",
-      "enable": {
-        "label": "enable mux",
-        "hint": "if the server does not support a compatible mux, sing-box automatically falls back to regular mode"
-      },
-      "protocol": {
-        "label": "protocol",
-        "hint": "smux — recommended (fast, proven). yamux — more fault-tolerant. h2mux — over HTTP/2 frames"
-      },
-      "maxStreams": {
-        "label": "max streams per connection: {{count}}",
-        "hint": "0 = unlimited (sing-box default). recommended 4-16. higher values mean more streams per TCP session, but also more head-of-line blocking"
-      }
-    },
     "antiDpi": {
       "title": "anti-dpi",
-      "mihomoWarning": "mihomo is active — fragmentation and noises are not applied (anti-DPI is implemented for sing-box only). doh-resolve still works via mihomo's dns.",
-      "singboxInfo": "TLS fragmentation runs with sing-box default values — fine-grained parameters (size/sleep/interval) do not affect the upstream engine. noises are only implemented in xray-core; sing-box does not have them.",
+      "mihomoWarning": "fragmentation and noises are not applied by the Mihomo engine (anti-DPI for them is not implemented). doh-resolve still works via mihomo's dns.",
       "fragmentation": {
         "label": "tcp fragmentation",
         "hint": "splits the tls clienthello into chunks — bypasses most dpi",
-        "singboxOnly": " (sing-box only)",
         "packetsLabel": "which packets",
         "packetsAll": "all",
         "lengthLabel": "length (bytes)",
@@ -450,7 +418,7 @@
       },
       "strict": {
         "label": "strict mode",
-        "hint": "even sing-box/mihomo itself is allowed to talk only to the vpn server. direct routes (e.g. geosite:ru → DIRECT from your config) are blocked. for those who want everything through vpn, no exceptions. ⚠️ ru sites in split-routing will stop opening. requires kill-switch enabled"
+        "hint": "even mihomo itself is allowed to talk only to the vpn server. direct routes (e.g. geosite:ru → DIRECT from your config) are blocked. for those who want everything through vpn, no exceptions. ⚠️ ru sites in split-routing will stop opening. requires kill-switch enabled"
       },
       "dnsLeak": {
         "label": "block direct dns queries",
@@ -468,7 +436,7 @@
     },
     "diagnostics": {
       "label": "export diagnostics",
-      "hint": "saves a zip with sing-box/mihomo logs, app version, current state and the list of running vpn processes to the Documents folder. no telemetry — fully local, you decide who to send the file to if you need help",
+      "hint": "saves a zip with mihomo logs, app version, current state and the list of running vpn processes to the Documents folder. no telemetry — fully local, you decide who to send the file to if you need help",
       "button": "export"
     },
     "routingTable": {
@@ -527,7 +495,7 @@
       }
     },
     "routing": {
-      "intro": "routing profiles decide which domains/IPs go through the VPN, which go direct, and which are blocked. rules are applied to sing-box and Mihomo on connect. for xray-json / sing-box-json configs from the subscription (with their own routing) — they are NOT applied (subscription wins)",
+      "intro": "routing profiles decide which domains/IPs go through the VPN, which go direct, and which are blocked. rules are applied to Mihomo on connect. for mihomo-profile configs from the subscription (with their own routing) — they are NOT applied (subscription wins)",
       "autoTemplate": {
         "title": "auto-template",
         "label": "«minimal RU rules» when no profile is selected",
@@ -578,7 +546,7 @@
       },
       "memoryMonitor": {
         "label": "engine memory on the main screen",
-        "hint": "shows sing-box / mihomo working set in MB next to the bandwidth meter. cheap — one EnumProcesses per second. helps spot memory leaks and see 'is the engine alive'"
+        "hint": "shows mihomo working set in MB next to the bandwidth meter. cheap — one EnumProcesses per second. helps spot memory leaks and see 'is the engine alive'"
       },
       "floating": {
         "title": "floating window",
@@ -734,7 +702,7 @@
     "serverPreview": {
       "title": "server config",
       "closeAria": "close",
-      "tabGenerated": "sing-box (generated)",
+      "tabGenerated": "mihomo (generated)",
       "tabRaw": "raw (from subscription)",
       "errorPrefix": "error: {{message}}",
       "loading": "loading…",
@@ -755,7 +723,7 @@
     "step2": {
       "title": "1 · add a subscription",
       "bodyBefore": "get a subscription URL from your VPN provider and paste it on the main screen. format: ",
-      "footnote": "Marzban, 3x-ui, sing-box, base64 lists, Mihomo YAML are supported — everything modern panels return."
+      "footnote": "Marzban, 3x-ui, Remnawave, base64 lists, Mihomo YAML are supported — everything modern panels return."
     },
     "step3": {
       "title": "2 · pick a server and connect",

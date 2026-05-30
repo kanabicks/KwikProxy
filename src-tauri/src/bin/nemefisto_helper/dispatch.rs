@@ -1,15 +1,14 @@
 //! Маршрутизатор JSON-RPC команд helper-сервиса.
 //!
-//! Вся бизнес-логика (SYSTEM-spawn движков, WFP kill-switch, cleanup
-//! orphan TUN/routes) в подмодулях `mihomo.rs` / `sing_box.rs` /
-//! `firewall.rs` / `tun.rs` / `routing.rs`. Здесь — только switch +
-//! конверсия ошибок в `Response::Error`.
+//! Вся бизнес-логика (SYSTEM-spawn движка Mihomo, WFP kill-switch,
+//! cleanup orphan TUN/routes) в подмодулях `mihomo.rs` / `firewall.rs` /
+//! `tun.rs` / `routing.rs`. Здесь — только switch + конверсия ошибок в
+//! `Response::Error`.
 
 use super::firewall;
 use super::helper_log::log as hlog;
 use super::mihomo;
 use super::protocol::{Request, Response, PROTOCOL_VERSION};
-use super::sing_box;
 use super::wfp;
 
 const HELPER_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -95,18 +94,6 @@ pub async fn handle(req: Request) -> Response {
             Ok(()) => Response::Ok,
             Err(e) => Response::err(format!("mihomo_stop: {e:#}")),
         },
-        Request::SingBoxStart {
-            config_path,
-            singbox_exe_path,
-            data_dir,
-        } => match sing_box::start(&config_path, &singbox_exe_path, &data_dir).await {
-            Ok(()) => Response::Ok,
-            Err(e) => Response::err(format!("sing_box_start: {e:#}")),
-        },
-        Request::SingBoxStop => match sing_box::stop().await {
-            Ok(()) => Response::Ok,
-            Err(e) => Response::err(format!("sing_box_stop: {e:#}")),
-        },
         Request::ShutdownHelper => {
             // 0.3.1 fix: graceful self-stop. Отвечаем Ok сразу, потом в
             // фоновой задаче через 200мс шлём self SERVICE_CONTROL_STOP
@@ -115,15 +102,13 @@ pub async fn handle(req: Request) -> Response {
             // успешного ответа.
             //
             // 0.3.2 fix: ПЕРЕД self-stop останавливаем своих детей —
-            // SYSTEM-spawned sing-box / mihomo. Иначе helper выходит,
-            // дети становятся orphan'ами и продолжают работать → их
-            // .exe залочены, NSIS installer не сможет их перезаписать.
-            // Frontend (lib/updater.ts) тоже зовёт `disconnect` перед
-            // `shutdown_helper`, так что обычно дети уже стоплены —
-            // здесь defensive backup для случая когда disconnect упал
-            // или его вообще не вызвали (старый клиент).
+            // SYSTEM-spawned mihomo. Иначе helper выходит, дети становятся
+            // orphan'ами и продолжают работать → их .exe залочены, NSIS
+            // installer не сможет их перезаписать. Frontend (lib/updater.ts)
+            // тоже зовёт `disconnect` перед `shutdown_helper`, так что
+            // обычно дети уже стоплены — здесь defensive backup для случая
+            // когда disconnect упал или его вообще не вызвали (старый клиент).
             tokio::spawn(async {
-                let _ = super::sing_box::stop().await;
                 let _ = super::mihomo::stop().await;
                 tokio::time::sleep(std::time::Duration::from_millis(200)).await;
                 if let Err(e) = super::service::stop_self() {

@@ -6,7 +6,7 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 /**
  * Текущая скорость передачи данных (этап 13.O) + Working Set
- * движка (sing-box / mihomo) если включён `showMemoryMonitor`.
+ * движка (mihomo) если включён `showMemoryMonitor`.
  *
  * Слушает `bandwidth-tick` — Rust-сервис в `platform/bandwidth.rs`
  * каждую секунду читает `GetIfTable2` для default-route интерфейса

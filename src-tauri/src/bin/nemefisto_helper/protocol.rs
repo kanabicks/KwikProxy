@@ -62,11 +62,16 @@ use serde::{Deserialize, Serialize};
 ///   без админ-прав. Старый helper v10 не понимает команду — bump форсит
 ///   reinstall через UAC, после чего обновления станут гладкими.
 ///
+/// - 12 (Mihomo-only): выпилены `SingBoxStart` / `SingBoxStop` — движок
+///   sing-box полностью удалён, остался только Mihomo. Старый helper
+///   v11 умеет лишние команды, но это безвредно; bump нужен чтобы при
+///   апгрейде клиента helper переустановился до версии без sing-box-кода.
+///
 /// Tauri-main сравнивает с `Response::Version.protocol_version` при
 /// `ensure_running()` — если получил `<` (или 0 от helper'а без поля)
 /// форсит uninstall+install через UAC, чтобы пользователь получил
 /// помощь с дев-сборки или релиз-апгрейда без ручных шагов.
-pub const PROTOCOL_VERSION: u32 = 11;
+pub const PROTOCOL_VERSION: u32 = 12;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -85,7 +90,7 @@ pub enum Request {
     /// 192.168/16, 169.254/16, fe80::/10, ff00::/8).
     ///
     /// `allow_app_paths` — абсолютные пути к нашим бинарям, которым
-    /// разрешён исходящий трафик (sing-box.exe, mihomo.exe, helper.exe,
+    /// разрешён исходящий трафик (mihomo.exe, helper.exe,
     /// vpn-client.exe). Без этого VPN-движок не сможет соединиться
     /// даже если IP сервера есть в server_ips.
     KillSwitchEnable {
@@ -103,10 +108,10 @@ pub enum Request {
         /// В TUN-mode обычно [`198.18.0.1`] (наш TUN gateway).
         #[serde(default)]
         allow_dns_ips: Vec<String>,
-        /// 13.S strict mode: НЕ давать общий allow_app для VPN-движков
-        /// (xray/mihomo). Они смогут соединяться только на server_ips
-        /// (через add_filter_allow_v4_addr_port_proto, который добавляется
-        /// в любом случае). Direct outbound xray по `geosite:ru` будет
+        /// 13.S strict mode: НЕ давать общий allow_app для движка mihomo.
+        /// Он сможет соединяться только на server_ips (через
+        /// add_filter_allow_v4_addr_port_proto, который добавляется в
+        /// любом случае). Direct outbound по `geosite:ru` будет
         /// блокирован — это и есть смысл strict mode.
         #[serde(default)]
         strict_mode: bool,
@@ -169,22 +174,6 @@ pub enum Request {
     /// 13.L: остановить SYSTEM-spawned mihomo. Идемпотентно: если
     /// helper не запускал mihomo — no-op.
     MihomoStop,
-    /// sing-box миграция (v7): запустить sing-box как SYSTEM-процесс.
-    /// Нужно для built-in TUN-режима — `CreateAdapter` WinTUN требует
-    /// админа, и Tauri-main (user-level) не может его поднять напрямую.
-    /// Семантически зеркалит `MihomoStart`.
-    ///
-    /// `singbox_exe_path` / `config_path` / `data_dir` — абсолютные пути.
-    /// stdout/stderr процесса перенаправляются в
-    /// `C:\ProgramData\NemefistoVPN\sing-box.log`.
-    SingBoxStart {
-        config_path: String,
-        singbox_exe_path: String,
-        data_dir: String,
-    },
-    /// sing-box миграция (v7): остановить SYSTEM-spawned sing-box.
-    /// Идемпотентно: если helper не запускал sing-box — no-op.
-    SingBoxStop,
     /// 0.3.1 / installer file-lock fix: graceful self-shutdown.
     /// Helper отвечает `Ok`, потом в фоновой задаче после короткой
     /// задержки (чтобы клиент успел получить ответ) сам себя стопит
