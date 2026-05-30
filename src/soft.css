@@ -1,0 +1,959 @@
+/* ════════════════════════════════════════════════════════════════════════
+   РЕДИЗАЙН «SOFT / CARDS» (data-look="soft" на <html>)
+
+   Мягкий карточный язык: крупные скругления, многослойные тени, лаймовый
+   акцент, белая «шторка» поверх тёмной зоны. Узкое окно → телефонная
+   колонка; большой десктоп → двухпанельная карточка.
+
+   Все стили scoped под [data-look="soft"] / .soft* — не задевают classic/swiss.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Локальные токены soft.
+   Типографика: Inter Tight на ВСё (включая заголовки) — ближе к Apple SF,
+   чем геометричный Space Grotesk. Чище и нейтральнее. */
+:root[data-look="soft"] {
+  --bg: #0d0d0f;
+  --fg: #f5f5f3;
+  --display: "Inter Tight", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
+  --body: "Inter Tight", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
+  /* Спокойный жёлто-лаймовый как в референсе (не неон). */
+  --s-lime: #d8ec5a;
+  --s-lime-soft: #eaf69a;
+  --s-lime-tint: #f6fae6;
+  --s-ink: #16170f;
+  --s-sheet: #ffffff;
+  --s-sub: #93938c;
+  --s-line: #f1f1ed;
+  /* Системные (Apple-like) цвета статуса пинга — приглушённые. */
+  --s-green: #2f9e58;
+  --s-amber: #b8861f;
+  --s-red: #cf5b43;
+  /* Крупные «континуальные» скругления для squircle-ощущения. */
+  --s-r-card: 30px;
+  --s-r-sheet: 28px;
+  --s-r-row: 14px;
+}
+
+/* Прозрачное окно: фон отдаёт скруглённая карта .soft, а по углам видно
+   рабочий стол (frameless + transparent). */
+html[data-look="soft"],
+html[data-look="soft"] body,
+html[data-look="soft"] #root {
+  background: transparent;
+}
+[data-look="soft"] .app {
+  display: none;
+}
+[data-look="soft"] * {
+  cursor: auto;
+}
+[data-look="soft"] button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Карта .soft заполняет окно целиком (никакого центрирования — иначе
+   #root сжимается по контенту и вокруг видно рабочий стол). Прозрачны
+   только скруглённые углы. Страница не скроллится — скролл внутри списка. */
+html[data-look="soft"] body {
+  height: 100dvh;
+  overflow: hidden;
+}
+html[data-look="soft"] #root {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+}
+
+/* ── Каркас ───────────────────────────────────────────────────────────── */
+.soft {
+  /* fixed inset:0 — карта точно по вьюпорту; внутренний flex-скролл списка
+     работает, плавающий док закреплён. При maximize поджимаем (ниже). */
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  color: #f5f5f3;
+  font-family: var(--body);
+  background: #0d0d0f;
+  overflow: hidden;
+  /* Скруглённые углы окна (по углам видно desktop — frameless). */
+  border-radius: 14px;
+  /* Чёткий рендер шрифтов (HD-ощущение). */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* Развёрнутое окно: поджимаем на ~8px (Windows-overflow за края экрана),
+   убираем скругление — иначе кнопки/контент у краёв обрезаются. */
+html[data-maximized="true"] .soft {
+  inset: var(--maxpad, 8px);
+  border-radius: 0;
+}
+.soft-aside {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  padding-bottom: 8px;
+  background:
+    radial-gradient(110% 70% at 50% -8%, rgba(216, 236, 90, 0.10), transparent 60%),
+    linear-gradient(180deg, #161618 0%, #0d0d0f 100%);
+}
+
+/* Десктоп: двухпанельная раскладка, карта заполняет окно (скруглена через
+   .soft border-radius выше). Слева тёмная панель, справа белый список. */
+@media (min-width: 820px) {
+  .soft {
+    flex-direction: row;
+  }
+  .soft-aside {
+    flex: 0 0 42%;
+    padding-bottom: 112px;
+  }
+}
+
+/* ── Шапка ────────────────────────────────────────────────────────────── */
+.soft-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  /* +отступ сверху под кастомный титлбар (traffic lights). */
+  padding: 46px 24px 18px;
+}
+@media (min-width: 820px) {
+  .soft-head {
+    padding: 48px 28px 18px;
+  }
+}
+.soft-head-word {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: -0.03em;
+}
+.soft-head-word .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #565652;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.soft-head-word.on .dot {
+  background: #9be15d;
+  box-shadow: 0 0 12px #9be15d;
+}
+.soft-head-meta {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+.soft-head-meta-top {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e7e7e3;
+}
+.soft-subchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #d4d4cf;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 180px;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.soft-subchip > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.soft-subchip svg {
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+.soft-subchip:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.soft-head-meta-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #76766f;
+}
+
+/* ── Карточка-коннект ─────────────────────────────────────────────────── */
+.soft-connect {
+  margin: 4px 22px 18px;
+  padding: 20px 22px;
+  border: none;
+  border-radius: 24px;
+  /* Деликатный вертикальный градиент + верхний блик — глубина без неона. */
+  background: linear-gradient(180deg, #e2f072 0%, #d4e84f 100%);
+  color: var(--s-ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 10px 24px -14px rgba(120, 140, 20, 0.6);
+  transition: transform 0.14s ease, box-shadow 0.3s, filter 0.2s, opacity 0.2s;
+}
+.soft-connect:hover:not(:disabled) {
+  filter: brightness(1.02);
+}
+.soft-connect:active {
+  transform: scale(0.985);
+}
+.soft-connect:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+.soft-connect-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.soft-connect-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+.soft-connect-sub {
+  font-size: 13px;
+  color: rgba(26, 27, 18, 0.6);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.soft-connect-arrow {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(26, 27, 18, 0.55);
+  font-size: 16px;
+}
+.soft-connect[data-on="true"] {
+  background: #1b1c17;
+  color: var(--s-lime);
+  box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.8);
+}
+.soft-connect[data-on="true"] .soft-connect-sub {
+  color: rgba(216, 236, 90, 0.7);
+}
+.soft-connect[data-on="true"] .soft-connect-arrow {
+  color: var(--s-lime);
+}
+
+/* ── Переключатель режима ─────────────────────────────────────────────── */
+[data-look="soft"] .mode-seg {
+  display: flex;
+  gap: 6px;
+  margin: 0 22px !important;
+  padding: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+[data-look="soft"] .mode-seg button {
+  flex: 1;
+  border: none;
+  background: none;
+  color: #b9b9b3;
+  border-radius: 12px;
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--body);
+  letter-spacing: 0;
+  text-transform: none;
+  transition: background 0.2s, color 0.2s;
+}
+[data-look="soft"] .mode-seg button.is-active {
+  background: #fafafa;
+  color: var(--s-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-look="soft"] .mode-seg button:disabled {
+  opacity: 0.4;
+}
+
+/* ── Белая шторка-список ──────────────────────────────────────────────── */
+.soft-sheet {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--s-sheet);
+  color: var(--s-ink);
+  border-radius: var(--s-r-sheet) var(--s-r-sheet) 0 0;
+  margin-top: 8px;
+  overflow: hidden;
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.35);
+}
+/* Мягкое затухание списка под плавающим доком (только на телефонной
+   раскладке, где док поверх белой шторки). */
+.soft-sheet::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 120px;
+  /* Заметная мягкая тень снизу (фейд контента под док + грунтовка). */
+  background: linear-gradient(
+    to top,
+    rgba(6, 6, 4, 0.34) 0%,
+    rgba(6, 6, 4, 0.16) 26%,
+    rgba(6, 6, 4, 0.05) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+@media (min-width: 820px) {
+  .soft-sheet {
+    border-radius: 0;
+    margin-top: 0;
+    box-shadow: -1px 0 0 rgba(0, 0, 0, 0.06);
+  }
+}
+.soft-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 22px 12px;
+  flex: 0 0 auto;
+}
+.soft-sheet-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+.soft-sheet-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: #a8a89e;
+  background: #f4f4f0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.soft-sheet-spacer {
+  flex: 1;
+}
+.soft-iconbtn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 11px;
+  background: #f3f3f0;
+  color: #56564f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.12s;
+}
+.soft-iconbtn:hover {
+  background: #ebebe6;
+  color: var(--s-ink);
+}
+.soft-iconbtn:active {
+  transform: scale(0.9);
+}
+.soft-iconbtn:disabled {
+  opacity: 0.5;
+}
+.soft-iconbtn.is-spin svg {
+  animation: soft-spin 0.8s linear infinite;
+}
+.soft-iconbtn.is-pulse svg {
+  animation: soft-pulse 0.9s ease-in-out infinite;
+}
+@keyframes soft-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.soft-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 22px 120px;
+}
+@media (min-width: 820px) {
+  .soft-rows {
+    padding-bottom: 24px;
+  }
+}
+.soft-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 6px;
+  border: none;
+  border-bottom: 1px solid var(--s-line);
+  background: none;
+  text-align: left;
+  border-radius: 0;
+  transition: opacity 0.15s;
+}
+.soft-rows .soft-row:last-child {
+  border-bottom: none;
+}
+.soft-row:hover {
+  background: #fafaf7;
+}
+.soft-row[data-sel="true"] {
+  background: var(--s-lime-tint);
+}
+.soft-row-check {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  border: 2px solid #dadad4;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+.soft-row[data-sel="true"] .soft-row-check {
+  background: var(--s-ink);
+  border-color: var(--s-ink);
+}
+.soft-row[data-sel="true"] .soft-row-check::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--s-lime);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.soft-row-flag {
+  flex: 0 0 auto;
+  width: 26px;
+  text-align: center;
+  /* Только эмодзи-шрифт: гарантирует цветной флаг (Segoe на Win не умеет
+     regional-indicator'ы). Noto Color Emoji загружен в main.tsx. */
+  font-family: "Noto Color Emoji", var(--body);
+  font-size: 20px;
+  line-height: 1;
+}
+.soft-row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.15s;
+}
+.soft-row[data-sel="true"] .soft-row-title {
+  font-weight: 600;
+}
+.soft-row-ping {
+  flex: 0 0 auto;
+  min-width: 50px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: #adada3;
+  font-variant-numeric: tabular-nums;
+}
+.soft-row-ping.is-good {
+  color: var(--s-green);
+}
+.soft-row-ping.is-ok {
+  color: var(--s-amber);
+}
+.soft-row-ping.is-bad {
+  color: var(--s-red);
+}
+
+/* Пустое состояние (Welcome внутри белой шторки) — тёмный текст. */
+.soft-empty .soft-sheet {
+  color: var(--s-ink);
+  padding: 8px 6px;
+}
+.soft-empty .soft-sheet .welcome {
+  color: var(--s-ink);
+}
+
+/* ── Нижний док ───────────────────────────────────────────────────────── */
+.soft-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 20;
+}
+@media (min-width: 820px) {
+  .soft-dock {
+    left: 21%;
+    bottom: 28px;
+  }
+}
+.soft-dock-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #ffffff;
+  color: #3a3a34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 6px 16px -4px rgba(0, 0, 0, 0.18),
+    0 14px 30px -10px rgba(0, 0, 0, 0.12);
+  transition: transform 0.12s, background 0.3s, color 0.3s, box-shadow 0.3s;
+}
+.soft-dock-btn:hover {
+  color: var(--s-ink);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.05),
+    0 8px 20px -4px rgba(0, 0, 0, 0.22);
+}
+.soft-dock-btn:active {
+  transform: scale(0.9);
+}
+.soft-dock-btn:disabled {
+  opacity: 0.5;
+}
+.soft-dock-center {
+  width: 64px;
+  height: 64px;
+}
+.soft-dock-center svg {
+  width: 26px;
+  height: 26px;
+}
+.soft-dock-center[data-on="true"] {
+  background: #1b1c17;
+  color: #9be15d;
+  box-shadow:
+    0 0 0 1px rgba(155, 225, 93, 0.25) inset,
+    0 0 28px rgba(155, 225, 93, 0.55),
+    0 10px 26px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Bottom-sheet (подписки / добавление) ─────────────────────────────── */
+.soft-sheet-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  animation: soft-fade 0.18s ease;
+}
+@keyframes soft-fade {
+  from {
+    opacity: 0;
+  }
+}
+.soft-bottomsheet {
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  color: var(--s-ink);
+  border-radius: 26px;
+  padding: 12px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  animation: soft-rise 0.34s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+}
+@keyframes soft-rise {
+  0% {
+    transform: translateY(60px) scale(0.96);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.soft-bs-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #e2e2dc;
+  align-self: center;
+  margin: 2px 0 4px;
+}
+.soft-bs-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 19px;
+}
+
+/* Список подписок (только переключение + удаление). */
+.soft-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 56vh;
+  overflow-y: auto;
+}
+.soft-pick-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #ececea;
+  border-radius: 18px;
+  background: #fcfcfa;
+  transition: border-color 0.2s, background 0.2s;
+}
+.soft-pick-card.is-active {
+  background: #f3f8d8;
+  border-color: #e0ef93;
+}
+.soft-pick-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 13px 14px;
+  color: var(--s-ink);
+}
+.soft-pick-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.soft-pick-radio {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid #cfcfc8;
+  position: relative;
+}
+.soft-pick-card.is-active .soft-pick-radio {
+  border-color: var(--s-ink);
+}
+.soft-pick-card.is-active .soft-pick-radio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--s-ink);
+}
+.soft-pick-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.soft-pick-badge {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--s-ink);
+  color: var(--s-lime);
+}
+.soft-pick-meta {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--s-sub);
+  padding-left: 25px;
+}
+.soft-pick-del {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  margin-right: 8px;
+  border: none;
+  background: none;
+  color: #c2c2ba;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.soft-pick-del:hover {
+  background: #fbe3df;
+  color: #c0392b;
+}
+.soft-pick-confirm {
+  display: flex;
+  gap: 8px;
+  padding-right: 10px;
+}
+.soft-pick-confirm button {
+  border: none;
+  background: #f0f0ec;
+  color: #56564f;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.soft-pick-confirm button.is-danger {
+  background: #f4c8c0;
+  color: #8e2b1c;
+}
+
+.soft-bs-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--s-lime);
+  color: var(--s-ink);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 12px 26px -12px rgba(214, 242, 58, 0.6);
+}
+.soft-bs-add:active {
+  transform: scale(0.99);
+}
+
+/* Форма добавления. */
+.soft-bs-input {
+  width: 100%;
+  border: 1px solid #e2e2dd;
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-size: 14px;
+  font-family: var(--mono);
+  color: var(--s-ink);
+  background: #f7f7f4;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.soft-bs-input:focus {
+  border-color: var(--s-ink);
+}
+.soft-bs-err {
+  font-size: 12px;
+  color: #c0392b;
+  word-break: break-word;
+}
+.soft-bs-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.soft-bs-cancel,
+.soft-bs-go {
+  border: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.soft-bs-cancel {
+  background: #f0f0ec;
+  color: #56564f;
+}
+.soft-bs-go {
+  background: var(--s-lime);
+  color: var(--s-ink);
+}
+.soft-bs-go:disabled {
+  opacity: 0.5;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   SETTINGS в soft-стиле — тёмный фон как у главного экрана, карточки-секции,
+   лаймовые акценты. Только под [data-look="soft"].
+   ═══════════════════════════════════════════════════════════════════════ */
+html[data-look="soft"] .settings-page {
+  background:
+    radial-gradient(120% 55% at 50% -8%, rgba(216, 236, 90, 0.08), transparent 60%),
+    linear-gradient(180deg, #161618 0%, #0d0d0f 100%);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 14px;
+  color: #f5f5f3;
+}
+html[data-maximized="true"] .settings-page {
+  inset: var(--maxpad, 8px);
+  border-radius: 0;
+}
+html[data-look="soft"] .settings-frame {
+  max-width: 560px;
+}
+
+/* Шапка */
+html[data-look="soft"] .settings-header {
+  background: rgba(20, 20, 22, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+html[data-look="soft"] .back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #cfcfcb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+html[data-look="soft"] .back-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+html[data-look="soft"] .settings-title {
+  font-family: var(--display);
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+/* Список категорий (уровень 1) — карточки */
+html[data-look="soft"] .settings-categories {
+  gap: 10px;
+}
+html[data-look="soft"] .settings-category {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 18px;
+  padding: 16px 16px;
+  transition: background 0.18s, border-color 0.18s, transform 0.12s;
+}
+html[data-look="soft"] .settings-category:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+html[data-look="soft"] .settings-category:active {
+  transform: scale(0.99);
+}
+html[data-look="soft"] .settings-category-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  color: #f5f5f3;
+}
+html[data-look="soft"] .settings-category-desc {
+  color: #8f8f88;
+}
+html[data-look="soft"] .settings-category-arrow {
+  color: #6f6f68;
+}
+
+/* Секции внутри категории — карточки */
+html[data-look="soft"] .settings-section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 16px;
+  gap: 12px;
+}
+html[data-look="soft"] .settings-section-title {
+  font-family: var(--mono);
+  color: #8f8f88;
+  letter-spacing: 0.14em;
+}
+html[data-look="soft"] .settings-row-label {
+  color: #ededea;
+  font-weight: 500;
+}
+html[data-look="soft"] .settings-row-hint {
+  color: #86867f;
+}
+
+/* Контролы: на тёмном фоне делаем явный фон/цвет (иначе var(--bg)
+   прозрачный → инпуты «исчезают»). */
+html[data-look="soft"] .settings-page input,
+html[data-look="soft"] .settings-page select,
+html[data-look="soft"] .settings-page textarea {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f5f3;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+html[data-look="soft"] .settings-page input::placeholder,
+html[data-look="soft"] .settings-page textarea::placeholder {
+  color: #6f6f68;
+}
+
+/* Exit-анимации bottom-sheet (пикер/добавление) — фаза .is-closing. */
+.soft-sheet-overlay.is-closing {
+  animation: soft-fade-out 0.24s ease forwards;
+}
+.soft-sheet-overlay.is-closing .soft-bottomsheet {
+  animation: soft-fall 0.24s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes soft-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes soft-fall {
+  to {
+    transform: translateY(60px) scale(0.96);
+    opacity: 0;
+  }
+}

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import "./soft.css";
 import { useVpnStore } from "./stores/vpnStore";
 import { useSubscriptionStore } from "./stores/subscriptionStore";
 import { useSettingsStore } from "./stores/settingsStore";
@@ -35,6 +36,8 @@ import { MihomoGroupsInline } from "./components/MihomoGroupsInline";
 import { useBackupModalStore } from "./lib/backup";
 import { Header } from "./components/Header";
 import { PowerStack } from "./components/PowerStack";
+import { SoftHome } from "./components/SoftHome";
+import { TitleBar } from "./components/TitleBar";
 import { Welcome } from "./components/Welcome";
 import { ServerSelector } from "./components/ServerSelector";
 import { BandwidthMeter } from "./components/BandwidthMeter";
@@ -110,6 +113,27 @@ function App() {
   const socksPort = useVpnStore((s) => s.socksPort);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Прототипы редизайна. Значение из localStorage `nemefisto.look`:
+  //   "soft"    — мягкие карточки + лайм (текущий прототип, дефолт);
+  //   "swiss"   — типографика-минимализм;
+  //   "classic" — старый дизайн (3D-сцена, glass, темы).
+  // Переключение в DevTools: localStorage.setItem("nemefisto.look","classic").
+  // Для soft/swiss выключаем весь декор (3D, scanlines/сетка/виньетка,
+  // кастомный курсор, боковой ambient) — оба прототипа про вычитание.
+  const [look] = useState<"classic" | "swiss" | "soft">(() => {
+    try {
+      const v = localStorage.getItem("nemefisto.look");
+      if (v === "classic" || v === "swiss" || v === "soft") return v;
+    } catch {
+      /* приватный режим */
+    }
+    return "soft";
+  });
+  useEffect(() => {
+    document.documentElement.dataset.look = look;
+  }, [look]);
+  const decorOff = look !== "classic";
 
   // Применяем активную тему (data-theme на <html>). См. App.css :root[data-theme="light"].
   useApplyTheme();
@@ -395,12 +419,19 @@ function App() {
 
   return (
     <>
-      <BackgroundLayers />
-      <Suspense fallback={null}>
-        <Scene3D status={status} />
-      </Suspense>
-      <WideAmbient />
-      <CustomCursor />
+      <TitleBar />
+      {!decorOff && <BackgroundLayers />}
+      {!decorOff && (
+        <Suspense fallback={null}>
+          <Scene3D status={status} />
+        </Suspense>
+      )}
+      {!decorOff && <WideAmbient />}
+      {!decorOff && <CustomCursor />}
+
+      {look === "soft" && (
+        <SoftHome onOpenSettings={() => setSettingsOpen(true)} />
+      )}
 
       <div className="app">
         <div className="frame">

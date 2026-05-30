@@ -3348,6 +3348,14 @@ input, textarea { font: inherit; cursor: text; }
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.settings-page.is-closing {
+  animation: settings-out 0.24s ease forwards;
+  pointer-events: none;
+}
+@keyframes settings-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(10px); }
+}
 
 .settings-frame {
   width: 100%;
@@ -3361,7 +3369,9 @@ input, textarea { font: inherit; cursor: text; }
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: 16px 24px;
+  /* +отступ сверху под глобальный кастомный титлбар (40px), иначе кнопка
+     «назад» попадает под drag-зону титлбара и не кликается. */
+  padding: 48px 24px 14px;
   background: var(--overlay-blur);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -3527,4 +3537,293 @@ input, textarea { font: inherit; cursor: text; }
   .power-icon { width: 38px; height: 38px; }
   .power-label { font-size: 17px; }
   .footer { display: none; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   РЕДИЗАЙН «SWISS / ТИПОГРАФИКА» (data-look="swiss" на <html>)
+
+   Философия: вычитание. Ноль blur/glass/теней/градиентов/3D. Монохром,
+   крупная редакторская типографика, волосяные линии, левое выравнивание.
+   Состояние коннекта читается СЛОВОМ (гигантский .power-label) и
+   ЗАПОЛНЕНИЕМ волосяной линии под ним (::after + :has). Markup компонентов
+   не меняется — только CSS-оверрайды и flex-order.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root[data-look="swiss"] {
+  --bg: #0c0c0c;
+  --bg-2: #0c0c0c;
+  --bg-glass: transparent;
+  --fg: #fafaf8;
+  --fg-dim: #8c8c88;
+  --fg-mute: #565652;
+  --line: rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.22);
+  --accent: #fafaf8;
+  --power-btn-shadow: none;
+  --vignette: transparent;
+  /* Острые углы — характерная черта швейцарского стиля. */
+  --r-sm: 0px;
+  --r-md: 0px;
+  --r-lg: 0px;
+  --r-pill: 0px;
+}
+
+html[data-look="swiss"],
+html[data-look="swiss"] body {
+  background: #0c0c0c;
+}
+
+/* Плоско: убираем blur и кастомный курсор по всему дереву. */
+[data-look="swiss"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  cursor: auto;
+}
+[data-look="swiss"] button:not(:disabled),
+[data-look="swiss"] a,
+[data-look="swiss"] [role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Рамка — больше воздуха, верхне-левый якорь. */
+[data-look="swiss"] .frame {
+  max-width: 480px;
+  padding: 30px 30px 24px;
+  gap: 30px;
+}
+[data-look="swiss"] .main-grid { gap: 36px; }
+
+/* Шапка — только словесный логотип + волосяная нижняя линия. */
+[data-look="swiss"] .header {
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+[data-look="swiss"] .header-logo {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+[data-look="swiss"] .header-logo img { display: none; }
+[data-look="swiss"] .icon-btn {
+  border: none;
+  background: none;
+  color: var(--fg-mute);
+  width: 30px;
+  height: 30px;
+}
+[data-look="swiss"] .icon-btn:hover { color: var(--fg); background: none; }
+
+/* ── Power-блок: переставляем порядок через flex-order ──────────────────
+   0: status-pill (мелкая mono-строка),
+   1: обёртка label+detail (гигантское слово состояния + мотив-линия),
+   2: power-btn (узкая action-строка с →). */
+[data-look="swiss"] .power-stack {
+  align-items: stretch;
+  gap: 0;
+  padding: 4px 0 0;
+}
+
+[data-look="swiss"] .status-pill {
+  order: 0;
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--fg-mute);
+  gap: 8px;
+}
+[data-look="swiss"] .status-pill .dot { width: 5px; height: 5px; box-shadow: none; }
+[data-look="swiss"] .status-pill.is-running { color: var(--fg-dim); }
+
+/* Обёртка label+detail (3-й ребёнок power-stack, inline-центр перебиваем). */
+[data-look="swiss"] .power-stack > div:last-child {
+  order: 1;
+  position: relative;
+  text-align: left !important;
+  margin-top: 18px;
+  padding-bottom: 20px;
+}
+/* Мотив состояния: волосяная линия. Покой — короткая тусклая,
+   подключено — заливается во всю ширину и ярчает (через :has). */
+[data-look="swiss"] .power-stack > div:last-child::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 26%;
+  background: var(--fg-mute);
+  transition: width 0.65s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.4s ease;
+}
+[data-look="swiss"] .power-stack:has(.power-btn.is-running) > div:last-child::after {
+  width: 100%;
+  background: var(--fg);
+}
+[data-look="swiss"] .power-stack:has(.power-btn:disabled:not(.is-running)) > div:last-child::after {
+  width: 12%;
+}
+
+/* Гигантское слово состояния. */
+[data-look="swiss"] .power-label {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(40px, 13vw, 62px);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+[data-look="swiss"] .power-label.dim { color: var(--fg-mute); }
+[data-look="swiss"] .power-label.warn { color: var(--fg); }
+[data-look="swiss"] .power-detail {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--fg-mute);
+  margin-top: 12px;
+}
+
+/* Action-строка вместо круглой кнопки: full-width, mono-caps, стрелка. */
+[data-look="swiss"] .power-btn {
+  order: 2;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none !important;
+  box-shadow: none !important;
+  animation: none !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  margin-top: 6px;
+  padding: 18px 0 4px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.24em;
+  color: var(--fg-dim);
+}
+[data-look="swiss"] .power-btn::before { display: none !important; }
+[data-look="swiss"] .power-btn::after {
+  content: "→";
+  font-size: 15px;
+  color: var(--fg-mute);
+  transition: transform 0.25s ease, color 0.25s ease;
+}
+[data-look="swiss"] .power-btn svg,
+[data-look="swiss"] .power-btn .power-icon { display: none; }
+[data-look="swiss"] .power-btn > span { font-family: var(--mono); }
+[data-look="swiss"] .power-btn:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+[data-look="swiss"] .power-btn:hover:not(:disabled)::after {
+  color: var(--fg);
+  transform: translateX(4px);
+}
+[data-look="swiss"] .power-btn.is-running { color: var(--fg); }
+[data-look="swiss"] .power-btn:disabled { opacity: 0.3; }
+
+/* Mode-сегмент, welcome, карточки — плоско и остро (наследуют токены). */
+[data-look="swiss"] .dashboard-link {
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: none;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   КАСТОМНЫЙ ТИТЛБАР + RESIZE (frameless окно, decorations:false)
+   Глобально для всех луков. Apple-style traffic lights слева.
+   ═══════════════════════════════════════════════════════════════════════ */
+.titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 1000;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  /* Скругляем верхние углы под радиус окна — hover кнопки закрытия не
+     торчит квадратом из закруглённого угла. */
+  border-radius: 14px 14px 0 0;
+  overflow: hidden;
+}
+.win-controls {
+  display: flex;
+  align-items: stretch;
+}
+.win-btn {
+  width: 46px;
+  height: 40px;
+  border: none;
+  background: none;
+  color: rgba(235, 235, 230, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.win-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.win-btn:active {
+  background: rgba(255, 255, 255, 0.16);
+}
+.win-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+.win-close:active {
+  background: #c50f1f;
+}
+
+/* Развёрнутое окно: поджимаем титлбар внутрь (Windows-overflow за края),
+   убираем скругление и отключаем resize-хваты. */
+html[data-maximized="true"] .titlebar {
+  top: var(--maxpad, 8px);
+  left: var(--maxpad, 8px);
+  right: var(--maxpad, 8px);
+  border-radius: 0;
+}
+html[data-maximized="true"] .resize-layer {
+  display: none;
+}
+
+.resize-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  pointer-events: none;
+}
+.rz {
+  position: fixed;
+  pointer-events: auto;
+}
+.rz-n { top: 0; left: 10px; right: 10px; height: 5px; cursor: n-resize; }
+.rz-s { bottom: 0; left: 10px; right: 10px; height: 5px; cursor: s-resize; }
+.rz-e { top: 10px; bottom: 10px; right: 0; width: 5px; cursor: e-resize; }
+.rz-w { top: 10px; bottom: 10px; left: 0; width: 5px; cursor: w-resize; }
+.rz-ne { top: 0; right: 0; width: 14px; height: 14px; cursor: ne-resize; }
+.rz-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
+.rz-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
+.rz-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
+
+/* classic/swiss: контент уводим ниже титлбара. */
+[data-look="classic"] .frame,
+[data-look="swiss"] .frame {
+  padding-top: 46px;
 }

@@ -19,10 +19,16 @@ import "@fontsource/space-grotesk/600.css";
 import "@fontsource/space-grotesk/700.css";
 
 // Inter Tight — body (русский текст + cyrillic fallback для display).
+// Веса 600/700 нужны для чёткого жирного текста в soft-UI (имена, бейджи,
+// заголовки) — иначе браузер рисует «фейк-болд» (размытый).
 import "@fontsource/inter-tight/400.css";
 import "@fontsource/inter-tight/500.css";
+import "@fontsource/inter-tight/600.css";
+import "@fontsource/inter-tight/700.css";
 import "@fontsource/inter-tight/cyrillic-400.css";
 import "@fontsource/inter-tight/cyrillic-500.css";
+import "@fontsource/inter-tight/cyrillic-600.css";
+import "@fontsource/inter-tight/cyrillic-700.css";
 
 // JetBrains Mono — мета, метки, моноширинный текст.
 import "@fontsource/jetbrains-mono/400.css";

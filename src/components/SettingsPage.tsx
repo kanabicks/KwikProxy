@@ -148,6 +148,13 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
   // Активная категория. null = главный экран со списком категорий.
   const [category, setCategory] = useState<SettingsCategory | null>(null);
 
+  // Фаза закрытия: проигрываем exit-анимацию, затем размонтируем (onClose).
+  const [closing, setClosing] = useState(false);
+  const requestClose = () => {
+    setClosing(true);
+    window.setTimeout(onClose, 240);
+  };
+
   // 8.B: эффективный движок (с override-логикой для server-driven UX).
   // sing-box миграция (0.1.2): legacy header "xray" автоматически
   // мапится в "sing-box".
@@ -178,7 +185,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
     if (category !== null) {
       setCategory(null);
     } else {
-      onClose();
+      requestClose();
     }
   };
   const headerTitle =
@@ -190,7 +197,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
         ).toLowerCase();
 
   return (
-    <div className="settings-page">
+    <div className={`settings-page${closing ? " is-closing" : ""}`}>
       <div className="settings-frame">
         <header className="settings-header">
           <button

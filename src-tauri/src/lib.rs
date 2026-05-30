@@ -161,14 +161,36 @@ pub fn run() {
         // «Выйти» в меню трея — там же делается полный shutdown.
         // 13.O: закрытие floating-окна (×) → скрываем и эмитим
         // `floating-closed` чтобы фронт сбросил `settings.floatingWindow`.
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
                 api.prevent_close();
                 let _ = window.hide();
                 if window.label() == "floating" {
                     let _ = window.app_handle().emit("floating-closed", ());
                 }
             }
+            // Frameless-окно на Windows в развёрнутом виде вылезает за края
+            // экрана (~8px), и контент у краёв (кнопки окна) обрезается.
+            // Надёжно (минуя JS-события) выставляем флаг maximize прямо в
+            // DOM через eval — CSS по нему поджимает карту/титлбар внутрь.
+            tauri::WindowEvent::Resized(_) => {
+                if window.label() == "main" {
+                    let maximized = window.is_maximized().unwrap_or(false);
+                    if let Some(wv) = window.app_handle().get_webview_window("main") {
+                        // Динамически вычисляем overflow окна за края экрана
+                        // (зависит от DPI/масштаба) и кладём в --maxpad; CSS
+                        // по нему поджимает карту/титлбар ровно на нужную
+                        // величину. Фиксированные 8px не хватало на 125/150%.
+                        let js = if maximized {
+                            "(function(){var o=Math.max(0,Math.round((window.innerWidth-window.screen.width)/2));var r=document.documentElement;r.dataset.maximized='true';r.style.setProperty('--maxpad',(o>0?o:8)+'px');})()"
+                        } else {
+                            "(function(){var r=document.documentElement;r.dataset.maximized='false';r.style.setProperty('--maxpad','0px');})()"
+                        };
+                        let _ = wv.eval(js);
+                    }
+                }
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             connect,
