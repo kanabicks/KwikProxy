@@ -1,6 +1,6 @@
 [package]
 name = "vpn-client"
-version = "0.6.4"
+version = "0.7.0"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -99,8 +99,8 @@ windows-sys = { version = "0.59", features = [
 # через Windows Service Control Manager и слушает named pipe для команд от
 # user-mode Tauri-приложения (управление TUN-интерфейсом и routing).
 [[bin]]
-name = "nemefisto-helper"
-path = "src/bin/nemefisto_helper.rs"
+name = "kwik-helper"
+path = "src/bin/kwik_helper.rs"
 
 # 14.C: line-tables только в release-сборке. Backtrace в crash-dump'ах
 # содержит читаемые file:line, а размер бинарника растёт минимально

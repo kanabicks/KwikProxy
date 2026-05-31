@@ -1,6 +1,6 @@
 // scripts/build-helper.mjs
 //
-// Обёртка над `cargo build --bin nemefisto-helper` для npm `predev` хука.
+// Обёртка над `cargo build --bin kwik-helper` для npm `predev` хука.
 // Запускается автоматически перед `npm run dev` (и через него — `tauri dev`).
 //
 // Главная проблема которую решает скрипт:
@@ -11,7 +11,7 @@
 // Алгоритм:
 //   1. cargo build → если успешно, готово.
 //   2. Если ошибка содержит «os error 5» / «отказано в доступе» —
-//      ВЫЗЫВАЕМ `sc stop NemefistoHelper` через PowerShell `-Verb RunAs`
+//      ВЫЗЫВАЕМ `sc stop KwikHelper` через PowerShell `-Verb RunAs`
 //      (1 UAC-промпт). Старый сервис останавливается, файл освобождается.
 //   3. Повторяем cargo build — теперь должна пройти.
 //   4. Tauri-main при connect увидит, что helper не отвечает, поднимет
@@ -25,7 +25,7 @@ import { spawnSync } from "node:child_process";
 function buildHelper() {
   return spawnSync(
     "cargo",
-    ["build", "--manifest-path", "src-tauri/Cargo.toml", "--bin", "nemefisto-helper"],
+    ["build", "--manifest-path", "src-tauri/Cargo.toml", "--bin", "kwik-helper"],
     {
       stdio: ["inherit", "inherit", "pipe"],
       shell: true,
@@ -47,14 +47,14 @@ function isFileLocked(stderr) {
  *  false если пользователь отказал в UAC или sc упал. */
 function stopHelperServiceElevated() {
   console.log(
-    "[predev] пытаюсь остановить NemefistoHelper-сервис (потребуется UAC)…",
+    "[predev] пытаюсь остановить KwikHelper-сервис (потребуется UAC)…",
   );
   // Start-Process -Verb RunAs триггерит UAC. -Wait чтобы дождаться завершения.
   // -PassThru возвращает Process чтобы получить exit code. WindowStyle Hidden
   // прячет окно sc.exe от пользователя.
   const psCommand = `
     try {
-      $p = Start-Process sc.exe -ArgumentList 'stop','NemefistoHelper' \
+      $p = Start-Process sc.exe -ArgumentList 'stop','KwikHelper' \
         -Verb RunAs -Wait -PassThru -WindowStyle Hidden -ErrorAction Stop
       exit $p.ExitCode
     } catch {
@@ -95,7 +95,7 @@ if (result.status === 0) {
 
 if (isFileLocked(stderr)) {
   console.log(
-    "\n[predev] nemefisto-helper.exe заблокирован запущенным сервисом.",
+    "\n[predev] kwik-helper.exe заблокирован запущенным сервисом.",
   );
 
   if (stopHelperServiceElevated()) {
@@ -112,7 +112,7 @@ if (isFileLocked(stderr)) {
 
   console.log(
     "[predev] не удалось пересобрать helper. Останови сервис вручную:\n" +
-      "         (admin) sc stop NemefistoHelper\n" +
+      "         (admin) sc stop KwikHelper\n" +
       "[predev] Frontend dev продолжит со старым helper-ом — TUN-режим может\n" +
       "         не работать корректно для mihomo-passthrough подписок.\n",
   );

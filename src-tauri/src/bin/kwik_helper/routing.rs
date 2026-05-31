@@ -136,7 +136,7 @@ pub async fn delete_route_with_nexthop(
 /// с указанным именем — чужие TUN-адаптеры (Happ, Outline, etc.) не трогаем.
 pub async fn cleanup_orphan_tun(name: &str) -> Result<()> {
     // Защита от инъекции: имя адаптера должно быть только из ASCII-букв/цифр/
-    // дефисов/подчёркиваний/звёздочки (для wildcard `nemefisto-*`).
+    // дефисов/подчёркиваний/звёздочки (для wildcard `kwik-*`).
     if !name
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '*')

@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
  *    но xray не запущен → браузер «сломан»;
  *  - `proxy_backup_present` — есть `proxy_backup.json` от прошлого
  *    `set_system_proxy`, можно сделать восстановление оригинала;
- *  - `tun_orphan` — в системе остался адаптер `nemefisto-*`;
+ *  - `tun_orphan` — в системе остался адаптер `kwik-*`;
  *  - `was_crashed` — общий флаг что хоть что-то найдено.
  *
  * Если все четыре false — диалог не показываем.

@@ -2,9 +2,9 @@
 //
 // Prebuild-хук для `tauri build`. Делает три вещи:
 //
-//  1. Собирает `nemefisto-helper.exe` в release-режиме.
-//  2. Копирует получившийся `target/release/nemefisto-helper.exe` в
-//     `src-tauri/binaries/nemefisto-helper-<triplet>.exe` — Tauri ожидает
+//  1. Собирает `kwik-helper.exe` в release-режиме.
+//  2. Копирует получившийся `target/release/kwik-helper.exe` в
+//     `src-tauri/binaries/kwik-helper-<triplet>.exe` — Tauri ожидает
 //     externalBin с triplet-суффиксом.
 //  3. Проверяет, что все остальные sidecar (xray, tun2socks) и ресурсы
 //     (wintun.dll, geoip.dat, geosite.dat) на месте — иначе bundle не
@@ -12,7 +12,7 @@
 //
 // Запускается автоматически через npm-скрипт `tauri:bundle` (см. package.json).
 //
-// Если `nemefisto-helper.exe` заблокирован запущенным сервисом —
+// Если `kwik-helper.exe` заблокирован запущенным сервисом —
 // печатаем понятную инструкцию и выходим с ошибкой (для release-сборки
 // это критично, в отличие от dev).
 
@@ -58,12 +58,12 @@ function info(msg) {
 // ── 0. Курица-яйцо с tauri-build ──────────────────────────────────────
 // `tauri-build` (build.rs пакета `vpn-client`) запускается перед компиляцией
 // ЛЮБОГО бинаря пакета и валидирует существование всех externalBin путей.
-// Если файла helper-а ещё нет, шаг 1 (cargo build --bin nemefisto-helper)
+// Если файла helper-а ещё нет, шаг 1 (cargo build --bin kwik-helper)
 // упадёт. Поэтому создаём placeholder если файла нет — это устраивает
 // build.rs, а на шаге 2 placeholder перезаписывается реальным бинарём.
 const targetHelperPath = join(
   BINARIES,
-  `nemefisto-helper-${TRIPLET}.exe`
+  `kwik-helper-${TRIPLET}.exe`
 );
 if (!existsSync(BINARIES)) {
   mkdirSync(BINARIES, { recursive: true });
@@ -74,7 +74,7 @@ if (!existsSync(targetHelperPath)) {
 }
 
 // ── 1. Собираем helper в release ──────────────────────────────────────
-info("компилирую nemefisto-helper.exe в release...");
+info("компилирую kwik-helper.exe в release...");
 const buildResult = spawnSync(
   "cargo",
   [
@@ -82,7 +82,7 @@ const buildResult = spawnSync(
     "--manifest-path",
     join(SRC_TAURI, "Cargo.toml"),
     "--bin",
-    "nemefisto-helper",
+    "kwik-helper",
     "--release",
   ],
   {
@@ -103,17 +103,17 @@ if (buildResult.status !== 0) {
     /отказано в доступе/i.test(stderr)
   ) {
     fail(
-      "nemefisto-helper.exe в target/release/ заблокирован запущенным сервисом.\n" +
+      "kwik-helper.exe в target/release/ заблокирован запущенным сервисом.\n" +
         "         Останови сервис админом перед сборкой:\n" +
-        "           sc stop NemefistoHelper\n" +
-        "           src-tauri\\target\\release\\nemefisto-helper.exe uninstall"
+        "           sc stop KwikHelper\n" +
+        "           src-tauri\\target\\release\\kwik-helper.exe uninstall"
     );
   }
   fail(`cargo build завершился с кодом ${buildResult.status}`);
 }
 
 // ── 2. Копируем helper в binaries/ с triplet-суффиксом ────────────────
-const sourceHelper = join(TARGET_RELEASE, "nemefisto-helper.exe");
+const sourceHelper = join(TARGET_RELEASE, "kwik-helper.exe");
 
 if (!existsSync(sourceHelper)) {
   fail(`не найден ${sourceHelper} после cargo build (странно)`);
@@ -123,24 +123,24 @@ try {
   copyFileSync(sourceHelper, targetHelperPath);
   const size = (statSync(targetHelperPath).size / 1024 / 1024).toFixed(1);
   info(
-    `helper скопирован → binaries/nemefisto-helper-${TRIPLET}.exe (${size} МБ)`
+    `helper скопирован → binaries/kwik-helper-${TRIPLET}.exe (${size} МБ)`
   );
 } catch (e) {
   fail(`не удалось скопировать helper: ${e.message}`);
 }
 
-// ── 2b. Дублируем под именем `nemefisto_helper.exe` для tauri-bundler ─
+// ── 2b. Дублируем под именем `kwik_helper.exe` для tauri-bundler ─
 // Tauri 2 при сборке installer'а конвертирует имена `[[bin]]` из
-// kebab-case (`nemefisto-helper`) в snake_case (`nemefisto_helper.exe`)
+// kebab-case (`kwik-helper`) в snake_case (`kwik_helper.exe`)
 // и ищет файл по этому имени в `target/<profile>/`. Cargo же создаёт
 // файл строго по `[[bin]] name` (с дефисом). Чтобы не переименовывать
 // bin (имя зашито в helper_bootstrap, service.rs, prepare-bundle и др.),
 // просто кладём ещё одну копию рядом — это удовлетворяет bundler.
-const sourceHelperUnderscored = join(TARGET_RELEASE, "nemefisto_helper.exe");
+const sourceHelperUnderscored = join(TARGET_RELEASE, "kwik_helper.exe");
 try {
   copyFileSync(sourceHelper, sourceHelperUnderscored);
   info(
-    `helper дублирован → target/release/nemefisto_helper.exe (для tauri-bundler)`
+    `helper дублирован → target/release/kwik_helper.exe (для tauri-bundler)`
   );
 } catch (e) {
   fail(`не удалось дублировать helper для bundler: ${e.message}`);

@@ -1,9 +1,9 @@
 //! Управление процессом Mihomo (Clash Meta) sidecar — этап 8.B.
 //!
 //! Симметричен `xray.rs`: принимает готовый YAML-конфиг, пишет в файл
-//! `%TEMP%\NemefistoVPN\mihomo-config.yaml` и запускает sidecar
+//! `%TEMP%\KwikVPN\mihomo-config.yaml` и запускает sidecar
 //! `mihomo` (binary `mihomo-x86_64-pc-windows-msvc.exe`). Логи stderr —
-//! в `%TEMP%\NemefistoVPN\mihomo-stderr.log`.
+//! в `%TEMP%\KwikVPN\mihomo-stderr.log`.
 //!
 //! Один движок на сессию (Xray ИЛИ Mihomo), что выбран — определяется в
 //! `commands.rs::connect()`. Mihomo используется когда сервер из подписки
@@ -63,7 +63,7 @@ impl MihomoState {
     /// Запустить Mihomo с указанным YAML-конфигом.
     ///
     /// Если уже запущен — останавливает перед перезапуском. Конфиг
-    /// сохраняется в `%TEMP%\NemefistoVPN\mihomo-config.yaml`.
+    /// сохраняется в `%TEMP%\KwikVPN\mihomo-config.yaml`.
     pub fn start_with_config(
         &self,
         app: &AppHandle,
@@ -72,9 +72,9 @@ impl MihomoState {
     ) -> Result<(), String> {
         self.stop()?;
 
-        let tmp_dir = std::env::temp_dir().join("NemefistoVPN");
+        let tmp_dir = std::env::temp_dir().join("KwikVPN");
         std::fs::create_dir_all(&tmp_dir)
-            .map_err(|e| format!("не удалось создать %TEMP%\\NemefistoVPN: {e}"))?;
+            .map_err(|e| format!("не удалось создать %TEMP%\\KwikVPN: {e}"))?;
         let config_path = tmp_dir.join("mihomo-config.yaml");
         std::fs::write(&config_path, config_yaml)
             .map_err(|e| format!("запись mihomo-конфига: {e}"))?;
@@ -84,7 +84,7 @@ impl MihomoState {
             .ok_or_else(|| "путь к mihomo-конфигу содержит не-UTF-8 символы".to_string())?;
 
         // Mihomo требует «директорию данных» где хранятся geoip/geosite и cache.db.
-        // Используем тот же %TEMP%\NemefistoVPN — Mihomo сам создаст при необходимости.
+        // Используем тот же %TEMP%\KwikVPN — Mihomo сам создаст при необходимости.
         // 11.B: кладём geo `.dat` (user-скачанные приоритетнее бандла) в data-dir,
         // иначе правила GEOSITE:/GEOIP: профиля ломают старт mihomo.
         crate::config::geofiles::provision_into(&tmp_dir);

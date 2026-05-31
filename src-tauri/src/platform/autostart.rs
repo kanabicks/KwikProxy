@@ -1,7 +1,7 @@
 //! Управление автозапуском приложения (этап 6.B + 0.1.1 fix).
 //!
 //! Используем Windows Task Scheduler через `schtasks.exe` — task создаётся
-//! с триггером ON-LOGON для текущего пользователя и стартует Nemefisto при
+//! с триггером ON-LOGON для текущего пользователя и стартует Kwik при
 //! входе в систему. Преимущество перед `HKCU\...\Run`: не требует UAC при
 //! установке (текущий user-scope), переживает обновление приложения, и
 //! пользователь видит/может удалить task через стандартный UI Windows.
@@ -32,7 +32,11 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use tokio::process::Command;
 
-const TASK_NAME: &str = "Nemefisto VPN Autostart";
+const TASK_NAME: &str = "Kwik VPN Autostart";
+/// Имя задачи до ребрендинга 0.7.0 (Nemefisto → Kwik). Сносим при
+/// enable/disable и на старте приложения (`cleanup_legacy`), чтобы в
+/// планировщике не осталось видимого упоминания старого бренда.
+const LEGACY_TASK_NAME: &str = "Nemefisto VPN Autostart";
 const SCHTASKS_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// CREATE_NO_WINDOW — создаём дочерний процесс БЕЗ консольного окна.
@@ -87,31 +91,46 @@ pub async fn enable() -> Result<()> {
     Ok(())
 }
 
-/// Выключить автозапуск: удалить task. Если его нет — тихо успех.
-pub async fn disable() -> Result<()> {
+/// Удалить task по имени. `schtasks /Delete /F` возвращает 0 если task
+/// удалён и не-0 если его не было — второе не ошибка. Best-effort.
+async fn delete_task(name: &str) {
     let mut cmd = Command::new("schtasks.exe");
-    cmd.args(["/Delete", "/F", "/TN", TASK_NAME]);
+    cmd.args(["/Delete", "/F", "/TN", name]);
     #[cfg(windows)]
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
+    let _ = tokio::time::timeout(SCHTASKS_TIMEOUT, cmd.status()).await;
+}
 
-    let status = tokio::time::timeout(SCHTASKS_TIMEOUT, cmd.status())
-        .await
-        .context("schtasks /Delete зависает >30 сек")?
-        .context("не удалось запустить schtasks.exe")?;
-
-    // schtasks /Delete /F возвращает 0 если task удалён, и не-0 если его
-    // не было. Второе для нас не ошибка — состояние и так «выключено».
-    let _ = status;
+/// Выключить автозапуск: удалить task. Если его нет — тихо успех.
+/// Заодно сносим legacy-задачу (ребрендинг 0.7.0).
+pub async fn disable() -> Result<()> {
+    delete_task(TASK_NAME).await;
+    delete_task(LEGACY_TASK_NAME).await;
     Ok(())
 }
 
-/// Проверить, зарегистрирован ли task в планировщике. Async, по тем же
-/// причинам что enable/disable.
-pub async fn is_enabled() -> bool {
+/// One-time миграция автозапуска при ребрендинге 0.7.0. Если в
+/// планировщике есть legacy-задача `Nemefisto VPN Autostart`:
+///   - и новой `Kwik VPN Autostart` ещё нет — пересоздаём её на текущий
+///     exe (переносим включённое состояние автозапуска);
+///   - в любом случае сносим legacy (убираем видимое упоминание бренда).
+/// Best-effort: все ошибки проглатываются.
+pub async fn cleanup_legacy() {
+    if !query_task(LEGACY_TASK_NAME).await {
+        return;
+    }
+    if !query_task(TASK_NAME).await {
+        let _ = enable().await;
+    }
+    delete_task(LEGACY_TASK_NAME).await;
+}
+
+/// Проверить, зарегистрирована ли task с данным именем в планировщике.
+async fn query_task(name: &str) -> bool {
     let mut cmd = Command::new("schtasks.exe");
-    cmd.args(["/Query", "/TN", TASK_NAME]);
+    cmd.args(["/Query", "/TN", name]);
     #[cfg(windows)]
     {
         cmd.creation_flags(CREATE_NO_WINDOW);
@@ -121,4 +140,10 @@ pub async fn is_enabled() -> bool {
         Ok(Ok(o)) => o.status.success(),
         _ => false,
     }
+}
+
+/// Проверить, включён ли автозапуск. Async, по тем же причинам что
+/// enable/disable.
+pub async fn is_enabled() -> bool {
+    query_task(TASK_NAME).await
 }

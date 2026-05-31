@@ -37,7 +37,7 @@ export type ProxyEntry = {
  *    от провайдера;
  *  - premiumUrl: URL премиум-страницы.
  *
- *  X-Nemefisto-* (наше расширение, server-driven UX, 8.C):
+ *  X-Kwik-* (наше расширение, server-driven UX, 8.C):
  *  - theme / background / buttonStyle / preset / mode / engine — задают
  *    дефолты; применяются только если пользователь не менял эти
  *    настройки вручную (override-логика).
@@ -128,7 +128,7 @@ export type Subscription = {
   id: string;
   url: string;
   hwid: string;
-  /** Метаданные одной подписки (трафик, срок, заголовки X-Nemefisto-*).
+  /** Метаданные одной подписки (трафик, срок, заголовки X-Kwik-*).
    *  null если ещё ни разу не fetch'или или провайдер не прислал. */
   meta: SubscriptionMeta | null;
   /** Unix-ms времени последнего успешного fetch для этой подписки. */
@@ -251,16 +251,16 @@ const normalizeMeta = (
 const URL_KEYRING = "subscription_url";
 const HWID_KEYRING = "hwid_override";
 
-const URL_KEY = "nemefisto.subscription.url";
-const LAST_FETCH_KEY = "nemefisto.subscription.lastFetchedAt";
-const KEYRING_MIGRATION_KEY = "nemefisto.migrated.keyring.v1";
+const URL_KEY = "kwik.subscription.url";
+const LAST_FETCH_KEY = "kwik.subscription.lastFetchedAt";
+const KEYRING_MIGRATION_KEY = "kwik.migrated.keyring.v1";
 // Версионируем ключ override-HWID: при апгрейде клиента старое значение
 // (когда мы вручную подсовывали Happ-овский HWID для отладки) автоматически
 // перестаёт читаться. Override — теперь advanced-only, по умолчанию используется
 // системный MachineGuid через get_hwid.
-const HWID_KEY = "nemefisto.subscription.hwid.v2";
-const HWID_KEY_LEGACY = "nemefisto.subscription.hwid";
-const MIGRATION_KEY = "nemefisto.migrated.v2";
+const HWID_KEY = "kwik.subscription.hwid.v2";
+const HWID_KEY_LEGACY = "kwik.subscription.hwid";
+const MIGRATION_KEY = "kwik.migrated.v2";
 
 const loadFromStorage = (key: string): string => {
   try {
@@ -338,7 +338,7 @@ const loadTimestamp = (key: string): number | null => {
  *  Windows Credential Manager под ключами `subscription_url:${id}` и
  *  `hwid_override:${id}`. На init читаем этот список → подгружаем по
  *  каждому id креды из keyring. */
-const SUBS_INDEX_KEY = "nemefisto.subscriptions.index.v1";
+const SUBS_INDEX_KEY = "kwik.subscriptions.index.v1";
 
 const loadSubsIndex = (): string[] => {
   try {
@@ -365,7 +365,7 @@ const saveSubsIndex = (ids: string[]) => {
  *  жать «загрузить» (баг 0.3.5). Кешируем servers+meta по subId; на старте
  *  гидрируем UI мгновенно и заливаем серверы primary обратно в Rust через
  *  `set_servers` — чтобы connect работал без обязательного сетевого fetch'а. */
-const SERVERS_CACHE_KEY = "nemefisto.servers.cache.v1";
+const SERVERS_CACHE_KEY = "kwik.servers.cache.v1";
 
 type ServersCacheEntry = {
   servers: ProxyEntry[];
@@ -613,7 +613,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   getEffectiveEngine(_id) {
     // Mihomo-only (миграция 2026-05): движок всегда Mihomo. sing-box
     // выпиливается, поэтому per-subscription override и header
-    // X-Nemefisto-Engine больше не влияют — подписка всегда запрашивается
+    // X-Kwik-Engine больше не влияют — подписка всегда запрашивается
     // с clash-verge UA и подключается через Mihomo. Сигнатура сохранена
     // для совместимости вызовов (fetch UA + vpn_connect).
     return "mihomo";
@@ -771,6 +771,33 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   },
 
   async loadSecureCreds() {
+    // Ребрендинг 0.7.0: перенос записей Credential Manager из legacy
+    // namespace `nemefisto.*` в `kwik.*`. Делаем ДО первого keyringGet,
+    // иначе подписка «исчезнет» после апгрейда. Ключи: singleton
+    // URL/HWID + per-id варианты (id берём из уже мигрированного
+    // localStorage-индекса). One-shot через localStorage-флаг.
+    try {
+      if (!localStorage.getItem("kwik.migrated.credentials.rebrand.v1")) {
+        const ids = loadSubsIndex();
+        const keys = [URL_KEYRING, HWID_KEYRING];
+        for (const id of ids) {
+          keys.push(`${URL_KEYRING}:${id}`, `${HWID_KEYRING}:${id}`);
+        }
+        try {
+          await invoke("secure_storage_migrate_legacy", { keys });
+        } catch (e) {
+          console.warn("[subscription] миграция keyring nemefisto→kwik:", e);
+        }
+        try {
+          localStorage.setItem("kwik.migrated.credentials.rebrand.v1", "1");
+        } catch {
+          // приватный режим — повторим на следующем старте, не критично
+        }
+      }
+    } catch {
+      // localStorage недоступен — миграция best-effort
+    }
+
     // Этап 6.A: читаем URL/HWID из Windows Credential Manager. Если в
     // keyring пусто, но в localStorage есть — мигрируем (один раз) и
     // зачищаем localStorage. Маркер миграции защищает от повторного
@@ -1249,7 +1276,7 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
      //    multi-subscription index.
     try {
       localStorage.removeItem(LAST_FETCH_KEY);
-      localStorage.removeItem("nemefisto.selectedServerName.v1");
+      localStorage.removeItem("kwik.selectedServerName.v1");
       localStorage.removeItem(SUBS_INDEX_KEY);
       localStorage.removeItem(SERVERS_CACHE_KEY);
     } catch {

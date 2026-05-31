@@ -45,20 +45,20 @@ pub struct SubscriptionMeta {
     /// URL страницы премиума (`premium-url`). UI показывает кнопку
     /// «премиум» в карточке подписки если задана.
     pub premium_url: Option<String>,
-    /// Дефолтная тема UI (`X-Nemefisto-Theme`): dark/light/midnight/
+    /// Дефолтная тема UI (`X-Kwik-Theme`): dark/light/midnight/
     /// sunset/sand. Применяется если пользователь не менял.
     pub theme: Option<String>,
-    /// 3D-фон (`X-Nemefisto-Background`): crystal/tunnel/globe/particles.
+    /// 3D-фон (`X-Kwik-Background`): crystal/tunnel/globe/particles.
     pub background: Option<String>,
-    /// Стиль кнопки питания (`X-Nemefisto-Button-Style`):
+    /// Стиль кнопки питания (`X-Kwik-Button-Style`):
     /// glass/flat/neon/metallic.
     pub button_style: Option<String>,
-    /// Готовая тема-пресет (`X-Nemefisto-Preset`): none/fluent/cupertino/
+    /// Готовая тема-пресет (`X-Kwik-Preset`): none/fluent/cupertino/
     /// vice/arcade/glacier.
     pub preset: Option<String>,
-    /// Режим VPN по умолчанию (`X-Nemefisto-Mode`): proxy/tun.
+    /// Режим VPN по умолчанию (`X-Kwik-Mode`): proxy/tun.
     pub mode: Option<String>,
-    /// Желаемое VPN-ядро (`X-Nemefisto-Engine`): xray/mihomo. Зарезер-
+    /// Желаемое VPN-ядро (`X-Kwik-Engine`): xray/mihomo. Зарезер-
     /// вировано для этапа 8.B.
     pub engine: Option<String>,
 
@@ -302,9 +302,9 @@ fn apply_inline_directives(body: &str, meta_opt: &mut Option<SubscriptionMeta>) 
             continue;
         }
         // Routing-директивы. Префикс может быть как `://...`, так и
-        // `nemefisto://...` (для совместимости с deep-link форматом).
+        // `kwik://...` (для совместимости с deep-link форматом).
         let routing_payload = line
-            .strip_prefix("nemefisto://")
+            .strip_prefix("kwik://")
             .or_else(|| line.strip_prefix("://"));
         if let Some(rest) = routing_payload {
             let parts: Vec<&str> = rest.splitn(3, '/').collect();
@@ -507,32 +507,32 @@ fn build_subscription_meta(headers: &reqwest::header::HeaderMap) -> Option<Subsc
     meta.announce_url = header_str("announce-url");
     meta.premium_url = header_str("premium-url");
 
-    // Заголовки X-Nemefisto-* (наше расширение). Все enum-значения
+    // Заголовки X-Kwik-* (наше расширение). Все enum-значения
     // валидируются по whitelist; неизвестные → None.
     let header_enum = |name: &str, allowed: &[&str]| -> Option<String> {
         header_str(name).and_then(|v| validate_enum(&v, allowed))
     };
     meta.theme = header_enum(
-        "x-nemefisto-theme",
+        "x-kwik-theme",
         &["dark", "light", "midnight", "sunset", "sand"],
     );
     meta.background = header_enum(
-        "x-nemefisto-background",
+        "x-kwik-background",
         &["crystal", "tunnel", "globe", "particles"],
     );
     meta.button_style = header_enum(
-        "x-nemefisto-button-style",
+        "x-kwik-button-style",
         &["glass", "flat", "neon", "metallic"],
     );
     meta.preset = header_enum(
-        "x-nemefisto-preset",
+        "x-kwik-preset",
         &["none", "fluent", "cupertino", "vice", "arcade", "glacier"],
     );
-    meta.mode = header_enum("x-nemefisto-mode", &["proxy", "tun"]);
-    // Mihomo-only: единственный движок. Заголовок X-Nemefisto-Engine
+    meta.mode = header_enum("x-kwik-mode", &["proxy", "tun"]);
+    // Mihomo-only: единственный движок. Заголовок X-Kwik-Engine
     // принимаем только со значением "mihomo"; legacy "xray"/"sing-box"
     // молча игнорируем (фронт всё равно форсит mihomo).
-    meta.engine = header_enum("x-nemefisto-engine", &["mihomo"]);
+    meta.engine = header_enum("x-kwik-engine", &["mihomo"]);
 
     // Anti-DPI заголовки (этап 10)
     let header_bool = |name: &str| -> Option<bool> {
@@ -1951,13 +1951,13 @@ proxies:
     port: 443
     uuid: 00000000-0000-0000-0000-000000000000
 proxy-groups:
-  - name: '→ Nemefisto VPN'
+  - name: '→ Kwik VPN'
     type: select
     proxies:
       - Germany
       - Latvia
 rules:
-  - MATCH,→ Nemefisto VPN
+  - MATCH,→ Kwik VPN
 "#;
         let entries = parse_clash_yaml(yaml).expect("should parse");
         assert_eq!(entries.len(), 1);

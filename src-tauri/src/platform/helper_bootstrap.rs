@@ -3,7 +3,7 @@
 //! Цель: пользователь никогда не открывает PowerShell вручную чтобы
 //! установить сервис. При первом TUN-подключении мы:
 //!   1. Проверяем, отвечает ли уже helper по named pipe.
-//!   2. Если нет — находим `nemefisto-helper.exe`, запускаем его с
+//!   2. Если нет — находим `kwik-helper.exe`, запускаем его с
 //!      аргументом `install` через `ShellExecuteW` с verb `runas`
 //!      (UAC-запрос «разрешить от имени админа»).
 //!   3. Ждём пока сервис поднимется и начнёт отвечать на ping.
@@ -21,10 +21,10 @@ use anyhow::{bail, Result};
 
 use super::helper_client;
 
-const HELPER_FILENAME: &str = "nemefisto-helper.exe";
+const HELPER_FILENAME: &str = "kwik-helper.exe";
 /// Имя helper'а в bundle Tauri. ExternalBin копирует sidecar с triplet-
 /// суффиксом, отделить который мы не контролируем (зависит от версии Tauri).
-const HELPER_FILENAME_TRIPLET: &str = "nemefisto-helper-x86_64-pc-windows-msvc.exe";
+const HELPER_FILENAME_TRIPLET: &str = "kwik-helper-x86_64-pc-windows-msvc.exe";
 const PING_TIMEOUT_AFTER_INSTALL: Duration = Duration::from_secs(20);
 const PING_POLL_INTERVAL: Duration = Duration::from_millis(300);
 
@@ -100,17 +100,17 @@ pub async fn ensure_running() -> Result<()> {
 
     bail!(
         "helper-сервис установился, но не отозвался с актуальным протоколом за {}с. \
-         Проверьте services.msc → NemefistoHelper",
+         Проверьте services.msc → KwikHelper",
         PING_TIMEOUT_AFTER_INSTALL.as_secs()
     )
 }
 
-/// Найти `nemefisto-helper.exe` в нескольких возможных локациях:
-///   1. `<exe-dir>/nemefisto-helper.exe`            — dev (target/debug,
+/// Найти `kwik-helper.exe` в нескольких возможных локациях:
+///   1. `<exe-dir>/kwik-helper.exe`            — dev (target/debug,
 ///                                                    target/release)
 ///                                                    или prod если Tauri
 ///                                                    стрипает triplet;
-///   2. `<exe-dir>/nemefisto-helper-<triplet>.exe`  — prod если Tauri
+///   2. `<exe-dir>/kwik-helper-<triplet>.exe`  — prod если Tauri
 ///                                                    оставляет triplet
 ///                                                    после bundle;
 ///   3. `<exe-dir>/resources/...`                   — fallback на случай

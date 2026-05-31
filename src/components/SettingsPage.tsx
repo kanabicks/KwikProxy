@@ -956,27 +956,27 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                 </p>
                 <div className="schemes">
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://add?url=&lt;url&gt;</span>
+                    <span className="scheme-url">kwik://add?url=&lt;url&gt;</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.add")}</span>
                   </div>
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://connect</span>
+                    <span className="scheme-url">kwik://connect</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.connect")}</span>
                   </div>
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://disconnect</span>
+                    <span className="scheme-url">kwik://disconnect</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.disconnect")}</span>
                   </div>
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://toggle</span>
+                    <span className="scheme-url">kwik://toggle</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.toggle")}</span>
                   </div>
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://export</span>
+                    <span className="scheme-url">kwik://export</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.export")}</span>
                   </div>
                   <div className="scheme-row">
-                    <span className="scheme-url">nemefisto://import-from-url/&lt;url&gt;</span>
+                    <span className="scheme-url">kwik://import-from-url/&lt;url&gt;</span>
                     <span className="scheme-desc">{t("settings.urlSchemes.importFromUrl")}</span>
                   </div>
                 </div>
@@ -1009,21 +1009,31 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                       </button>
                     </>
                   )}
-                  <span className="about-key">{t("settings.about.support")}</span>
-                  <button
-                    type="button"
-                    onClick={openSupport}
-                    className="about-link"
-                  >
-                    @nemefistovpn_bot
-                  </button>
+                  {subMeta?.supportUrl && (
+                    <>
+                      <span className="about-key">{t("settings.about.support")}</span>
+                      <button
+                        type="button"
+                        onClick={openSupport}
+                        className="about-link"
+                      >
+                        {(() => {
+                          try {
+                            return new URL(subMeta.supportUrl).host;
+                          } catch {
+                            return t("settings.about.link");
+                          }
+                        })()}
+                      </button>
+                    </>
+                  )}
                   <span className="about-key">github</span>
                   <button
                     type="button"
                     onClick={() => void openUrl(GITHUB_URL)}
                     className="about-link"
                   >
-                    kanabicks/NemefistoAPP
+                    kanabicks/KwikProxy
                   </button>
                   <span className="about-key">{t("settings.about.privacy")}</span>
                   <button
@@ -1518,14 +1528,14 @@ function AppTrafficPanel({ onAddRule }: { onAddRule: (exe: string) => void }) {
 /**
  * 12.D — экспорт/импорт настроек.
  *
- * - **выгрузить в файл** → пишем JSON в `~/Documents/nemefisto-backup-<ts>.json`,
+ * - **выгрузить в файл** → пишем JSON в `~/Documents/kwik-backup-<ts>.json`,
  *   показываем toast с путём.
  * - **загрузить из файла** → `<input type="file">` + FileReader →
  *   `parseBackup` → `useBackupModalStore.show(...)` → preview-модалка
  *   с diff'ом и кнопкой «применить».
  *
- * Также активны deep-link'и `nemefisto://export` и
- * `nemefisto://import-from-url/<url>` (см. lib/deepLinks.ts).
+ * Также активны deep-link'и `kwik://export` и
+ * `kwik://import-from-url/<url>` (см. lib/deepLinks.ts).
  */
 function BackupBlock() {
   const { t } = useTranslation();
@@ -1637,8 +1647,8 @@ function FeedbackButton() {
       `- Language: \`${language}\``,
       `- UA: \`${ua}\``,
       "",
-      "<!-- если связано с kill-switch / TUN — прикрепи `C:\\ProgramData\\NemefistoVPN\\helper.log` -->",
-      "<!-- если mihomo ругается — `%TEMP%\\NemefistoVPN\\mihomo-stderr.log` -->",
+      "<!-- если связано с kill-switch / TUN — прикрепи `C:\\ProgramData\\KwikVPN\\helper.log` -->",
+      "<!-- если mihomo ругается — `%TEMP%\\KwikVPN\\mihomo-stderr.log` -->",
       "<!-- Settings → System → диагностика собирает ZIP со всем разом -->",
     ].join("\n");
     const url = new URL(`${GITHUB_URL}/issues/new`);

@@ -27,4 +27,4 @@ dist-ssr
 .claude/
 
 # Артефакты сборки helper-сервиса (создаются prepare-bundle.mjs из target/release/)
-src-tauri/binaries/nemefisto-helper-*.exe
+src-tauri/binaries/kwik-helper-*.exe

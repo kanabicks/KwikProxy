@@ -8,7 +8,7 @@
 //! Этот модуль предоставляет helper'у возможность spawn'ить mihomo
 //! по запросу от Tauri-main и держать процесс под мьютексом до явного
 //! `MihomoStop`. Stdout/stderr перенаправляются в
-//! `C:\ProgramData\NemefistoVPN\mihomo.log`.
+//! `C:\ProgramData\KwikVPN\mihomo.log`.
 //!
 //! Tauri-main коммуницирует с mihomo через external-controller на
 //! 127.0.0.1 (loopback виден SYSTEM и user'у одинаково), а live-status
@@ -59,7 +59,7 @@ pub async fn start(
     // Лог в ProgramData — туда у SYSTEM есть write-access, и admin-user
     // может прочитать без UAC. Перезаписываем при каждом start (старые
     // логи не нужны, хранение в файлах рваное).
-    let log_dir = PathBuf::from(r"C:\ProgramData\NemefistoVPN");
+    let log_dir = PathBuf::from(r"C:\ProgramData\KwikVPN");
     let _ = std::fs::create_dir_all(&log_dir);
     let log_path = log_dir.join("mihomo.log");
     let log_file = std::fs::File::create(&log_path)

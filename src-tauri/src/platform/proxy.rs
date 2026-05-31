@@ -5,7 +5,7 @@
 //!
 //! Backup/restore (9.D): перед перезаписью значений мы сохраняем оригиналы
 //! `ProxyEnable` / `ProxyServer` / `ProxyOverride` в JSON-файл
-//! `%LOCALAPPDATA%\NemefistoVPN\proxy_backup.json`. При `clear_system_proxy`
+//! `%LOCALAPPDATA%\KwikVPN\proxy_backup.json`. При `clear_system_proxy`
 //! восстанавливаем их обратно. Если приложение крашнется в режиме proxy и
 //! не успеет очистить — на старте next-run-а мы детектим backup-файл и
 //! предлагаем пользователю восстановить.
@@ -21,7 +21,7 @@ use winreg::{enums::*, RegKey};
 const INET_SETTINGS: &str =
     r"Software\Microsoft\Windows\CurrentVersion\Internet Settings";
 
-const BACKUP_DIR: &str = "NemefistoVPN";
+const BACKUP_DIR: &str = "KwikVPN";
 const BACKUP_FILE: &str = "proxy_backup.json";
 
 /// Снимок настроек системного прокси для backup/restore.
@@ -35,7 +35,7 @@ pub struct ProxyBackup {
     pub proxy_override: Option<String>,
 }
 
-/// Путь к файлу backup'а в %LOCALAPPDATA%\NemefistoVPN\proxy_backup.json.
+/// Путь к файлу backup'а в %LOCALAPPDATA%\KwikVPN\proxy_backup.json.
 fn backup_path() -> Option<PathBuf> {
     #[cfg(windows)]
     {

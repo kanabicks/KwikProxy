@@ -9,7 +9,7 @@ export function Footer() {
   return (
     <footer className="footer">
       <span>{t("footer.left")}</span>
-      <span>© 2026 NEMEFISTO · v.{APP_VERSION}</span>
+      <span>© 2026 KWIK · v.{APP_VERSION}</span>
     </footer>
   );
 }

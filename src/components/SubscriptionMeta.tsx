@@ -14,7 +14,7 @@ import { MihomoGroupsInline } from "./MihomoGroupsInline";
  * Список карточек подписок (0.3.0 multi-subscription). Каждая карточка
  * показывает свою подписку: трафик, срок, ⋯ меню (engine override +
  * удалить эту). Кнопка «+ добавить» — глобальная, в Header, диспатчит
- * `nemefisto:open-add-subscription` event'ом, который ловит этот компонент
+ * `kwik:open-add-subscription` event'ом, который ловит этот компонент
  * и открывает inline-форму поверх списка карточек.
  */
 export function SubscriptionMeta() {
@@ -31,9 +31,9 @@ export function SubscriptionMeta() {
   const [globalAdding, setGlobalAdding] = useState(false);
   useEffect(() => {
     const onOpen = () => setGlobalAddOpen(true);
-    window.addEventListener("nemefisto:open-add-subscription", onOpen);
+    window.addEventListener("kwik:open-add-subscription", onOpen);
     return () =>
-      window.removeEventListener("nemefisto:open-add-subscription", onOpen);
+      window.removeEventListener("kwik:open-add-subscription", onOpen);
   }, []);
 
   const renderAddForm = () =>

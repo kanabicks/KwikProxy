@@ -8,7 +8,7 @@ name: Release
 #
 # Pre-requirements (одноразово, ручками):
 #   1. GitHub Settings → Secrets and variables → Actions → New repository secret:
-#      - TAURI_SIGNING_PRIVATE_KEY = содержимое ~/.tauri/nemefisto.key
+#      - TAURI_SIGNING_PRIVATE_KEY = содержимое ~/.tauri/kwik.key
 #      - TAURI_SIGNING_PRIVATE_KEY_PASSWORD = пустая строка (ключ без пароля)
 #   2. tauri.conf.json должен содержать `plugins.updater.pubkey` (уже добавлен).
 #
@@ -86,7 +86,7 @@ jobs:
 
       # prepare-bundle.mjs: собирает helper.exe в release + копирует с
       # triplet-суффиксом в src-tauri/binaries/. Без этого tauri-build
-      # упадёт на отсутствии externalBin nemefisto-helper.
+      # упадёт на отсутствии externalBin kwik-helper.
       - name: Prepare helper binary
         run: npm run prepare-bundle
 
@@ -104,7 +104,7 @@ jobs:
           # release (нет тега). Это удобно для проверки что workflow
           # не сломан.
           tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
-          releaseName: "Nemefisto __VERSION__"
+          releaseName: "Kwik __VERSION__"
           releaseBody: |
             ## Что нового
 
@@ -112,7 +112,7 @@ jobs:
 
             ## Установка
 
-            Скачай `Nemefisto_VERSION_x64-setup.exe` ниже, запусти, дальше installer всё сделает сам.
+            Скачай `Kwik_VERSION_x64-setup.exe` ниже, запусти, дальше installer всё сделает сам.
 
             **SmartScreen warning** — нормально, мы пока без code-signing сертификата.
             Жми «More info» → «Run anyway».

@@ -144,9 +144,9 @@ export function flagCodeFromName(name: string): string | null {
 
   // 3. ОТДЕЛЬНЫЙ ISO2-токен (`HK 01`, `nl-fast`, `de1`). Только из
   //    whitelist и только как самостоятельный буквенный фрагмент длиной
-  //    ровно 2 — иначе ловили «fi» внутри «Nemefisto»/«First» (→ ложный
+  //    ровно 2 — иначе ловили «fi» внутри «Kwik»/«First» (→ ложный
   //    финский флаг). split по не-буквам изолирует буквенные пробеги:
-  //    «de1»→["de"], «hk01»→["hk"], «nemefisto»→["nemefisto"] (len 8, skip).
+  //    «de1»→["de"], «hk01»→["hk"], «kwik»→["kwik"] (len 8, skip).
   const tokens = name.toLowerCase().split(/[^a-z]+/);
   for (const tk of tokens) {
     if (tk.length === 2 && ISO_TOKENS.has(tk)) return ISO_ALIAS[tk] ?? tk;

@@ -23,11 +23,53 @@ use windows_service::{
 };
 
 use super::pipe;
-use super::protocol::{SERVICE_DESCRIPTION, SERVICE_DISPLAY_NAME, SERVICE_NAME};
+use super::protocol::{
+    LEGACY_SERVICE_NAME, SERVICE_DESCRIPTION, SERVICE_DISPLAY_NAME, SERVICE_NAME,
+};
 
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
 
 // ─── install / uninstall ──────────────────────────────────────────────────────
+
+/// Остановить (если запущен) и удалить сервис по имени. Идемпотентно:
+/// если сервиса нет — тихо выходит. Используется и для переустановки
+/// текущего сервиса, и для сноса legacy-имени при ребрендинге.
+fn stop_and_delete_service(reuse_mgr: &ServiceManager, name: &str) {
+    let Ok(existing) = reuse_mgr.open_service(
+        name,
+        ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE,
+    ) else {
+        return;
+    };
+    // Stop, если запущен.
+    if let Ok(status) = existing.query_status() {
+        if status.current_state != ServiceState::Stopped {
+            let _ = existing.stop();
+            for _ in 0..40 {
+                std::thread::sleep(Duration::from_millis(250));
+                if let Ok(s) = existing.query_status() {
+                    if s.current_state == ServiceState::Stopped {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    // Помечаем для удаления — physical removal произойдёт когда
+    // last handle закроется.
+    let _ = existing.delete();
+    drop(existing);
+    // SCM иногда задерживает удаление: ждём пока имя освободится.
+    for _ in 0..20 {
+        std::thread::sleep(Duration::from_millis(150));
+        let busy = reuse_mgr
+            .open_service(name, ServiceAccess::QUERY_STATUS)
+            .is_ok();
+        if !busy {
+            break;
+        }
+    }
+}
 
 pub fn install() -> Result<()> {
     let manager_access = ServiceManagerAccess::CONNECT | ServiceManagerAccess::CREATE_SERVICE;
@@ -43,41 +85,14 @@ pub fn install() -> Result<()> {
     // же путь, но загруженный байт-код в running процессе не обновляется).
     // Получаем "переустановить" автоматически когда пользователь
     // запускает app — без вмешательства руками.
+    //
+    // Дополнительно (ребрендинг 0.7.0): сносим сервис под legacy-именем
+    // `NemefistoHelper` — иначе после апгрейда на машине висел бы старый
+    // SYSTEM-сервис со своим pipe, конкурируя с новым `KwikHelper`.
     let recreate_access = ServiceManagerAccess::CONNECT;
     if let Ok(reuse_mgr) = ServiceManager::local_computer(None::<&str>, recreate_access) {
-        if let Ok(existing) = reuse_mgr.open_service(
-            SERVICE_NAME,
-            ServiceAccess::QUERY_STATUS | ServiceAccess::STOP | ServiceAccess::DELETE,
-        ) {
-            // Stop, если запущен.
-            if let Ok(status) = existing.query_status() {
-                if status.current_state != ServiceState::Stopped {
-                    let _ = existing.stop();
-                    for _ in 0..40 {
-                        std::thread::sleep(Duration::from_millis(250));
-                        if let Ok(s) = existing.query_status() {
-                            if s.current_state == ServiceState::Stopped {
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            // Помечаем для удаления — physical removal произойдёт когда
-            // last handle закроется.
-            let _ = existing.delete();
-            drop(existing);
-            // SCM иногда задерживает удаление: ждём пока имя освободится.
-            for _ in 0..20 {
-                std::thread::sleep(Duration::from_millis(150));
-                let busy = reuse_mgr
-                    .open_service(SERVICE_NAME, ServiceAccess::QUERY_STATUS)
-                    .is_ok();
-                if !busy {
-                    break;
-                }
-            }
-        }
+        stop_and_delete_service(&reuse_mgr, SERVICE_NAME);
+        stop_and_delete_service(&reuse_mgr, LEGACY_SERVICE_NAME);
     }
 
     let service_info = ServiceInfo {
@@ -87,7 +102,7 @@ pub fn install() -> Result<()> {
         start_type: ServiceStartType::AutoStart,
         error_control: ServiceErrorControl::Normal,
         executable_path: exe_path,
-        // SCM вызывает `nemefisto-helper.exe service` — флаг для main-а.
+        // SCM вызывает `kwik-helper.exe service` — флаг для main-а.
         launch_arguments: vec![OsString::from("service")],
         dependencies: vec![],
         account_name: None, // SYSTEM

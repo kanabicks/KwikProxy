@@ -259,12 +259,12 @@
   },
   "notification": {
     "connected": {
-      "title": "Nemefisto connected",
+      "title": "Kwik connected",
       "body": "Via {{server}}",
       "unknownServer": "selected server"
     },
     "disconnected": {
-      "title": "Nemefisto disconnected",
+      "title": "Kwik disconnected",
       "body": "VPN connection closed"
     },
     "error": {
@@ -598,7 +598,7 @@
     },
     "shortcuts": {
       "title": "hotkeys",
-      "intro": "work globally, even when the nemefisto window is hidden. click a field, press the desired combo (at least one modifier: ctrl/alt/shift/win). esc — cancel, backspace — clear.",
+      "intro": "work globally, even when the kwik window is hidden. click a field, press the desired combo (at least one modifier: ctrl/alt/shift/win). esc — cancel, backspace — clear.",
       "toggleVpn": {
         "label": "toggle vpn on / off",
         "hint": "same as pressing the main button — connect or disconnect"
@@ -647,7 +647,7 @@
     },
     "urlSchemes": {
       "title": "url schemes",
-      "intro": "the app responds to links with the nemefisto:// prefix. a bot can send such links to add a subscription or toggle the tunnel automatically.",
+      "intro": "the app responds to links with the kwik:// prefix. a bot can send such links to add a subscription or toggle the tunnel automatically.",
       "add": "add subscription (URL must be encoded)",
       "connect": "connect the selected server",
       "disconnect": "stop the tunnel",
@@ -672,7 +672,7 @@
       "support": "support",
       "privacy": "privacy",
       "license": "license",
-      "privacyNote": "nemefisto does not collect telemetry, does not send crash reports «home» and has no remote-control mechanisms. all logs are local to this computer. see PRIVACY.md for details.",
+      "privacyNote": "kwik does not collect telemetry, does not send crash reports «home» and has no remote-control mechanisms. all logs are local to this computer. see PRIVACY.md for details.",
       "reportIssue": "report an issue"
     },
     "reset": {
@@ -703,7 +703,7 @@
       "findings": {
         "proxy": "system proxy is pointing to us",
         "backup": "a backup of the original proxy settings is saved",
-        "tun": "tun adapter `nemefisto-*` is in the system",
+        "tun": "tun adapter `kwik-*` is in the system",
         "wfp": "kill switch wfp filters survived from the previous session"
       }
     },
@@ -746,7 +746,7 @@
     "next": "next",
     "done": "done",
     "step1": {
-      "title": "welcome to nemefisto",
+      "title": "welcome to kwik",
       "body": "VPN client running on two cores (xray + mihomo) with protection against DPI, leaks and local detection. fully open source, no telemetry.",
       "footnote": "a quick 3-step tour — takes about a minute."
     },

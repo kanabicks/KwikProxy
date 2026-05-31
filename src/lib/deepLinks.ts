@@ -16,17 +16,17 @@ import {
  * Поддерживаемые deep-link-ссылки:
  *
  *  Управление VPN:
- *   nemefisto://connect | open                подключить выбранный сервер
- *   nemefisto://disconnect | close            отключиться
- *   nemefisto://toggle                        переключить состояние
- *   nemefisto://status                        вынести окно вперёд
+ *   kwik://connect | open                подключить выбранный сервер
+ *   kwik://disconnect | close            отключиться
+ *   kwik://toggle                        переключить состояние
+ *   kwik://status                        вынести окно вперёд
  *
  *  Импорт подписки (поддерживается оба синтаксиса):
- *   nemefisto://add?url=<encoded-url>         query-форма
- *   nemefisto://add/<encoded-url-or-base64>   path-форма
- *   nemefisto://import/<...>                  alias
- *   nemefisto://onadd/<url>                   импорт + сразу подключение
- *   nemefisto://import?data=<base64>          альтернативный query-параметр
+ *   kwik://add?url=<encoded-url>         query-форма
+ *   kwik://add/<encoded-url-or-base64>   path-форма
+ *   kwik://import/<...>                  alias
+ *   kwik://onadd/<url>                   импорт + сразу подключение
+ *   kwik://import?data=<base64>          альтернативный query-параметр
  *
  *  Auto-detect для path-формы import: если значение начинается с
  *  http(s):// — это URL подписки. Иначе пробуем base64-декод и
@@ -76,12 +76,12 @@ export function handleDeepLink(rawUrl: string) {
     return;
   }
 
-  if (parsed.protocol !== "nemefisto:") {
+  if (parsed.protocol !== "kwik:") {
     console.warn("[deep-link] чужая схема:", parsed.protocol);
     return;
   }
 
-  // host у nemefisto://action — пустой на одних платформах, заполнен на
+  // host у kwik://action — пустой на одних платформах, заполнен на
   // других. Action всегда первый сегмент: либо host, либо первая часть
   // pathname. payload (если есть) — остальное pathname (для path-формы)
   // или ?url=/?data= параметры.
@@ -146,7 +146,7 @@ export function handleDeepLink(rawUrl: string) {
       break;
     }
     case "export": {
-      // 12.D — `nemefisto://export` сохраняет backup в Documents и
+      // 12.D — `kwik://export` сохраняет backup в Documents и
       // показывает toast с путём.
       void exportBackupToDocuments()
         .then((path) => {
@@ -168,7 +168,7 @@ export function handleDeepLink(rawUrl: string) {
       break;
     }
     case "import-from-url": {
-      // 12.D — `nemefisto://import-from-url/<url>` — скачать backup и
+      // 12.D — `kwik://import-from-url/<url>` — скачать backup и
       // открыть preview-модалку. payload — URL, может быть в pathPayload
       // или ?url=.
       const raw = pathPayload || queryUrl || "";
@@ -197,8 +197,8 @@ export function handleDeepLink(rawUrl: string) {
       break;
     }
     case "import-settings": {
-      // 12.D — `nemefisto://import-settings?data=<base64-or-json>` или
-      // `nemefisto://import-settings/<base64>` — открыть preview-modal
+      // 12.D — `kwik://import-settings?data=<base64-or-json>` или
+      // `kwik://import-settings/<base64>` — открыть preview-modal
       // из inline payload. Имя выбрано чтобы не конфликтовать с
       // существующим `import` который импортирует подписку.
       const raw = pathPayload || queryData || queryUrl || "";
@@ -237,8 +237,8 @@ export function handleDeepLink(rawUrl: string) {
     case "routing":
     case "autorouting": {
       // 11.D расширенные deep-links для routing-профилей. Формат:
-      //   nemefisto://routing/{add|onadd}/{base64|url}
-      //   nemefisto://autorouting/{add|onadd}/{url}
+      //   kwik://routing/{add|onadd}/{base64|url}
+      //   kwik://autorouting/{add|onadd}/{url}
       // segments тут — [verb, ...payload]. queryUrl/queryData как
       // альтернативные источники payload (для длинных base64).
       const verb = (segments.shift() || "").toLowerCase();
@@ -342,7 +342,7 @@ async function handleRoutingDeepLink(
 
 /**
  * Регистрирует подписку на deep-link события и обрабатывает «холодный»
- * запуск (когда приложение запустили кликом по nemefisto://...).
+ * запуск (когда приложение запустили кликом по kwik://...).
  */
 export async function initDeepLinks(): Promise<() => void> {
   // Cold start: процесс был запущен с deep-link-ом в args

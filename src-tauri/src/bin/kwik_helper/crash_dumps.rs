@@ -2,8 +2,8 @@
 //!
 //! Дублирует `platform::crash_dumps` из main-приложения (чтобы helper
 //! как отдельный `bin` не тащил библиотеку клиента целиком). Файлы
-//! пишутся в тот же каталог `%LOCALAPPDATA%\NemefistoVPN\crashes\`,
-//! но с суффиксом `nemefisto-helper` чтобы не путать с main-крашами.
+//! пишутся в тот же каталог `%LOCALAPPDATA%\KwikVPN\crashes\`,
+//! но с суффиксом `kwik-helper` чтобы не путать с main-крашами.
 //!
 //! ВАЖНО: при запуске под SCM (Local System) `LOCALAPPDATA` указывает
 //! на `C:\Windows\System32\config\systemprofile\AppData\Local\` — туда
@@ -11,7 +11,7 @@
 //! `export_diagnostics` со стороны main-app достанет их через
 //! `is_helper_crash`-эвристику или общую папку.
 //!
-//! TODO когда-нибудь: helper-крах писать в общий `%PROGRAMDATA%\NemefistoVPN\`
+//! TODO когда-нибудь: helper-крах писать в общий `%PROGRAMDATA%\KwikVPN\`
 //! доступный обоим SYSTEM и user-mode.
 
 use std::backtrace::Backtrace;
@@ -25,10 +25,10 @@ fn crashes_dir() -> Option<PathBuf> {
     // Порядок: LOCALAPPDATA (user-session helper) → PROGRAMDATA
     // (SYSTEM-session). Так main-app точно найдёт хотя бы один.
     if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        return Some(PathBuf::from(local).join("NemefistoVPN").join("crashes"));
+        return Some(PathBuf::from(local).join("KwikVPN").join("crashes"));
     }
     if let Some(program) = std::env::var_os("PROGRAMDATA") {
-        return Some(PathBuf::from(program).join("NemefistoVPN").join("crashes"));
+        return Some(PathBuf::from(program).join("KwikVPN").join("crashes"));
     }
     None
 }
@@ -52,7 +52,7 @@ fn write_crash_dump(info: &panic::PanicHookInfo<'_>) -> std::io::Result<()> {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let path = dir.join(format!("{ts}-nemefisto-helper.txt"));
+    let path = dir.join(format!("{ts}-kwik-helper.txt"));
 
     let mut f = OpenOptions::new()
         .create(true)
@@ -60,9 +60,9 @@ fn write_crash_dump(info: &panic::PanicHookInfo<'_>) -> std::io::Result<()> {
         .truncate(true)
         .open(&path)?;
 
-    writeln!(f, "Nemefisto helper crash dump")?;
+    writeln!(f, "Kwik helper crash dump")?;
     writeln!(f, "----------------------")?;
-    writeln!(f, "component: nemefisto-helper")?;
+    writeln!(f, "component: kwik-helper")?;
     writeln!(f, "version:   {}", env!("CARGO_PKG_VERSION"))?;
     writeln!(f, "timestamp: {ts}")?;
     writeln!(f, "os:        {}", std::env::consts::OS)?;

@@ -2,7 +2,7 @@
 
 С версии **0.1.3** релизы публикуются автоматически через GitHub Actions
 на push тега `v*.*.*`. Auto-updater приложения (`tauri-plugin-updater`)
-проверяет endpoint `https://github.com/kanabicks/NemefistoAPP/releases/latest/download/latest.json`
+проверяет endpoint `https://github.com/kanabicks/KwikProxy/releases/latest/download/latest.json`
 раз в 6 часов и предлагает юзеру обновиться.
 
 ## Одноразовая настройка
@@ -15,18 +15,18 @@
 
 | Имя | Значение |
 |---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | содержимое файла `~/.tauri/nemefisto.key` (открой блокнотом, скопируй ВСЁ) |
+| `TAURI_SIGNING_PRIVATE_KEY` | содержимое файла `~/.tauri/kwik.key` (открой блокнотом, скопируй ВСЁ) |
 | `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | оставить пустым (ключ сгенерён без пароля) |
 
 ### 2. Public key уже в `tauri.conf.json`
 
-В `plugins.updater.pubkey` лежит публичный ключ из `~/.tauri/nemefisto.key.pub`.
+В `plugins.updater.pubkey` лежит публичный ключ из `~/.tauri/kwik.key.pub`.
 Его трогать не надо — он попадает в bundled NSIS и проверяет подпись `latest.json`
 со стороны клиента.
 
 ⚠️ **Важно**: если приватный ключ потерян — все существующие установленные
 клиенты НЕ смогут получать обновления (подпись новых релизов будет невалидной).
-Без бекапа `~/.tauri/nemefisto.key` придётся ставить новый ключ + публиковать
+Без бекапа `~/.tauri/kwik.key` придётся ставить новый ключ + публиковать
 0.X.0 «обновление через ручную скачку» с release-нот.
 
 ## Как сделать релиз
@@ -58,7 +58,7 @@ git push origin v0.1.4
 1. Checkout с полной историей (для CHANGELOG-генерации).
 2. Setup Node.js 22, Rust stable, cache cargo + npm.
 3. `npm ci`.
-4. `npm run prepare-bundle` — собирает `nemefisto-helper.exe` release-сборкой,
+4. `npm run prepare-bundle` — собирает `kwik-helper.exe` release-сборкой,
    копирует в `src-tauri/binaries/` с triplet-суффиксом.
 5. **`tauri-apps/tauri-action@v0`**:
    - вызывает `tauri build` (через `beforeBuildCommand: npm run build`
@@ -67,8 +67,8 @@ git push origin v0.1.4
    - подписывает .exe ed25519-ключом из `TAURI_SIGNING_PRIVATE_KEY`;
    - генерирует `latest.json` (manifest для updater);
    - создаёт GitHub Release с тегом и публикует assets:
-     - `Nemefisto_<VER>_x64-setup.exe`
-     - `Nemefisto_<VER>_x64-setup.exe.sig` (подпись)
+     - `Kwik_<VER>_x64-setup.exe`
+     - `Kwik_<VER>_x64-setup.exe.sig` (подпись)
      - `latest.json`
 
 После этого:
@@ -88,7 +88,7 @@ git push origin v0.1.4
   "platforms": {
     "windows-x86_64": {
       "signature": "...",
-      "url": "https://github.com/.../Nemefisto_0.1.4_x64-setup.exe"
+      "url": "https://github.com/.../Kwik_0.1.4_x64-setup.exe"
     }
   }
 }
@@ -122,7 +122,7 @@ git push origin :refs/tags/v0.1.4
 
 ```powershell
 npm run tauri:bundle
-# Результат: src-tauri/target/release/bundle/nsis/Nemefisto_<VER>_x64-setup.exe
+# Результат: src-tauri/target/release/bundle/nsis/Kwik_<VER>_x64-setup.exe
 ```
 
 ⚠️ Этот NSIS не подписан (нет ed25519-подписи) — auto-updater откажется

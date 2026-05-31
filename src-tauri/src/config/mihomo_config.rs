@@ -1,7 +1,7 @@
 //! Генерация YAML-конфига Mihomo (Clash Meta) из ProxyEntry — этап 8.B.
 //!
 //! Симметричен `xray_config.rs`. Возвращает готовую YAML-строку, которая
-//! записывается в `%TEMP%\NemefistoVPN\mihomo-config.yaml` и подсовывается
+//! записывается в `%TEMP%\KwikVPN\mihomo-config.yaml` и подсовывается
 //! Mihomo через `-f <file>`.
 //!
 //! Поддерживаемые протоколы: всё что умеет Mihomo — vless / vmess / trojan /
@@ -321,7 +321,7 @@ fn builtin_tun_mapping(device: Option<&str>) -> Mapping {
 /// Имя выбирается псевдослучайно из набора, имитирующего стандартные
 /// сетевые адаптеры Windows — чтобы сторонний процесс при перечислении
 /// интерфейсов не распознал VPN-туннель по характерному имени
-/// (`Mihomo` / `nemefisto-*`). Угроза: https://habr.com/ru/news/1020902/.
+/// (`Mihomo` / `kwik-*`). Угроза: https://habr.com/ru/news/1020902/.
 ///
 /// Наборы: `wlan{99..198}`, `Local Area Connection {2..16}`,
 /// `Ethernet {2..16}`. Энтропия — наносекунды (как в `random_high_port`),
@@ -1550,7 +1550,7 @@ mod patch_tests {
         FullYamlPatch {
             mixed_port: 31000,
             listen: "127.0.0.1",
-            socks_auth: Some(("nemefisto", "secret-pass")),
+            socks_auth: Some(("kwik", "secret-pass")),
             external_controller_port: 31001,
             external_controller_secret: "test-secret-uuid",
             app_rules: &[],
@@ -2109,7 +2109,7 @@ proxy-groups:
             .as_sequence()
             .unwrap();
         assert_eq!(auth.len(), 1);
-        assert_eq!(auth[0].as_str(), Some("nemefisto:secret-pass"));
+        assert_eq!(auth[0].as_str(), Some("kwik:secret-pass"));
     }
 
     /// 0.1.2: реальная подписка пользователя с load-balance подгруппой,

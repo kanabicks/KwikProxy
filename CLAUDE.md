@@ -31,7 +31,7 @@ VPN-клиент под Windows на базе **Mihomo** (форк Clash Meta). 
 - **Безопасное хранилище**: Windows Credential Manager через `keyring-rs`
   v3 (⚠️ feature `windows-native` ОБЯЗАТЕЛЬНА — без неё mock-store и
   подписка «исчезает» при перезапуске).
-- **Логирование**: `tracing` с ротацией. Логи: `%TEMP%\NemefistoVPN\`.
+- **Логирование**: `tracing` с ротацией. Логи: `%TEMP%\KwikVPN\`.
 
 > Подписка запрашивается с UA `clash-verge/v2.0.0` → панели (Marzban /
 > Remnawave / 3x-ui / clash) отдают clash YAML, который парсится в
@@ -86,7 +86,7 @@ VPN-клиент под Windows на базе **Mihomo** (форк Clash Meta). 
 │   │   ├── config/         # Парсинг подписок, mihomo_config, routing
 │   │   ├── platform/       # Windows-специфичный код (изолированно)
 │   │   ├── ipc/            # Tauri commands
-│   │   └── bin/nemefisto_helper/  # SYSTEM-helper (TUN, WFP kill switch)
+│   │   └── bin/kwik_helper/  # SYSTEM-helper (TUN, WFP kill switch)
 │   ├── binaries/           # mihomo.exe, wintun.dll, geo*.dat
 │   └── Cargo.toml
 ├── docs/ROADMAP.md         # Детальные спеки этапов
@@ -155,7 +155,25 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
-**0.6.4 (текущий) — UI-полиш**: анимация появления/ухода дашборда соединения
+**0.7.0 (текущий) — ребрендинг Nemefisto → Kwik**: убрано любое упоминание
+nemefisto (внешне и в коде). productName `Kwik`, identifier
+`com.kwik.vpn-client`, scheme `kwik://`, helper `kwik-helper`/сервис
+`KwikHelper`/pipe `\\.\pipe\kwik-helper`, каталог данных `KwikVPN`,
+credential-префикс `kwik.*`, autostart `Kwik VPN Autostart`, TUN-префикс
+`kwik-`, заголовки `X-Kwik-*` (чистый разрыв), репо `kanabicks/KwikProxy`,
+updater endpoint на `KwikProxy`. WFP GUID-**значения** не менялись (только
+display-строки) — детект orphan-фильтров цел. **One-shot миграция
+существующей установки** (без ручных шагов): `secure_storage::migrate_legacy`
+(+ IPC `secure_storage_migrate_legacy`, вызов из `loadSecureCreds`),
+`src/lib/migrateLegacyStorage.ts` (localStorage namespace, импорт первым в
+`main.tsx`), `migrate_legacy_data_dirs` (rename каталога), `service::install`
+сносит legacy-сервис, `autostart::cleanup_legacy` переносит/сносит задачу,
+`tun.rs` чистит legacy `nemefisto-*` адаптеры. Хардкод-URL
+(`DASHBOARD_URL`/`SUPPORT_URL`) убраны — всё приходит от провайдера через
+заголовки подписки. Осталось вручную: rename репо на GitHub, локальной папки;
+логотип бренд-нейтральный (текста нет) — менять опционально.
+
+**0.6.4 — UI-полиш**: анимация появления/ухода дашборда соединения
 (CSS-transition opacity/translateY; на узком экране ещё max-height/margin —
 секция локаций плавно подвигается, не прыгает); фикс подсветки ноды при
 connect (показываем preferred всегда, без скачка на первую ноду); фикс
@@ -202,7 +220,7 @@ TUN strict-route, DOMAIN-REGEX, DNS fallback, ECH passthrough, IPv6-тоггл,
   предупреждение в Settings убрано.
 - **SVG-флаги** (`src/lib/flags.tsx` + пакет `flag-icons`) — детект страны
   по regional-indicator паре / названию / ISO-токену (только отдельный
-  2-буквенный токен, иначе ловило «fi» в «Nemefisto») → SVG-флаг
+  2-буквенный токен, иначе ловило «fi» в «Kwik») → SVG-флаг
   (`<FlagIcon>`/`<FlagByCode>`). Решает «emoji-флаги не рендерятся в
   WebView2». Встроены в карточки нод, заголовки групп, список серверов.
 - **Дашборд соединения** (`ConnectionDashboard`, левая панель при connect):

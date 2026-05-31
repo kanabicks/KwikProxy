@@ -24,10 +24,34 @@ use ipc::commands::{
     read_xray_log, recover_network, restore_proxy_backup, routing_add_static,
     routing_add_static_from_url, routing_add_url,
     routing_list, routing_refresh, routing_remove, routing_set_active, secure_storage_delete,
-    secure_storage_get, secure_storage_set, set_servers, show_floating_window, shutdown_helper,
+    secure_storage_get, secure_storage_migrate_legacy, secure_storage_set, set_servers,
+    show_floating_window, shutdown_helper,
     tray_set_status, KillSwitchState,
 };
 use vpn::MihomoState;
+
+/// Ребрендинг 0.7.0 (Nemefisto → Kwik): one-time перенос каталогов данных
+/// `NemefistoVPN` → `KwikVPN` в `%LOCALAPPDATA%` и `%PROGRAMDATA%`. В них
+/// лежат routing-профили, кеш geofiles, hwid.txt и crash-dump'ы. Делаем
+/// простым rename, только если старый каталог есть, а нового ещё нет —
+/// идемпотентно и без перезаписи. Best-effort: ошибки игнорируем (в
+/// худшем случае пользователь переподтянет geofiles и потеряет кеш hwid,
+/// который и так пересоздаётся из MachineGuid).
+fn migrate_legacy_data_dirs() {
+    use std::path::PathBuf;
+    for var in ["LOCALAPPDATA", "PROGRAMDATA"] {
+        let Some(base) = std::env::var_os(var) else {
+            continue;
+        };
+        let old = PathBuf::from(&base).join("NemefistoVPN");
+        let new = PathBuf::from(&base).join("KwikVPN");
+        if old.is_dir() && !new.exists() {
+            if let Err(e) = std::fs::rename(&old, &new) {
+                eprintln!("миграция каталога {} → {}: {e}", old.display(), new.display());
+            }
+        }
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -69,7 +93,7 @@ pub fn run() {
         // для событий когда окно свёрнуто/в трее (connect/disconnect/update/
         // kill-switch trigger). При visible-окне используем in-app toaster.
         // AppUserModelID берётся автоматически из bundle.identifier
-        // (`com.nemefisto.vpn-client`) — Windows группирует уведомления
+        // (`com.kwik.vpn-client`) — Windows группирует уведомления
         // под именем productName из tauri.conf.json.
         .plugin(tauri_plugin_notification::init())
         .manage(MihomoState::new())
@@ -107,14 +131,24 @@ pub fn run() {
             let hwid = load_or_create().unwrap_or_else(|_| uuid::Uuid::new_v4().to_string());
             app.manage(HwidState(hwid));
 
-            // В dev-режиме регистрируем nemefisto:// в HKCU\Software\Classes
+            // В dev-режиме регистрируем kwik:// в HKCU\Software\Classes
             // для текущего пользователя. Production-инсталлятор пишет
             // регистрацию сам через bundle-metadata.
             #[cfg(any(windows, target_os = "linux"))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                let _ = app.deep_link().register("nemefisto");
+                let _ = app.deep_link().register("kwik");
             }
+            // Ребрендинг 0.7.0: one-time перенос каталога данных
+            // `NemefistoVPN` → `KwikVPN` (routing-профили, geofiles, hwid).
+            // Делаем синхронно до первого обращения к этим путям.
+            migrate_legacy_data_dirs();
+            // Ребрендинг 0.7.0: one-time снос legacy-задачи автозапуска
+            // `Nemefisto VPN Autostart` (переносим включённое состояние на
+            // новое имя). Best-effort, в фоне — не блокирует setup.
+            tauri::async_runtime::spawn(async {
+                platform::autostart::cleanup_legacy().await;
+            });
             // 6.C: запускаем watcher смены сети. Polling default-route
             // каждые 5 сек; при смене интерфейса emit-ится событие
             // `network-changed` во фронт, который при активном VPN
@@ -147,7 +181,7 @@ pub fn run() {
                 "floating",
                 tauri::WebviewUrl::App("index.html".into()),
             )
-            .title("Nemefisto")
+            .title("Kwik")
             .inner_size(190.0, 52.0)
             .min_inner_size(170.0, 48.0)
             .decorations(false)
@@ -213,6 +247,7 @@ pub fn run() {
             secure_storage_get,
             secure_storage_set,
             secure_storage_delete,
+            secure_storage_migrate_legacy,
             autostart_is_enabled,
             autostart_enable,
             autostart_disable,

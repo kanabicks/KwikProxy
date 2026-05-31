@@ -143,7 +143,7 @@ pub enum Request {
     /// сейчас не имеет активного kill-switch state, удалит всё что
     /// потенциально зависло от прошлых сессий.
     KillSwitchForceCleanup,
-    /// Cleanup orphan TUN-адаптеров (`nemefisto-*`) и half-default
+    /// Cleanup orphan TUN-адаптеров (`kwik-*`) и half-default
     /// routes через `198.18.0.1`. Используется UI-кнопкой
     /// «восстановить сеть» когда видимо, что что-то осталось от
     /// упавшей сессии. Безопасно вызывать только когда VPN не активен.
@@ -163,7 +163,7 @@ pub enum Request {
     /// получает их явно.
     ///
     /// stdout/stderr процесса перенаправляются в
-    /// `C:\ProgramData\NemefistoVPN\mihomo.log` (помощник имеет туда
+    /// `C:\ProgramData\KwikVPN\mihomo.log` (помощник имеет туда
     /// SYSTEM-доступ; Tauri-main как user тоже может читать для
     /// диагностики).
     MihomoStart {
@@ -211,10 +211,15 @@ impl Response {
     }
 }
 
-pub const PIPE_NAME: &str = r"\\.\pipe\nemefisto-helper";
-pub const SERVICE_NAME: &str = "NemefistoHelper";
-pub const SERVICE_DISPLAY_NAME: &str = "Nemefisto VPN Helper";
-pub const SERVICE_DESCRIPTION: &str = "Управление TUN-интерфейсом и системной маршрутизацией для Nemefisto VPN.";
+pub const PIPE_NAME: &str = r"\\.\pipe\kwik-helper";
+pub const SERVICE_NAME: &str = "KwikHelper";
+pub const SERVICE_DISPLAY_NAME: &str = "Kwik VPN Helper";
+pub const SERVICE_DESCRIPTION: &str = "Управление TUN-интерфейсом и системной маршрутизацией для Kwik VPN.";
+/// Имя сервиса до ребрендинга 0.7.0 (Kwik → Kwik). Используется
+/// для one-time авто-uninstall старого сервиса при установке нового
+/// (`service::install`) — иначе на машине остался бы висеть SYSTEM-сервис
+/// со старым именем и своим pipe.
+pub const LEGACY_SERVICE_NAME: &str = "KwikHelper";
 
 #[cfg(test)]
 mod tests {

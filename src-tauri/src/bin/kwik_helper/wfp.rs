@@ -20,7 +20,7 @@
 //!    добавленное, не оставляя half-applied state.
 //! 3. **Cleanup на старте** (`cleanup_provider`) — при запуске helper'а
 //!    в persistent-engine удаляем любые объекты с нашим
-//!    `NEMEFISTO_PROVIDER_GUID` — страховка если DYNAMIC по какой-то
+//!    `KWIK_PROVIDER_GUID` — страховка если DYNAMIC по какой-то
 //!    причине не сработал (теоретически невозможно, но WFP — серьёзный
 //!    API, перестраховка не лишняя).
 
@@ -40,7 +40,7 @@ use windows_sys::Win32::System::Rpc::RPC_C_AUTHN_WINNT;
 /// GUID нашего provider'а — постоянная метка чтобы при cleanup мы могли
 /// найти именно «наши» объекты, не задев чужие WFP-фильтры (Defender,
 /// другие VPN, etc).
-pub const NEMEFISTO_PROVIDER_GUID: GUID = GUID {
+pub const KWIK_PROVIDER_GUID: GUID = GUID {
     data1: 0xc6f1_bd86,
     data2: 0xc5e9,
     data3: 0x4e7a,
@@ -50,7 +50,7 @@ pub const NEMEFISTO_PROVIDER_GUID: GUID = GUID {
 /// GUID sublayer'а — наша группа фильтров. Высокий weight чтобы они
 /// рассматривались ДО windows-default рулежа (например allow-all из
 /// Mullvad/NordVPN если оба активны).
-pub const NEMEFISTO_SUBLAYER_GUID: GUID = GUID {
+pub const KWIK_SUBLAYER_GUID: GUID = GUID {
     data1: 0xc6f1_bd87,
     data2: 0xc5e9,
     data3: 0x4e7a,
@@ -434,7 +434,7 @@ impl WfpEngine {
         conditions: &mut [FWPM_FILTER_CONDITION0],
     ) -> Result<()> {
         let name_w = to_wide(name);
-        let mut provider_key_copy = NEMEFISTO_PROVIDER_GUID;
+        let mut provider_key_copy = KWIK_PROVIDER_GUID;
         unsafe {
             let mut filter: FWPM_FILTER0 = std::mem::zeroed();
             filter.layerKey = layer;
@@ -495,7 +495,7 @@ pub fn has_orphan_filters() -> Result<bool> {
     unsafe {
         let rc = FwpmSubLayerGetByKey0(
             engine.handle,
-            &NEMEFISTO_SUBLAYER_GUID,
+            &KWIK_SUBLAYER_GUID,
             &mut sublayer_ptr,
         );
         if rc == ERROR_SUCCESS {
@@ -533,11 +533,11 @@ pub fn cleanup_provider() -> Result<()> {
         unsafe {
             // Порядок: sublayer → provider. Удаление sublayer удаляет
             // все его фильтры автоматически.
-            let rc = FwpmSubLayerDeleteByKey0(e.handle, &NEMEFISTO_SUBLAYER_GUID);
+            let rc = FwpmSubLayerDeleteByKey0(e.handle, &KWIK_SUBLAYER_GUID);
             if rc != ERROR_SUCCESS && rc != FWP_E_SUBLAYER_NOT_FOUND {
                 return Err(anyhow!("delete sublayer: 0x{:08x}", rc));
             }
-            let rc = FwpmProviderDeleteByKey0(e.handle, &NEMEFISTO_PROVIDER_GUID);
+            let rc = FwpmProviderDeleteByKey0(e.handle, &KWIK_PROVIDER_GUID);
             if rc != ERROR_SUCCESS && rc != FWP_E_PROVIDER_NOT_FOUND {
                 return Err(anyhow!("delete provider: 0x{:08x}", rc));
             }

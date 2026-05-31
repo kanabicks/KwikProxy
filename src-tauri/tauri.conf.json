@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Nemefisto",
-  "version": "0.6.4",
-  "identifier": "com.nemefisto.vpn-client",
+  "productName": "Kwik",
+  "version": "0.7.0",
+  "identifier": "com.kwik.vpn-client",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Nemefisto",
+        "title": "Kwik",
         "width": 460,
         "height": 920,
         "minWidth": 420,
@@ -29,14 +29,14 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["nemefisto"]
+        "schemes": ["kwik"]
       }
     },
     "updater": {
       "active": true,
       "dialog": false,
       "endpoints": [
-        "https://github.com/kanabicks/NemefistoAPP/releases/latest/download/latest.json"
+        "https://github.com/kanabicks/KwikProxy/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZGQTJCMDc0QUI2NjA1QUMKUldTc0JXYXJkTENpLzYvMnZDUUZqeHBlVHZ0TjNIb2d3aHJtdjBIUEpQNWZiZnQ1UTJ5b1IwTVAK",
       "windows": {
@@ -49,7 +49,7 @@
     "targets": ["nsis"],
     "createUpdaterArtifacts": true,
     "category": "Utility",
-    "publisher": "Nemefisto",
+    "publisher": "Kwik",
     "shortDescription": "VPN-клиент на Mihomo",
     "longDescription": "Лёгкий VPN-клиент для Windows на базе Mihomo. Поддержка VLESS, VMess, Trojan, Shadowsocks, Hysteria2, TUIC, WireGuard, AnyTLS. Подключение в один клик через системный прокси или TUN.",
     "icon": [
@@ -64,7 +64,7 @@
     ],
     "resources": {
       "binaries/wintun.dll": "wintun.dll",
-      "binaries/nemefisto-helper-x86_64-pc-windows-msvc.exe": "nemefisto-helper-x86_64-pc-windows-msvc.exe",
+      "binaries/kwik-helper-x86_64-pc-windows-msvc.exe": "kwik-helper-x86_64-pc-windows-msvc.exe",
       "binaries/geoip.dat": "resources/geoip.dat",
       "binaries/geosite.dat": "resources/geosite.dat"
     },

@@ -6,7 +6,7 @@ const TRAIL_LEN = 12;
  * Кастомный курсор: внешнее кольцо (lerped, плавно догоняет мышь) +
  * центральная точка (мгновенно) + хвост из 12 затухающих точек.
  *
- * Адаптировано из nemefisto.online (app.jsx CustomCursor):
+ * Адаптировано из kwik.online (app.jsx CustomCursor):
  * - mix-blend-mode: difference инвертирует цвет под курсором —
  *   видно и на белой кнопке, и на чёрном фоне без переключения palette;
  * - hover-state на интерактивных элементах (data-cursor="hover" или

@@ -12,7 +12,7 @@ import { useSubscriptionStore } from "../stores/subscriptionStore";
  * снова появится. Лимит — 32 хеша, чтобы set не разрастался бесконечно.
  */
 
-const STORAGE_KEY = "nemefisto.dismissed-announces";
+const STORAGE_KEY = "kwik.dismissed-announces";
 const DISMISSED_MAX = 32;
 
 /** Дешёвый стабильный хеш строки (FNV-1a). 8 hex-символов достаточно. */

@@ -1,6 +1,6 @@
 //! 11.C — Хранилище routing-профилей + scheduler авто-обновления.
 //!
-//! Профили хранятся как JSON-файлы в `%LOCALAPPDATA%\NemefistoVPN\
+//! Профили хранятся как JSON-файлы в `%LOCALAPPDATA%\KwikVPN\
 //! routing-profiles\<id>.json`. Один профиль может быть **активным** —
 //! его правила применяются при connect (см. xray_config / mihomo_config).
 //!
@@ -20,7 +20,7 @@ use tokio::sync::{oneshot, Notify};
 use super::geofiles;
 use super::routing_profile::{ProfileSource, RoutingProfile, RoutingProfileEntry};
 
-const DIR_NAME: &str = "NemefistoVPN";
+const DIR_NAME: &str = "KwikVPN";
 const STORE_SUBDIR: &str = "routing-profiles";
 const ACTIVE_FILE: &str = "active.txt";
 
@@ -244,7 +244,7 @@ pub async fn fetch_profile_from_url(url: &str) -> Result<RoutingProfile> {
         .no_proxy()
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(60))
-        .user_agent(format!("Nemefisto/{}", env!("CARGO_PKG_VERSION")))
+        .user_agent(format!("Kwik/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .context("reqwest")?;
     let resp = client.get(&url).send().await.context("HTTP")?;

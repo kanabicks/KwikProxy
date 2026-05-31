@@ -35,7 +35,7 @@ fn build_menu<R: Runtime>(
     status: &str,
     has_selection: bool,
 ) -> tauri::Result<Menu<R>> {
-    let toggle = MenuItemBuilder::with_id(MENU_ID_TOGGLE, "Открыть Nemefisto").build(app)?;
+    let toggle = MenuItemBuilder::with_id(MENU_ID_TOGGLE, "Открыть Kwik").build(app)?;
     let (vpn_label, vpn_enabled) = match status {
         "running" => ("Отключить", true),
         "starting" | "stopping" => ("…", false),
@@ -58,7 +58,7 @@ fn build_menu<R: Runtime>(
 /// Создать tray-icon и зарегистрировать в приложении.
 ///
 /// Меню:
-/// - **Открыть / Свернуть Nemefisto** — toggle главного окна;
+/// - **Открыть / Свернуть Kwik** — toggle главного окна;
 /// - separator;
 /// - **Подключить / Отключить** — invoke в фронт через event
 ///   `tray-action`; фронт сам вызовет `connect`/`disconnect` (логика
@@ -76,7 +76,7 @@ pub fn init(app: &AppHandle<Wry>) -> tauri::Result<()> {
 
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .tooltip("Nemefisto VPN — отключено")
+        .tooltip("Kwik VPN — отключено")
         .menu(&menu)
         // По умолчанию left-click открывает меню. Перехватываем чтобы
         // вместо этого делать toggle главного окна (одинарный клик —
@@ -164,13 +164,13 @@ pub fn set_status(
     // Tooltip — короткая строка, видна при hover в системном трее.
     let tooltip = match status {
         "running" => match server_name {
-            Some(name) => format!("Nemefisto VPN — {name}"),
-            None => "Nemefisto VPN — подключено".to_string(),
+            Some(name) => format!("Kwik VPN — {name}"),
+            None => "Kwik VPN — подключено".to_string(),
         },
-        "starting" => "Nemefisto VPN — подключаем…".to_string(),
-        "stopping" => "Nemefisto VPN — отключаем…".to_string(),
-        "error" => "Nemefisto VPN — ошибка".to_string(),
-        _ => "Nemefisto VPN — отключено".to_string(),
+        "starting" => "Kwik VPN — подключаем…".to_string(),
+        "stopping" => "Kwik VPN — отключаем…".to_string(),
+        "error" => "Kwik VPN — ошибка".to_string(),
+        _ => "Kwik VPN — отключено".to_string(),
     };
     tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
 

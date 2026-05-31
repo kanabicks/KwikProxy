@@ -1,4 +1,4 @@
-//! Append-only лог helper-сервиса в `C:\ProgramData\NemefistoVPN\helper.log`.
+//! Append-only лог helper-сервиса в `C:\ProgramData\KwikVPN\helper.log`.
 //!
 //! Helper работает как Windows service — его stdout/stderr куда-то теряются
 //! (SCM не сохраняет их по умолчанию). Чтобы пользователь и разработчик
@@ -26,7 +26,7 @@ pub fn log(msg: &str) {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let dir = PathBuf::from(r"C:\ProgramData\NemefistoVPN");
+    let dir = PathBuf::from(r"C:\ProgramData\KwikVPN");
     let _ = std::fs::create_dir_all(&dir);
     let path = dir.join("helper.log");
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {

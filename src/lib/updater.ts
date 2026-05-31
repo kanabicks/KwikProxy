@@ -84,7 +84,7 @@ export async function downloadUpdate(
 /**
  * Шаг 2 — УСТАНОВИТЬ уже скачанное обновление и перезапустить приложение.
  * Вот здесь (и только здесь) VPN отключается: NSIS-installer не сможет
- * перезаписать `mihomo-*.exe` / `nemefisto-helper.exe` пока они залочены
+ * перезаписать `mihomo-*.exe` / `kwik-helper.exe` пока они залочены
  * запущенными процессами. Поэтому грациозно стопим движок и helper, ждём
  * освобождения файлов, затем `install()` + `relaunch()`.
  */
@@ -100,7 +100,7 @@ export async function installUpdate(update: AvailableUpdate): Promise<void> {
   await new Promise((r) => setTimeout(r, 1500));
 
   // 0.3.1: грациозно стопим helper (Windows service держит handle на
-  // nemefisto-helper.exe). 0.3.2: helper при ShutdownHelper также стопит
+  // kwik-helper.exe). 0.3.2: helper при ShutdownHelper также стопит
   // своих детей (mihomo). 1500мс — запас на SCM routing + pipe-disconnect.
   try {
     await invoke("shutdown_helper");

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
  * 14.G — first-run onboarding (модалка-туториал из 4 шагов).
  *
  * Показывается ровно один раз — после первого пройденного шага флаг
- * `nemefisto.onboarding.completed.v1` сохраняется в localStorage и при
+ * `kwik.onboarding.completed.v1` сохраняется в localStorage и при
  * следующих запусках модалка не появляется.
  *
  * Предполагается что условие «первый запуск» проверяет родитель —
@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
  * для консистентности.
  */
 
-const STORAGE_KEY = "nemefisto.onboarding.completed.v1";
+const STORAGE_KEY = "kwik.onboarding.completed.v1";
 
 const STEP_KEYS = ["step1", "step2", "step3", "step4"] as const;
 

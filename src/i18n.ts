@@ -42,7 +42,7 @@ function detectLanguage(stored: string | null): "ru" | "en" {
  */
 function readStoredLanguage(): string | null {
   try {
-    const raw = localStorage.getItem("nemefisto.settings.v1");
+    const raw = localStorage.getItem("kwik.settings.v1");
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { language?: string };
     return parsed.language ?? null;

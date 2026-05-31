@@ -111,7 +111,7 @@ pub fn detect_routing_conflicts() -> Vec<String> {
 
     // 198.18.0.1 в network-byte-order (так лежит в S_addr WinSock).
     // 198 = 0xC6, 18 = 0x12 → little-endian S_un.S_addr хранит как 0x010012C6.
-    const NEMEFISTO_TUN_GATEWAY: u32 = 0x0100_12C6;
+    const KWIK_TUN_GATEWAY: u32 = 0x0100_12C6;
 
     unsafe {
         let mut fwd_ptr: *mut MIB_IPFORWARD_TABLE2 = std::ptr::null_mut();
@@ -134,7 +134,7 @@ pub fn detect_routing_conflicts() -> Vec<String> {
             }
             let nh_v4: &SOCKADDR_IN = mem::transmute(nh);
             let nh_addr = nh_v4.sin_addr.S_un.S_addr;
-            if nh_addr == 0 || nh_addr == NEMEFISTO_TUN_GATEWAY {
+            if nh_addr == 0 || nh_addr == KWIK_TUN_GATEWAY {
                 continue;
             }
             if e.Metric < physic_metric {
@@ -157,7 +157,7 @@ pub fn detect_routing_conflicts() -> Vec<String> {
             }
             let nh_v4: &SOCKADDR_IN = mem::transmute(nh);
             let nh_addr = nh_v4.sin_addr.S_un.S_addr;
-            if nh_addr == 0 || nh_addr == NEMEFISTO_TUN_GATEWAY {
+            if nh_addr == 0 || nh_addr == KWIK_TUN_GATEWAY {
                 continue;
             }
             if Some(e.InterfaceIndex) == physic_if_idx {
@@ -225,7 +225,7 @@ pub fn detect_routing_conflicts() -> Vec<String> {
     Vec::new()
 }
 
-/// 14.E — есть ли в системе orphan TUN-адаптер с префиксом `nemefisto-`.
+/// 14.E — есть ли в системе orphan TUN-адаптер с префиксом `kwik-`.
 ///
 /// Используется при показе recovery dialog'а: если адаптер от прошлой
 /// упавшей сессии не убран — пользователь видит галку «orphan TUN-адаптер»
@@ -257,7 +257,7 @@ pub fn has_orphan_tun_adapters() -> bool {
                 .position(|&c| c == 0)
                 .unwrap_or(row.Alias.len());
             let alias = String::from_utf16_lossy(&row.Alias[..alias_len]);
-            if alias.to_lowercase().starts_with("nemefisto-") {
+            if alias.to_lowercase().starts_with("kwik-") {
                 found = true;
                 break;
             }
@@ -283,7 +283,7 @@ pub struct RouteEntry {
     pub destination: String,
     /// Next-hop IP или `"on-link"` если шлюза нет.
     pub next_hop: String,
-    /// Friendly-имя интерфейса (`"Wi-Fi"`, `"nemefisto-1234"`, и т.д.).
+    /// Friendly-имя интерфейса (`"Wi-Fi"`, `"kwik-1234"`, и т.д.).
     /// Если резолвер упал — fallback на `"if{index}"`.
     pub interface: String,
     /// `InterfaceIndex` — для группировки/фильтрации в UI.

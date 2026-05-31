@@ -1,20 +1,20 @@
-//! Nemefisto VPN Helper — Windows-сервис, выполняющий привилегированные
+//! Kwik VPN Helper — Windows-сервис, выполняющий привилегированные
 //! операции от имени SYSTEM: SYSTEM-spawn VPN-движка Mihomo, настройка
 //! WFP-фильтров для kill-switch, очистка orphan-ресурсов. Built-in TUN
 //! inbound движка создаёт WinTUN-адаптер изнутри SYSTEM-процесса
 //! (CreateAdapter требует админа).
 //!
 //! User-mode Tauri-приложение общается с этим helper-ом через named pipe
-//! `\\.\pipe\nemefisto-helper` line-delimited JSON-RPC протоколом.
+//! `\\.\pipe\kwik-helper` line-delimited JSON-RPC протоколом.
 //!
 //! CLI:
-//!   nemefisto-helper install      — установить и запустить сервис (нужен UAC)
-//!   nemefisto-helper uninstall    — остановить и удалить сервис (нужен UAC)
-//!   nemefisto-helper service      — точка входа SCM, не вызывать руками
-//!   nemefisto-helper status       — диагностический ping в pipe
+//!   kwik-helper install      — установить и запустить сервис (нужен UAC)
+//!   kwik-helper uninstall    — остановить и удалить сервис (нужен UAC)
+//!   kwik-helper service      — точка входа SCM, не вызывать руками
+//!   kwik-helper status       — диагностический ping в pipe
 
 #[cfg(windows)]
-mod nemefisto_helper {
+mod kwik_helper {
     pub mod crash_dumps;
     pub mod dispatch;
     pub mod firewall;
@@ -33,15 +33,15 @@ mod nemefisto_helper {
 fn main() {
     // 14.C: panic-hook первой строкой — даже если service::install
     // паникует, мы это запишем в файл.
-    nemefisto_helper::crash_dumps::install_panic_hook();
+    kwik_helper::crash_dumps::install_panic_hook();
 
     let args: Vec<String> = std::env::args().collect();
     let cmd = args.get(1).map(|s| s.as_str()).unwrap_or("help");
 
     let result: anyhow::Result<()> = match cmd {
-        "install" => nemefisto_helper::service::install(),
-        "uninstall" => nemefisto_helper::service::uninstall(),
-        "service" => nemefisto_helper::service::run_as_service(),
+        "install" => kwik_helper::service::install(),
+        "uninstall" => kwik_helper::service::uninstall(),
+        "service" => kwik_helper::service::run_as_service(),
         "debug" => run_debug_foreground(),
         "status" => match status_check() {
             Ok(version) => {
@@ -56,9 +56,9 @@ fn main() {
         // открывает свой WFP-engine, удаляет наш provider+sublayer
         // каскадно (вместе со всеми filter'ами).
         // Запускать ОТ АДМИНА:
-        //   & "C:\path\to\nemefisto-helper.exe" killswitch-cleanup
+        //   & "C:\path\to\kwik-helper.exe" killswitch-cleanup
         "killswitch-cleanup" => {
-            match nemefisto_helper::wfp::cleanup_provider() {
+            match kwik_helper::wfp::cleanup_provider() {
                 Ok(()) => {
                     println!("✓ WFP kill-switch фильтры удалены, интернет восстановлен");
                     Ok(())
@@ -103,10 +103,10 @@ fn run_debug_foreground() -> anyhow::Result<()> {
     rt.block_on(async move {
         // 13.D: то же что в service.rs — cleanup orphan-фильтров
         // на старте debug-режима (для тестов вручную).
-        if let Err(err) = nemefisto_helper::firewall::cleanup_on_startup().await {
+        if let Err(err) = kwik_helper::firewall::cleanup_on_startup().await {
             eprintln!("[helper-debug] startup cleanup error: {err}");
         }
-        nemefisto_helper::pipe::run_pipe_server(shutdown).await
+        kwik_helper::pipe::run_pipe_server(shutdown).await
     })?;
     Ok(())
 }
@@ -142,7 +142,7 @@ fn status_check() -> anyhow::Result<String> {
         match std::fs::OpenOptions::new()
             .read(true)
             .write(true)
-            .open(nemefisto_helper::protocol::PIPE_NAME)
+            .open(kwik_helper::protocol::PIPE_NAME)
         {
             Ok(f) => break f,
             Err(e) => {
@@ -176,22 +176,22 @@ fn status_check() -> anyhow::Result<String> {
 
 #[cfg(windows)]
 fn print_usage() {
-    eprintln!("nemefisto-helper — Windows-сервис для управления TUN-режимом");
+    eprintln!("kwik-helper — Windows-сервис для управления TUN-режимом");
     eprintln!();
     eprintln!("usage:");
-    eprintln!("  nemefisto-helper install     установить и запустить сервис");
-    eprintln!("  nemefisto-helper uninstall   остановить и удалить сервис");
-    eprintln!("  nemefisto-helper service     (внутренняя — вызывается SCM)");
-    eprintln!("  nemefisto-helper debug       foreground-режим для отладки");
-    eprintln!("  nemefisto-helper status      проверить, что сервис отвечает");
+    eprintln!("  kwik-helper install     установить и запустить сервис");
+    eprintln!("  kwik-helper uninstall   остановить и удалить сервис");
+    eprintln!("  kwik-helper service     (внутренняя — вызывается SCM)");
+    eprintln!("  kwik-helper debug       foreground-режим для отладки");
+    eprintln!("  kwik-helper status      проверить, что сервис отвечает");
     eprintln!(
-        "  nemefisto-helper killswitch-cleanup  EMERGENCY: убрать WFP-фильтры если \
+        "  kwik-helper killswitch-cleanup  EMERGENCY: убрать WFP-фильтры если \
          kill-switch завис и интернет заблокирован"
     );
 }
 
 #[cfg(not(windows))]
 fn main() {
-    eprintln!("nemefisto-helper поддерживается только на Windows");
+    eprintln!("kwik-helper поддерживается только на Windows");
     std::process::exit(1);
 }

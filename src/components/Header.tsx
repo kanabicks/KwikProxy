@@ -23,7 +23,7 @@ export function Header({ onOpenSettings }: { onOpenSettings: () => void }) {
     <header className="header">
       <div className="header-logo">
         <img src="/logo.png" alt="" />
-        <span>nemefisto</span>
+        <span>kwik</span>
       </div>
       <div className="header-right">
         <div className="header-meta">
@@ -36,7 +36,7 @@ export function Header({ onOpenSettings }: { onOpenSettings: () => void }) {
             className="icon-btn"
             onClick={() => {
               window.dispatchEvent(
-                new CustomEvent("nemefisto:open-add-subscription")
+                new CustomEvent("kwik:open-add-subscription")
               );
             }}
             aria-label={t("header.addSubscription")}

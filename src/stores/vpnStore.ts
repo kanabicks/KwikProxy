@@ -128,8 +128,8 @@ type VpnState = {
  *    мы бы выбирали не тот)
  *  Сохраняется при `selectServer()`. Восстанавливается через
  *  findSelectedIndexByName в subscriptionStore (loadCached / fetchSubscription). */
-const SELECTED_NAME_KEY = "nemefisto.selectedServerName.v1";
-const SELECTED_SUB_KEY = "nemefisto.selectedSubscriptionId.v1";
+const SELECTED_NAME_KEY = "kwik.selectedServerName.v1";
+const SELECTED_SUB_KEY = "kwik.selectedSubscriptionId.v1";
 
 /** Нормализация имени для сравнения: trim + collapse повторных пробелов
  *  + lowercase. Нужно потому что разные парсеры формируют одно и то же
@@ -313,7 +313,7 @@ export const useVpnStore = create<VpnState>((set, get) => ({
     // 0.3.0 multi-subscription: engine берём из подписки-источника
     // выбранного сервера через `getEffectiveEngine()`. Этот метод
     // соблюдает приоритет: per-subscription engineOverride →
-    // header X-Nemefisto-Engine → settings.engine (fallback).
+    // header X-Kwik-Engine → settings.engine (fallback).
     // Если у server'а нет subscriptionId (legacy state до миграции) —
     // используем primary, иначе settings.engine.
     const subStore = useSubscriptionStore.getState();

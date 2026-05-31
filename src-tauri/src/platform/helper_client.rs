@@ -6,7 +6,7 @@
 //! обработчик в отдельной задаче.
 //!
 //! ВАЖНО: типы должны точно совпадать с тегами в
-//! `src/bin/nemefisto_helper/protocol.rs`.
+//! `src/bin/kwik_helper/protocol.rs`.
 
 use std::time::Duration;
 
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::windows::named_pipe::ClientOptions;
 
-const PIPE_NAME: &str = r"\\.\pipe\nemefisto-helper";
+const PIPE_NAME: &str = r"\\.\pipe\kwik-helper";
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -59,7 +59,7 @@ pub enum HelperRequest {
     /// Emergency cleanup — снять любые наши WFP-фильтры (для UI-кнопки
     /// «аварийный сброс»).
     KillSwitchForceCleanup,
-    /// Cleanup orphan TUN-адаптеров (`nemefisto-*`) и half-default
+    /// Cleanup orphan TUN-адаптеров (`kwik-*`) и half-default
     /// маршрутов через `198.18.0.1`. Часть UI-кнопки «восстановить сеть».
     OrphanCleanup,
     /// 14.E: read-only проверка остатков WFP-фильтров от прошлой
@@ -99,7 +99,7 @@ pub enum HelperResponse {
 
 /// Минимально-поддерживаемая версия протокола. Если helper отвечает
 /// меньшей — `helper_bootstrap` форсит uninstall+install. Бампается
-/// синхронно с константой в `nemefisto_helper::protocol`.
+/// синхронно с константой в `kwik_helper::protocol`.
 pub const MIN_HELPER_PROTOCOL_VERSION: u32 = 9;
 
 /// Открыть pipe с retry — сервис может быть busy сразу после старта или
@@ -276,7 +276,7 @@ pub async fn mihomo_stop() -> Result<()> {
 /// 0.3.1 / installer file-lock fix: graceful self-shutdown helper'а.
 ///
 /// Helper отвечает `Ok`, потом через ~200мс сам себя стопит через SCM.
-/// После этого `nemefisto-helper.exe` освобождается и NSIS installer
+/// После этого `kwik-helper.exe` освобождается и NSIS installer
 /// может его перезаписать без admin-прав.
 ///
 /// Pipe-disconnect после Ok нормален — сервис-процесс выходит. Поэтому
@@ -300,7 +300,7 @@ pub async fn shutdown_helper() -> Result<()> {
     }
 }
 
-/// Cleanup orphan TUN-ресурсов: адаптеры с префиксом `nemefisto-` и
+/// Cleanup orphan TUN-ресурсов: адаптеры с префиксом `kwik-` и
 /// half-default routes через `198.18.0.1`. Часть UI-кнопки
 /// «восстановить сеть». Безопасно вызывать только когда VPN не активен
 /// (иначе порвёт активный туннель).

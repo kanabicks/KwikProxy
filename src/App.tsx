@@ -52,7 +52,7 @@ import { openDashboard, useHasDashboardUrl } from "./lib/openExternal";
 /**
  * Корневой компонент. Координирует:
  * - инициализацию stores при mount (refresh status, кеш, hwid, on-open actions);
- * - подписку на deep-links (nemefisto://...);
+ * - подписку на deep-links (kwik://...);
  * - авто-подключение к последнему серверу при старте (если включено);
  * - фоновый авто-refresh подписки.
  *
@@ -112,16 +112,16 @@ function App() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Прототипы редизайна. Значение из localStorage `nemefisto.look`:
+  // Прототипы редизайна. Значение из localStorage `kwik.look`:
   //   "soft"    — мягкие карточки + лайм (текущий прототип, дефолт);
   //   "swiss"   — типографика-минимализм;
   //   "classic" — старый дизайн (3D-сцена, glass, темы).
-  // Переключение в DevTools: localStorage.setItem("nemefisto.look","classic").
+  // Переключение в DevTools: localStorage.setItem("kwik.look","classic").
   // Для soft/swiss выключаем весь декор (3D, scanlines/сетка/виньетка,
   // кастомный курсор, боковой ambient) — оба прототипа про вычитание.
   const [look] = useState<"classic" | "swiss" | "soft">(() => {
     try {
-      const v = localStorage.getItem("nemefisto.look");
+      const v = localStorage.getItem("kwik.look");
       if (v === "classic" || v === "swiss" || v === "soft") return v;
     } catch {
       /* приватный режим */
@@ -192,7 +192,7 @@ function App() {
       }
     });
 
-    // Подписка на deep-link события (nemefisto://add | connect | ...)
+    // Подписка на deep-link события (kwik://add | connect | ...)
     let unlisten: (() => void) | undefined;
     initDeepLinks().then((u) => {
       unlisten = u;

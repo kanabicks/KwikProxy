@@ -5,7 +5,7 @@
 //! берём `.sha256` (64 hex-символа, ≤100 байт) и сравниваем с
 //! сохранённым. Если совпадает — пропускаем `.dat` (5-15 МБ экономии).
 //!
-//! Файлы кешируются в `%LOCALAPPDATA%\NemefistoVPN\geofiles\`. Mihomo
+//! Файлы кешируются в `%LOCALAPPDATA%\KwikVPN\geofiles\`. Mihomo
 //! читает geo-базы из своей `-d` data-dir, поэтому перед стартом мы
 //! копируем туда лучший доступный источник через [`provision_into`]:
 //! пользовательский (свежескачанный) приоритетнее бандла из ресурсов.
@@ -17,7 +17,7 @@ use std::time::Duration;
 use anyhow::{bail, Context, Result};
 use serde::Serialize;
 
-const DIR_NAME: &str = "NemefistoVPN";
+const DIR_NAME: &str = "KwikVPN";
 const GEOFILES_SUBDIR: &str = "geofiles";
 
 /// Размер response-body, выше которого мы считаем файл подозрительным
@@ -29,7 +29,7 @@ const MAX_DOWNLOAD_BYTES: u64 = 50 * 1024 * 1024;
 /// канале (1 МБит/с) загрузятся за ~1.5 минуты — поэтому 90 сек.
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(90);
 
-/// Каталог хранения geofiles (`%LOCALAPPDATA%\NemefistoVPN\geofiles\`).
+/// Каталог хранения geofiles (`%LOCALAPPDATA%\KwikVPN\geofiles\`).
 pub fn geofiles_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {
@@ -245,7 +245,7 @@ fn build_no_proxy_client() -> Result<reqwest::Client> {
         .no_proxy()
         .connect_timeout(Duration::from_secs(15))
         .timeout(DOWNLOAD_TIMEOUT)
-        .user_agent(format!("Nemefisto/{}", env!("CARGO_PKG_VERSION")))
+        .user_agent(format!("Kwik/{}", env!("CARGO_PKG_VERSION")))
         .build()
         .context("сборка reqwest client")
 }

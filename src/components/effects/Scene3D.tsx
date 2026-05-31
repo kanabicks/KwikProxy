@@ -25,7 +25,7 @@ import { useEffectiveSettings } from "../../lib/hooks/useEffectiveSettings";
 export function Scene3D({ status }: { status: VpnStatus }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Effective-значения учитывают override-логику из заголовков подписки
-  // (X-Nemefisto-Theme/Background/Preset).
+  // (X-Kwik-Theme/Background/Preset).
   const { theme, background, preset } = useEffectiveSettings();
 
   // Если активен пресет — фон берётся из его таблицы; иначе — из обычной

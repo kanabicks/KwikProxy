@@ -424,7 +424,7 @@ pub async fn connect(
     // получать 407 auth challenge на каждый запрос.
     let socks_auth = if tun_mode || lan {
         let pass = uuid::Uuid::new_v4().to_string();
-        Some(("nemefisto".to_string(), pass))
+        Some(("kwik".to_string(), pass))
     } else {
         None
     };
@@ -538,9 +538,9 @@ pub async fn connect(
         if builtin_tun {
             // Конфиг и data-dir в ProgramData — туда у обоих процессов
             // (helper-SYSTEM и Tauri-user) стандартный read+write.
-            let shared_dir = std::path::PathBuf::from(r"C:\ProgramData\NemefistoVPN");
+            let shared_dir = std::path::PathBuf::from(r"C:\ProgramData\KwikVPN");
             std::fs::create_dir_all(&shared_dir)
-                .map_err(|e| format!("создание ProgramData/NemefistoVPN: {e}"))?;
+                .map_err(|e| format!("создание ProgramData/KwikVPN: {e}"))?;
             // 11.B: geo `.dat` в data-dir mihomo (user-скачанные > бандл) —
             // нужно для правил GEOSITE:/GEOIP: активного профиля.
             crate::config::geofiles::provision_into(&shared_dir);
@@ -690,7 +690,7 @@ pub async fn connect(
                 push_if_exists(exe.clone());
                 // helper.exe — не нужен для outbound, но добавим на
                 // случай future telemetry.
-                push_if_exists(exe_dir.join("nemefisto-helper.exe"));
+                push_if_exists(exe_dir.join("kwik-helper.exe"));
             }
         }
         // Resolve-функция тоже подключим (на случай если выше что-то
@@ -873,7 +873,7 @@ pub async fn kill_switch_heartbeat() -> Result<(), String> {
 #[tauri::command]
 pub async fn kill_switch_force_cleanup() -> Result<(), String> {
     // Гарантируем что helper доступен — иначе предложим запустить вручную
-    // через консоль (`nemefisto-helper killswitch-cleanup`).
+    // через консоль (`kwik-helper killswitch-cleanup`).
     if let Err(e) = platform::helper_bootstrap::ensure_running().await {
         return Err(format!("helper-сервис недоступен: {e}"));
     }
@@ -950,7 +950,7 @@ pub async fn recover_network() -> RecoveryReport {
 ///   (`127.0.0.1:port` где port в нашем диапазоне);
 /// - `proxy_backup_present` — есть `proxy_backup.json` от прошлого
 ///   `set_system_proxy`, можно сделать restore;
-/// - `tun_orphan` — есть адаптер с префиксом `nemefisto-` (helper
+/// - `tun_orphan` — есть адаптер с префиксом `kwik-` (helper
 ///   обычно их сам чистит при старте, но если helper-сервис не
 ///   запущен — остаются).
 ///
@@ -1026,7 +1026,7 @@ pub fn get_routing_table() -> Vec<platform::network::RouteEntry> {
 /// Graceful self-shutdown helper-сервиса. Используется auto-updater'ом
 /// перед запуском NSIS installer'а: helper освобождает свой `.exe`-файл
 /// (закрывает image-handle через SCM `SERVICE_CONTROL_STOP` себе же),
-/// после чего installer может перезаписать `nemefisto-helper.exe` без
+/// после чего installer может перезаписать `kwik-helper.exe` без
 /// admin-прав.
 ///
 /// После этой команды helper недоступен до следующего connect (там
@@ -1237,6 +1237,26 @@ pub fn secure_storage_delete(key: String) -> Result<(), String> {
     platform::secure_storage::delete(&key).map_err(|e| e.to_string())
 }
 
+/// One-time миграция ключей из legacy `nemefisto.*` namespace в `kwik.*`
+/// (ребрендинг 0.7.0). Фронт на старте передаёт список ключей, которые
+/// мог использовать (URL подписки, hwid-override и per-id варианты), и
+/// для каждого пытается перенести старую запись. Возвращает количество
+/// фактически перенесённых значений (для лога/диагностики).
+#[tauri::command]
+pub fn secure_storage_migrate_legacy(keys: Vec<String>) -> Result<u32, String> {
+    let mut migrated = 0u32;
+    for key in keys {
+        match platform::secure_storage::migrate_legacy(&key) {
+            Ok(true) => migrated += 1,
+            Ok(false) => {}
+            // Ошибка миграции одного ключа не должна валить остальные —
+            // логируем и продолжаем (best-effort).
+            Err(e) => eprintln!("миграция ключа {key} провалилась: {e}"),
+        }
+    }
+    Ok(migrated)
+}
+
 // ─── Autostart (6.B) ──────────────────────────────────────────────────────────
 
 /// Зарегистрирован ли task автозапуска в Windows Task Scheduler.
@@ -1269,7 +1289,7 @@ pub fn get_hwid(hwid: State<'_, HwidState>) -> String {
 
 /// Прочитать последние ~32 КБ логов VPN-движка из всех известных
 /// log-файлов (`mihomo-stderr.log`, плюс helper-side
-/// `C:\ProgramData\NemefistoVPN\mihomo.log` если он есть).
+/// `C:\ProgramData\KwikVPN\mihomo.log` если он есть).
 ///
 /// Имя `read_xray_log` оставлено для совместимости с фронтом (UI
 /// `LogsBlock`). Содержимое — логи Mihomo.
@@ -1277,8 +1297,8 @@ pub fn get_hwid(hwid: State<'_, HwidState>) -> String {
 pub fn read_xray_log() -> Result<String, String> {
     use std::io::{Read, Seek, SeekFrom};
 
-    let tmp_dir = std::env::temp_dir().join("NemefistoVPN");
-    let prog_dir = std::path::PathBuf::from(r"C:\ProgramData\NemefistoVPN");
+    let tmp_dir = std::env::temp_dir().join("KwikVPN");
+    let prog_dir = std::path::PathBuf::from(r"C:\ProgramData\KwikVPN");
 
     let candidates = [
         tmp_dir.join("mihomo-stderr.log"),
@@ -1416,7 +1436,7 @@ async fn resolve_ipv4(host: &str, port: u16) -> Option<std::net::Ipv4Addr> {
 /// - `recovery-state.json` — текущее состояние orphan-ресурсов;
 /// - `proxy-backup.json` — сохранённый backup системного прокси (если есть).
 ///
-/// Сохраняется в `%USERPROFILE%\Documents\nemefisto-diagnostics-<timestamp>.zip`.
+/// Сохраняется в `%USERPROFILE%\Documents\kwik-diagnostics-<timestamp>.zip`.
 /// Возвращает абсолютный путь — UI показывает в toast с кнопкой
 /// «открыть папку» через `tauri-plugin-opener::reveal_item_in_dir`.
 #[tauri::command]
@@ -1436,7 +1456,7 @@ pub fn export_diagnostics() -> Result<String, String> {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let zip_path = docs.join(format!("nemefisto-diagnostics-{ts}.zip"));
+    let zip_path = docs.join(format!("kwik-diagnostics-{ts}.zip"));
 
     let file = std::fs::File::create(&zip_path).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
@@ -1446,7 +1466,7 @@ pub fn export_diagnostics() -> Result<String, String> {
 
     // 1. app-info.txt
     let info = format!(
-        "nemefisto version: {}\n\
+        "kwik version: {}\n\
          OS family: {}\n\
          arch: {}\n\
          timestamp (unix): {}\n",
@@ -1460,7 +1480,7 @@ pub fn export_diagnostics() -> Result<String, String> {
 
     // 2. xray-stderr.log (последние 32 КБ)
     let xray_log = std::env::temp_dir()
-        .join("NemefistoVPN")
+        .join("KwikVPN")
         .join("xray-stderr.log");
     if xray_log.is_file() {
         if let Ok(mut f) = std::fs::File::open(&xray_log) {
@@ -1651,7 +1671,7 @@ pub async fn app_traffic_stats(
 
 // ─── 12.D — backup/restore настроек ─────────────────────────────────────────
 
-/// Записать backup-JSON в `%USERPROFILE%\Documents\nemefisto-backup-<ts>.json`.
+/// Записать backup-JSON в `%USERPROFILE%\Documents\kwik-backup-<ts>.json`.
 ///
 /// Frontend сам собирает JSON (с whitelist'ом полей и `schema_version`),
 /// мы лишь сохраняем файл — нет смысла дублировать сериализацию настроек
@@ -1676,13 +1696,13 @@ pub fn export_settings_to_documents(json: String) -> Result<String, String> {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
-    let path = docs.join(format!("nemefisto-backup-{ts}.json"));
+    let path = docs.join(format!("kwik-backup-{ts}.json"));
     std::fs::write(&path, json.as_bytes()).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().into_owned())
 }
 
 /// 12.D: скачать backup-JSON по URL (нужен для deep-link
-/// `nemefisto://import-from-url/<url>`). Делается с no-proxy чтобы не
+/// `kwik://import-from-url/<url>`). Делается с no-proxy чтобы не
 /// зацикливаться через активный VPN. Размер ограничен 256 KB —
 /// настройки не должны весить больше, любой больший payload — подозрение
 /// на mistake/SSRF на large endpoint.
@@ -1748,7 +1768,7 @@ pub fn routing_add_static(
 
 /// Скачать профиль по URL **один раз** и сохранить как статический
 /// (`Static`) — без авто-обновления и без autorouting-метки в UI.
-/// Для deep-link `nemefisto://routing/add/{url}`, где URL — разовый
+/// Для deep-link `kwik://routing/add/{url}`, где URL — разовый
 /// источник, а не подписка на обновления.
 #[tauri::command]
 pub async fn routing_add_static_from_url(

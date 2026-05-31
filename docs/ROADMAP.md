@@ -1,4 +1,4 @@
-# Nemefisto — детальный roadmap и спеки этапов
+# Kwik — детальный roadmap и спеки этапов
 
 > Архив детальных спецификаций. **Не грузится в контекст каждую сессию** —
 > читай по необходимости при работе над конкретной фичей. Краткий статус и
@@ -8,7 +8,7 @@
 > архитектуру (sing-box + Mihomo), которая существовала до 0.5.0. В 0.5.0
 > проект перешёл на **Mihomo-only** — sing-box полностью выпилен. Поэтому
 > таблицы совместимости движков, sing-box passthrough, XHTTP-bail, выбор
-> `X-Nemefisto-Engine`, per-engine UA и т.п. **больше не актуальны** —
+> `X-Kwik-Engine`, per-engine UA и т.п. **больше не актуальны** —
 > читать как историю. Актуальная архитектура — в корневом `CLAUDE.md`.
 
 ---
@@ -29,7 +29,7 @@
   без WFP). Дублирует поддержку других протоколов с Xray.
 
 Один пользователь использует **одно ядро на сессию**. Выбор:
-1. Из заголовка `X-Nemefisto-Engine` подписки;
+1. Из заголовка `X-Kwik-Engine` подписки;
 2. Иначе из настроек пользователя;
 3. По дефолту Xray.
 
@@ -90,28 +90,28 @@
 | `content-disposition` | `attachment; filename="..."` | Fallback для имени подписки если `profile-title` не задан |
 | `sort-order` | `ping` \| `name` \| `none` | Сортировка серверов по умолчанию |
 
-#### 2. Заголовки Nemefisto (наше расширение для тонкой настройки UX)
+#### 2. Заголовки Kwik (наше расширение для тонкой настройки UX)
 
 | Заголовок | Значение |
 |---|---|
-| `X-Nemefisto-Engine` | `xray` \| `mihomo` |
-| `X-Nemefisto-Mode` | `proxy` \| `tun` |
-| `X-Nemefisto-Theme` | `dark` \| `light` \| `midnight` \| `sunset` \| `sand` |
-| `X-Nemefisto-Background` | `crystal` \| `tunnel` \| `globe` \| `particles` |
-| `X-Nemefisto-Button-Style` | `glass` \| `flat` \| `neon` \| `metallic` |
-| `X-Nemefisto-Preset` | `none` \| `fluent` \| `cupertino` \| `vice` \| `arcade` \| `glacier` |
-| `X-Nemefisto-Routes` | base64-encoded JSON с domain/ip-правилами |
-| `X-Nemefisto-App-Rules` | base64-encoded JSON с per-process правилами |
+| `X-Kwik-Engine` | `xray` \| `mihomo` |
+| `X-Kwik-Mode` | `proxy` \| `tun` |
+| `X-Kwik-Theme` | `dark` \| `light` \| `midnight` \| `sunset` \| `sand` |
+| `X-Kwik-Background` | `crystal` \| `tunnel` \| `globe` \| `particles` |
+| `X-Kwik-Button-Style` | `glass` \| `flat` \| `neon` \| `metallic` |
+| `X-Kwik-Preset` | `none` \| `fluent` \| `cupertino` \| `vice` \| `arcade` \| `glacier` |
+| `X-Kwik-Routes` | base64-encoded JSON с domain/ip-правилами |
+| `X-Kwik-App-Rules` | base64-encoded JSON с per-process правилами |
 
 #### Заголовки запроса (что мы отправляем)
 
 ```
-User-Agent: Nemefisto/<version>/<platform>
+User-Agent: Kwik/<version>/<platform>
 Accept: */*
 Accept-Language: ru-RU
 x-app-version: <semver>
 x-device-locale: <язык>
-x-client: Nemefisto
+x-client: Kwik
 ```
 
 Если включена отправка HWID:
@@ -176,7 +176,7 @@ UI: Settings → раздел «правила приложений» → спи
 - **8.A** — универсальный парсер подписок (vmess / trojan / ss / hy2 / tuic / wireguard / socks + Mihomo YAML + полные Xray JSON).
 - **8.A.1** — *(срочный hotfix, см. ниже)* завершение Xray-поддержки: hy2/wireguard outbounds + xhttp/httpupgrade transports + правка `engine_compat` для hy2/wireguard.
 - **8.B** — Mihomo как второй sidecar; UI-селект движка; helper-coordination для TUN с любым ядром. **Уникальная зона Mihomo сократилась до TUIC + AnyTLS + native per-process** — но всё ещё нужен.
-- **8.C** — заголовки подписки (стандартные + Nemefisto) + override-логика + UI-бейджи «из подписки» + UI для `subscription-userinfo` / `announce` / `support-url` / `premium-url`.
+- **8.C** — заголовки подписки (стандартные + Kwik) + override-логика + UI-бейджи «из подписки» + UI для `subscription-userinfo` / `announce` / `support-url` / `premium-url`.
 - **8.D** — per-process routing (Mihomo-only через PROCESS-NAME) с UI-редактором правил. Альтернативная реализация через WFP (Windows-native, для обоих движков) — см. этап 13.G.
 - **8.E** — релизный NSIS-installer (см. ниже).
 
@@ -237,7 +237,7 @@ hy2 и wireguard как Mihomo-only, тогда как современный Xr
 
 - Все sidecar (sing-box, mihomo, wintun.dll) добавляются в
   `tauri.conf.json` через `externalBin` или `resources`.
-- `nemefisto-helper.exe` собирается отдельно release-сборкой и
+- `kwik-helper.exe` собирается отдельно release-сборкой и
   включается в bundle.
 - `helper_bootstrap.rs` ищет helper в `<install-dir>/` или
   в `<install-dir>/resources/`, не только в exe-dir.
@@ -245,9 +245,9 @@ hy2 и wireguard как Mihomo-only, тогда как современный Xr
   WebView2 при отсутствии (Win10 без обновлений).
 - Кастомная иконка и метаданные NSIS (название, описание, версия,
   издатель).
-- Опциональная страница «Запустить Nemefisto после установки» в
+- Опциональная страница «Запустить Kwik после установки» в
   wizard.
-- Output: `Nemefisto_<version>_x64-setup.exe` в
+- Output: `Kwik_<version>_x64-setup.exe` в
   `src-tauri/target/release/bundle/nsis/`.
 
 ---
@@ -282,18 +282,18 @@ bail с сообщением «отключите другой VPN». Опцио
 ### 9.D — System proxy backup/restore
 При connect (mode=proxy) сохранять предыдущие значения registry-keys
 `ProxyEnable` / `ProxyServer` / `ProxyOverride` в
-`%LOCALAPPDATA%\NemefistoVPN\proxy_backup.json`. При disconnect —
+`%LOCALAPPDATA%\KwikVPN\proxy_backup.json`. При disconnect —
 восстанавливать. На случай краша — детект backup-файла на старте app
 с предложением восстановить.
 
 ### 9.E — Cleanup orphan-ресурсов на старте
 - Helper-сервис при старте: удалить все WinTUN-адаптеры с префиксом
-  `nemefisto-` (best-effort через `Remove-NetAdapter`); вычистить
+  `kwik-` (best-effort через `Remove-NetAdapter`); вычистить
   routing-rules с нашим NextHop=198.18.0.1.
 - Main app при старте: detect proxy_backup.json и предложить restore.
 
 ### 9.F — Уникальное имя TUN (готово)
-Каждая сессия создаёт `nemefisto-<pid>` — двойной запуск приложения
+Каждая сессия создаёт `kwik-<pid>` — двойной запуск приложения
 не конфликтует.
 
 ### 9.G — SOCKS5 inbound authentication
@@ -429,7 +429,7 @@ JSON-документ, совместимый с типовыми панелям
 ### 11.B — Geofiles с оптимизацией через .sha256
 
 Скачиваем `geoip.dat` и `geosite.dat` с GitHub (Loyalsoldier/v2ray-rules-dat).
-Кладём в `%LOCALAPPDATA%\NemefistoVPN\geofiles\`.
+Кладём в `%LOCALAPPDATA%\KwikVPN\geofiles\`.
 
 **Алгоритм обновления:**
 1. Скачиваем `geoip.dat.sha256` (64 hex-символа).
@@ -444,7 +444,7 @@ JSON-документ, совместимый с типовыми панелям
 ### 11.C — Autorouting vs Routing (два режима)
 
 - **Routing** — статический профиль. Передаётся как base64 в заголовке
-  `routing` или ссылка `nemefisto://routing/onadd/{base64}`. Обновляется
+  `routing` или ссылка `kwik://routing/onadd/{base64}`. Обновляется
   только при ручном перезапросе подписки.
 - **Autorouting** — URL-источник, профиль скачивается отдельно и
   обновляется автоматически по интервалу. В UI помечается иконкой облака.
@@ -466,31 +466,31 @@ JSON-документ, совместимый с типовыми панелям
 
 ### 11.D — Расширенные deep-links
 
-Расширяем обработчик `nemefisto://` командами:
+Расширяем обработчик `kwik://` командами:
 
 #### Управление VPN
 | Команда | Действие |
 |---|---|
-| `nemefisto://connect` или `nemefisto://open` | Подключить VPN |
-| `nemefisto://disconnect` или `nemefisto://close` | Отключить VPN |
-| `nemefisto://toggle` | Переключить состояние |
-| `nemefisto://status` | Открыть приложение, показать статус |
+| `kwik://connect` или `kwik://open` | Подключить VPN |
+| `kwik://disconnect` или `kwik://close` | Отключить VPN |
+| `kwik://toggle` | Переключить состояние |
+| `kwik://status` | Открыть приложение, показать статус |
 
 #### Импорт конфигураций
 | Команда | Что делает |
 |---|---|
-| `nemefisto://import/{data}` | Auto-detect: URL подписки или одиночная ссылка |
-| `nemefisto://add/{url}` | Добавить подписку напрямую |
-| `nemefisto://onadd/{url}` | Сокращённая форма (без автообновления) |
+| `kwik://import/{data}` | Auto-detect: URL подписки или одиночная ссылка |
+| `kwik://add/{url}` | Добавить подписку напрямую |
+| `kwik://onadd/{url}` | Сокращённая форма (без автообновления) |
 
 #### Маршрутизация
 | Команда | Действие |
 |---|---|
-| `nemefisto://routing/add/{base64}` | Добавить routing-профиль |
-| `nemefisto://routing/onadd/{base64}` | Добавить и сразу активировать |
-| `nemefisto://routing/onadd/{url}` | Скачать одноразово (без автообновления) |
-| `nemefisto://autorouting/add/{url}` | Скачать с автообновлением (не активирует) |
-| `nemefisto://autorouting/onadd/{url}` | Скачать, активировать, включить автообновление |
+| `kwik://routing/add/{base64}` | Добавить routing-профиль |
+| `kwik://routing/onadd/{base64}` | Добавить и сразу активировать |
+| `kwik://routing/onadd/{url}` | Скачать одноразово (без автообновления) |
+| `kwik://autorouting/add/{url}` | Скачать с автообновлением (не активирует) |
+| `kwik://autorouting/onadd/{url}` | Скачать, активировать, включить автообновление |
 
 **Query-параметр `?data={base64}`** поддерживается как альтернатива
 path-сегменту. **GitHub-конвертация**: `https://github.com/.../blob/main/...`
@@ -549,10 +549,10 @@ path-сегменту. **GitHub-конвертация**: `https://github.com/..
 Search-input + чипы протоколов. Фильтрация на клиенте.
 
 ### 12.D — Backup/restore настроек через deep-link
-- `nemefisto://export` — file-save диалог, JSON с settings + URL
+- `kwik://export` — file-save диалог, JSON с settings + URL
   подписки + appRules (без кеша серверов и HWID).
-- `nemefisto://import-from-url/{url}` — скачать JSON по ссылке.
-- `nemefisto://import/{base64}` — импорт из inline base64.
+- `kwik://import-from-url/{url}` — скачать JSON по ссылке.
+- `kwik://import/{base64}` — импорт из inline base64.
 - Перед применением — модалка с превью изменений.
 - Whitelist полей: тема, фон, пресет, button-style, autoRefresh*,
   refresh/ping/connectOnOpen, sort, allowLan, anti-DPI группы,
@@ -591,7 +591,7 @@ ServiceFailureActions. + live-toggle через `kill_switch_apply`.
 
 ### 13.E — История сессий
 Локальный лог connect/disconnect: timestamp, сервер, режим, длительность,
-причина. SQLite `%LOCALAPPDATA%\NemefistoVPN\history.db` (через `rusqlite`).
+причина. SQLite `%LOCALAPPDATA%\KwikVPN\history.db` (через `rusqlite`).
 UI: вкладка «история» в Settings.
 
 ### 13.F — Speed-test встроенный
@@ -622,7 +622,7 @@ Crate `windows-rs`, `UserConsentVerifier`.
 
 ### 13.L — Mihomo built-in TUN-mode (готово)
 Mihomo сам поднимает TUN через WinTUN (gVisor stack), не нужен отдельный
-tun2socks. SYSTEM-spawn через helper (`nemefisto_helper/mihomo.rs`).
+tun2socks. SYSTEM-spawn через helper (`kwik_helper/mihomo.rs`).
 
 ### 13.M — SSID-based auto-mode (готово)
 Trusted Wi-Fi networks через `netsh wlan show interfaces` (с кириллицей).
@@ -674,7 +674,7 @@ signing key). installMode: passive.
 `docs/RELEASE.md`, приватный ключ в HSM для EV.
 
 ### 14.C — Crash dump + диагностика
-`std::panic::set_hook` → stacktrace в `%LOCALAPPDATA%\NemefistoVPN\crashes\`.
+`std::panic::set_hook` → stacktrace в `%LOCALAPPDATA%\KwikVPN\crashes\`.
 `tracing-rolling-file`. Опционально minidump через `minidump-writer`.
 Без отправки на сервер.
 

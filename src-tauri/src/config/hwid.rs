@@ -4,7 +4,7 @@
 //! 1. Windows MachineGuid из `HKLM\SOFTWARE\Microsoft\Cryptography` —
 //!    детерминированный для конкретной установки Windows, переустановка
 //!    приложения его не меняет.
-//! 2. Кешированный UUID v4 из %LOCALAPPDATA%\NemefistoVPN\hwid.txt.
+//! 2. Кешированный UUID v4 из %LOCALAPPDATA%\KwikVPN\hwid.txt.
 //! 3. Свежесгенерированный UUID v4 (последний шанс).
 
 use std::fs;
@@ -19,7 +19,7 @@ pub struct HwidState(pub String);
 fn hwid_path() -> Result<PathBuf> {
     let base = std::env::var("LOCALAPPDATA")
         .context("переменная LOCALAPPDATA не установлена")?;
-    Ok(PathBuf::from(base).join("NemefistoVPN").join("hwid.txt"))
+    Ok(PathBuf::from(base).join("KwikVPN").join("hwid.txt"))
 }
 
 /// Читает Windows MachineGuid из реестра. Для одной и той же установки

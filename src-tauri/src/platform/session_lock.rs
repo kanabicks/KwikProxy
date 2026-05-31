@@ -1,6 +1,6 @@
 //! Lockfile для детекции краха предыдущей сессии.
 //!
-//! При старте main app пишем `%LOCALAPPDATA%\NemefistoVPN\session.lock` с
+//! При старте main app пишем `%LOCALAPPDATA%\KwikVPN\session.lock` с
 //! текущим PID. При **clean exit** (через WindowEvent::Destroyed) удаляем
 //! файл. Если на старте видим существующий lockfile — проверяем жив ли тот
 //! PID:
@@ -15,7 +15,7 @@
 
 use std::path::PathBuf;
 
-const LOCK_DIR: &str = "NemefistoVPN";
+const LOCK_DIR: &str = "KwikVPN";
 const LOCK_FILE: &str = "session.lock";
 /// Имя нашего основного exe — используем для отличия «наш живой PID»
 /// от «другой процесс с тем же PID» (после reboot/wrap-around).

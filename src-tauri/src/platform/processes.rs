@@ -55,7 +55,7 @@ pub fn detect_competing_vpns() -> Vec<String> {
     ];
 
     // Самоисключение — наш собственный exe не считаем конкурентом.
-    const OUR_EXES: &[&str] = &["vpn-client", "nemefisto-helper", "xray", "mihomo", "tun2socks"];
+    const OUR_EXES: &[&str] = &["vpn-client", "kwik-helper", "xray", "mihomo", "tun2socks"];
 
     unsafe {
         let mut pids = vec![0u32; 4096];
@@ -149,7 +149,7 @@ pub fn list_processes() -> Vec<ProcessEntry> {
     // нет смысла маршрутизировать поштучно.
     const SKIP: &[&str] = &[
         "vpn-client.exe",
-        "nemefisto-helper.exe",
+        "kwik-helper.exe",
         "mihomo.exe",
         "xray.exe",
         "tun2socks.exe",

@@ -137,7 +137,7 @@ export type Settings = {
    * Любое другое значение переопределяет всё разом.
    */
   preset: Preset;
-  /** Override-флаги для server-driven UX (8.C, X-Nemefisto-*). Если
+  /** Override-флаги для server-driven UX (8.C, X-Kwik-*). Если
    *  false — соответствующее значение из заголовка подписки имеет
    *  приоритет над юзер-настройкой. Сбрасываются через reset(). */
   themeTouched: boolean;
@@ -182,7 +182,7 @@ export type Settings = {
   /** Маскировка имени TUN-адаптера (этап 12.E). Если on — каждое
    *  подключение в TUN-режиме создаёт адаптер с нейтральным именем
    *  (wlan99 / Local Area Connection N / Ethernet N) вместо
-   *  `nemefisto-<pid>`. Защита от детекта VPN приложениями типа
+   *  `kwik-<pid>`. Защита от детекта VPN приложениями типа
    *  МАХ/ВК/Госуслуг по `GetAdaptersAddresses`. */
   tunMasking: boolean;
 
@@ -281,7 +281,7 @@ export type Settings = {
   /** Активный VPN-движок (этап 8.B). См. тип `Engine` выше. */
   engine: Engine;
   /** Override-флаг для server-driven UX. Если false — заголовок
-   *  `X-Nemefisto-Engine` подписки имеет приоритет над юзер-выбором. */
+   *  `X-Kwik-Engine` подписки имеет приоритет над юзер-выбором. */
   engineTouched: boolean;
 
   /** Touched-флаг для userAgent. Если false — `effectiveUserAgent`
@@ -340,7 +340,7 @@ export type Settings = {
 
   /** Предпочитаемая нода в proxy-группах mihomo (8.F).
    *  Запоминается между сессиями: пользователь до connect выбрал
-   *  «Latvia» в группе `→ Nemefisto VPN` — после connect мы
+   *  «Latvia» в группе `→ Kwik VPN` — после connect мы
    *  автоматически переключаем эту группу на Latvia через external-
    *  controller. Записи скапливаются по разным группам — у каждой
    *  своя предпочитаемая нода. `null` значение в map не используется
@@ -352,7 +352,7 @@ export type Settings = {
   preferredMihomoNodes: Record<string, string>;
 
   /** 14.A: авто-проверка обновлений приложения. Если on — при старте
-   *  Nemefisto спрашивает GitHub Releases manifest (`latest.json`).
+   *  Kwik спрашивает GitHub Releases manifest (`latest.json`).
    *  Если новая версия — non-modal toast «доступна v X.Y.Z». Юзер
    *  кликает «обновить» — скачиваем + ставим NSIS passive-install,
    *  app сама перезапускается. Default on. */
@@ -475,7 +475,7 @@ const DEFAULTS: Settings = {
   nativeNotifications: true,
 };
 
-const KEY = "nemefisto.settings.v1";
+const KEY = "kwik.settings.v1";
 
 const load = (): Settings => {
   try {

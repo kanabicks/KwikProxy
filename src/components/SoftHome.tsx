@@ -200,7 +200,7 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
     const leftGb = Math.max(0, (meta.total - meta.used) / 1024 ** 3);
     metaTop = `${leftGb.toFixed(1)} ГБ`;
   }
-  const subName = activeSub?.meta?.title?.trim() || meta?.title?.trim() || "Nemefisto VPN";
+  const subName = activeSub?.meta?.title?.trim() || meta?.title?.trim() || "Kwik VPN";
   const word = isBusy ? "…" : isRunning ? "Включён" : "Выключен";
 
   if (servers.length === 0) {

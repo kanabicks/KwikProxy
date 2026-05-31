@@ -1,3 +1,7 @@
+// Ребрендинг 0.7.0: миграция localStorage `nemefisto.*` → `kwik.*`.
+// ДОЛЖЕН идти первым импортом — раньше stores/i18n, которые читают
+// localStorage синхронно при импорте своего модуля.
+import "./lib/migrateLegacyStorage";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
