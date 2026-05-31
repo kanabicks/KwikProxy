@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { showToast } from "../stores/toastStore";
+import { SoftSelect } from "./SoftSelect";
 
 /**
  * 11.G — UI вкладка «маршрутизация» в Settings.
@@ -443,24 +444,18 @@ export function RoutingProfilesPanel() {
             }}
           >
             {t("routingProfiles.intervalLabel")}
-            <select
-              value={addInterval}
-              onChange={(e) => setAddInterval(Number(e.target.value))}
-              style={{
-                background: "var(--bg-glass)",
-                border: "1px solid var(--line)",
-                borderRadius: 6,
-                color: "var(--fg)",
-                padding: "3px 6px",
-                fontSize: 12,
-              }}
-            >
-              <option value={12}>{t("routingProfiles.intervalOptions.12h")}</option>
-              <option value={24}>{t("routingProfiles.intervalOptions.24h")}</option>
-              <option value={72}>{t("routingProfiles.intervalOptions.3d")}</option>
-              <option value={168}>{t("routingProfiles.intervalOptions.7d")}</option>
-              <option value={8760}>{t("routingProfiles.intervalOptions.never")}</option>
-            </select>
+            <SoftSelect
+              ariaLabel={t("routingProfiles.intervalLabel")}
+              value={String(addInterval)}
+              onChange={(v) => setAddInterval(Number(v))}
+              options={[
+                { value: "12", label: t("routingProfiles.intervalOptions.12h") },
+                { value: "24", label: t("routingProfiles.intervalOptions.24h") },
+                { value: "72", label: t("routingProfiles.intervalOptions.3d") },
+                { value: "168", label: t("routingProfiles.intervalOptions.7d") },
+                { value: "8760", label: t("routingProfiles.intervalOptions.never") },
+              ]}
+            />
             <span style={{ color: "var(--fg-dim)", fontSize: 11 }}>
               {t("routingProfiles.intervalUrlOnly")}
             </span>

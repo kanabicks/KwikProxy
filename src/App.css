@@ -2793,6 +2793,113 @@ input, textarea { font: inherit; cursor: text; }
   border-color: var(--s-lime, #d8ec5a);
 }
 
+/* ── SoftSelect: кастомный селект в soft-стиле (взамен нативного) ─────── */
+.soft-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 150px;
+  padding: 8px 11px 8px 13px;
+  font-size: 13px;
+  font-family: var(--display, "Inter Tight", system-ui, sans-serif);
+  font-weight: 600;
+  color: var(--s-ink, #16170f);
+  background: #faf9f5;
+  border: 1px solid #e7e6df;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.soft-select:hover:not(:disabled) {
+  border-color: #d6d5ca;
+}
+.soft-select.is-open {
+  border-color: var(--s-lime, #d8ec5a);
+  background: #ffffff;
+}
+.soft-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.soft-select-value {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.soft-select-chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--s-sub, #93938c);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+.soft-select.is-open .soft-select-chevron {
+  transform: rotate(180deg);
+}
+
+@keyframes soft-select-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.soft-select-menu {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px;
+  background: var(--s-sheet, #ffffff);
+  border: 1px solid #e7e6df;
+  border-radius: 14px;
+  box-shadow: 0 16px 44px rgba(20, 22, 16, 0.22);
+  overflow-y: auto;
+  animation: soft-select-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.soft-select-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 11px;
+  font-size: 13px;
+  font-family: var(--display, "Inter Tight", system-ui, sans-serif);
+  font-weight: 500;
+  text-align: left;
+  color: var(--s-ink, #16170f);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.soft-select-opt:hover {
+  background: var(--s-lime-tint, #f6fae6);
+}
+.soft-select-opt.is-selected {
+  font-weight: 700;
+}
+.soft-select-opt-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.soft-select-check {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #6f8f1a;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* ── Routing table viewer (Settings → диагностика) ───────────────────── */
 .routing-table-controls {
   display: flex;

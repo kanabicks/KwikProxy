@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { RoutingProfilesPanel } from "./RoutingProfilesPanel";
+import { SoftSelect } from "./SoftSelect";
 import { useVpnStore } from "../stores/vpnStore";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
 import { useRuntimeStore } from "../stores/runtimeStore";
@@ -838,15 +839,16 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                       {t("settings.appearance.theme.hint")}
                     </div>
                   </div>
-                  <select
-                    className="select-field"
+                  <SoftSelect
+                    ariaLabel={t("settings.appearance.theme.label")}
                     value={s.theme}
-                    onChange={(e) => s.set("theme", e.target.value as Theme)}
-                  >
-                    <option value="system">{t("settings.appearance.theme.options.system")}</option>
-                    <option value="dark">{t("settings.appearance.theme.options.dark")}</option>
-                    <option value="light">{t("settings.appearance.theme.options.light")}</option>
-                  </select>
+                    onChange={(v) => s.set("theme", v as Theme)}
+                    options={[
+                      { value: "system", label: t("settings.appearance.theme.options.system") },
+                      { value: "dark", label: t("settings.appearance.theme.options.dark") },
+                      { value: "light", label: t("settings.appearance.theme.options.light") },
+                    ]}
+                  />
                 </div>
               </section>
 
@@ -1272,15 +1274,16 @@ function AppRulesSection() {
           placeholder={"telegram.exe  ·  C:\\App\\app.exe"}
           onKeyDown={(e) => e.key === "Enter" && addRule()}
         />
-        <select
-          className="select-field"
+        <SoftSelect
+          ariaLabel="action"
           value={draftAction}
-          onChange={(e) => setDraftAction(e.target.value as AppRuleAction)}
-        >
-          <option value="direct">direct</option>
-          <option value="proxy">proxy</option>
-          <option value="block">block</option>
-        </select>
+          onChange={(v) => setDraftAction(v as AppRuleAction)}
+          options={[
+            { value: "direct", label: "direct" },
+            { value: "proxy", label: "proxy" },
+            { value: "block", label: "block" },
+          ]}
+        />
         <input
           type="text"
           className="input"
@@ -1687,17 +1690,16 @@ function LanguageSection() {
             {t("settings.language.hint")}
           </div>
         </div>
-        <select
-          className="select-field"
+        <SoftSelect
+          ariaLabel={t("settings.language.label")}
           value={language}
-          onChange={(e) =>
-            onChange(e.target.value as "auto" | "ru" | "en")
-          }
-        >
-          <option value="auto">{t("settings.language.auto")}</option>
-          <option value="ru">Русский</option>
-          <option value="en">English</option>
-        </select>
+          onChange={(v) => onChange(v as "auto" | "ru" | "en")}
+          options={[
+            { value: "auto", label: t("settings.language.auto") },
+            { value: "ru", label: "Русский" },
+            { value: "en", label: "English" },
+          ]}
+        />
       </div>
     </section>
   );
@@ -2539,19 +2541,17 @@ function TrustedWifiBlock() {
             {t("settings.trustedWifi.action.hint")}
           </div>
         </div>
-        <select
-          className="select-field"
+        <SoftSelect
+          ariaLabel={t("settings.trustedWifi.action.label")}
           value={trustedSsidAction}
-          onChange={(e) =>
-            setOpt(
-              "trustedSsidAction",
-              e.target.value as "ignore" | "disconnect"
-            )
+          onChange={(v) =>
+            setOpt("trustedSsidAction", v as "ignore" | "disconnect")
           }
-        >
-          <option value="ignore">{t("settings.trustedWifi.action.ignore")}</option>
-          <option value="disconnect">{t("settings.trustedWifi.action.disconnect")}</option>
-        </select>
+          options={[
+            { value: "ignore", label: t("settings.trustedWifi.action.ignore") },
+            { value: "disconnect", label: t("settings.trustedWifi.action.disconnect") },
+          ]}
+        />
       </div>
 
       <div className="settings-row">
