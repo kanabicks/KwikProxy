@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { useVpnStore, findSelectedIndexByName } from "../stores/vpnStore";
@@ -11,6 +11,10 @@ import { showToast } from "../stores/toastStore";
 import { Welcome } from "./Welcome";
 import { ModeSegment } from "./ModeSegment";
 import { MihomoGroupsInline } from "./MihomoGroupsInline";
+import { FlagIcon } from "../lib/flags";
+import { ConnectionDashboard } from "./ConnectionDashboard";
+import { AnnounceBanner } from "./AnnounceBanner";
+import { SubStrip, NodePingOverview, type PingNode } from "./HomeExtras";
 import {
   PowerIcon,
   SettingsIcon,
@@ -81,6 +85,19 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
   // MihomoGroupsInline (страновые карточки), а не показываем одинокую строку
   // «Профиль Mihomo».
   const isMihomoProfile = servers.some((s) => s.protocol === "mihomo-profile");
+
+  // Данные для обзора задержек (правая панель). Для mihomo-профиля —
+  // ноды профиля + pre-connect TCP-пинги; для URI — серверы + pings.
+  const pingNodes: PingNode[] = useMemo(() => {
+    if (isMihomoProfile) {
+      const profile = servers.find((s) => s.protocol === "mihomo-profile");
+      return nodeListOf(profile).map((n) => ({
+        name: n.name,
+        ping: mihomoPings[n.name] ?? null,
+      }));
+    }
+    return servers.map((s, i) => ({ name: s.name, ping: pings[i] ?? null }));
+  }, [isMihomoProfile, servers, pings, mihomoPings]);
 
   // Пинг для mihomo-профиля.
   //  • ДО connect: TCP-пинг адресов нод (server:port из raw.proxies) через
@@ -257,9 +274,15 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
             disabled={isRunning || isBusy}
           />
         )}
+
+        {/* Дашборд активного соединения — заполняет левую панель когда
+            подключён (скорость, график, время сессии, exit-IP). */}
+        <ConnectionDashboard />
       </aside>
 
       <main className="soft-sheet">
+        {/* Объявление провайдера (announce-заголовок подписки), если есть. */}
+        <AnnounceBanner />
         <div className="soft-sheet-head">
           <span className="soft-sheet-title">
             {isMihomoProfile ? "Локации" : "Серверы"}
@@ -293,9 +316,15 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
           </button>
         </div>
 
+        {/* Сводка подписки — компактной полосой под заголовком «Локации»,
+            органично в зоне локаций (а не отдельной плашкой внизу). */}
+        <SubStrip />
+
         {isMihomoProfile ? (
           <div className="soft-rows soft-mihomo">
             <MihomoGroupsInline staticPings={mihomoPings} />
+            {/* Обзор задержек — внутри скролла, после сетки нод. */}
+            <NodePingOverview nodes={pingNodes} />
           </div>
         ) : (
           <div className="soft-rows">
@@ -303,7 +332,7 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
               const s = servers[i];
               const ping = pings[i];
               const sel = i === selectedIndex;
-              const { flag, label } = splitFlag(s.name);
+              const { label } = splitFlag(s.name);
               return (
                 <button
                   key={`${s.subscriptionId ?? "x"}-${s.name}-${i}`}
@@ -313,7 +342,7 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
                   onClick={() => selectServer(i)}
                 >
                   <span className="soft-row-check" aria-hidden />
-                  {flag && <span className="soft-row-flag">{flag}</span>}
+                  <FlagIcon name={s.name} className="soft-row-flag" placeholder />
                   <span className="soft-row-title">{label}</span>
                   <span className={`soft-row-ping${pingClass(ping)}`}>
                     {ping != null ? `${ping} ms` : "—"}
@@ -321,6 +350,7 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
                 </button>
               );
             })}
+            <NodePingOverview nodes={pingNodes} />
           </div>
         )}
       </main>

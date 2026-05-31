@@ -100,6 +100,14 @@ pub fn build(
     socks_auth: Option<(&str, &str)>,
     app_rules: &[AppRule],
     routing_profile: Option<&super::routing_profile::RoutingProfile>,
+    // 13.L + TUN-для-URI: если `true`, добавляем `tun:` секцию — mihomo
+    // сам поднимает WinTUN-адаптер для URI/base64-серверов (раньше TUN
+    // работал только для full mihomo-profile подписок).
+    use_builtin_tun: bool,
+    // 12.E маскировка имени TUN-адаптера. `Some(name)` → `tun.device`
+    // ставится в замаскированное имя (`wlan99` / `Ethernet 7` и т.п.);
+    // `None` → mihomo default (kill-switch детектит по Description/IP).
+    tun_device: Option<&str>,
 ) -> Result<MihomoConfig> {
     let proxy = proxy_for_entry(entry)
         .with_context(|| format!("не удалось собрать mihomo-proxy для «{}»", entry.name))?;
@@ -202,10 +210,66 @@ pub fn build(
     rules.push(Value::String(format!("MATCH,{default_action}")));
     root.insert("rules".into(), Value::Sequence(rules));
 
+    // ── tun (13.L + TUN-для-URI) ──────────────────────────────────────
+    // Для URI/base64-серверов раньше TUN был недоступен (только proxy).
+    // Теперь, если запрошен built-in TUN, синтезируем минимально-рабочую
+    // секцию: mihomo сам создаёт WinTUN, ставит маршруты, hijack'ает DNS.
+    if use_builtin_tun {
+        root.insert("tun".into(), Value::Mapping(builtin_tun_mapping(tun_device)));
+    }
+
     let yaml = serde_yaml::to_string(&Value::Mapping(root))
         .context("сериализация mihomo YAML")?;
 
     Ok(MihomoConfig { yaml, mixed_port })
+}
+
+/// 13.L + 12.E: собрать `tun:` секцию для built-in TUN-режима mihomo.
+///
+/// `device` — кастомное имя WinTUN-адаптера (12.E маскировка). `None` →
+/// mihomo default (`Meta`); kill-switch тогда детектит адаптер по
+/// Description/IP, а не по alias.
+///
+/// `dns-hijack: any:53` обязателен в TUN-режиме — без него DNS-запросы
+/// приложений уходят мимо нашего DNS и могут утечь (DNS leak). С ним
+/// mihomo перехватывает весь :53-трафик на TUN-интерфейсе.
+fn builtin_tun_mapping(device: Option<&str>) -> Mapping {
+    let mut tun = Mapping::new();
+    tun.insert("enable".into(), true.into());
+    tun.insert("stack".into(), "mixed".into());
+    tun.insert("auto-route".into(), true.into());
+    tun.insert("auto-detect-interface".into(), true.into());
+    tun.insert(
+        "dns-hijack".into(),
+        Value::Sequence(vec!["any:53".into()]),
+    );
+    if let Some(dev) = device {
+        tun.insert("device".into(), dev.into());
+    }
+    tun
+}
+
+/// 12.E: сгенерировать замаскированное имя TUN-адаптера.
+///
+/// Имя выбирается псевдослучайно из набора, имитирующего стандартные
+/// сетевые адаптеры Windows — чтобы сторонний процесс при перечислении
+/// интерфейсов не распознал VPN-туннель по характерному имени
+/// (`Mihomo` / `nemefisto-*`). Угроза: https://habr.com/ru/news/1020902/.
+///
+/// Наборы: `wlan{99..198}`, `Local Area Connection {2..16}`,
+/// `Ethernet {2..16}`. Энтропия — наносекунды (как в `random_high_port`),
+/// криптостойкость не требуется.
+pub fn masked_tun_name() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.subsec_nanos() as u64)
+        .unwrap_or(0);
+    match nanos % 3 {
+        0 => format!("wlan{}", 99 + (nanos / 3) % 100),
+        1 => format!("Local Area Connection {}", 2 + (nanos / 3) % 15),
+        _ => format!("Ethernet {}", 2 + (nanos / 3) % 15),
+    }
 }
 
 /// 11.F: преобразовать правила routing-профиля в Mihomo-формат строк.
@@ -754,6 +818,10 @@ pub struct FullYamlPatch<'a> {
     /// (создание WinTUN-адаптера). Для этого запускаем mihomo через
     /// helper-сервис (он SYSTEM), а не напрямую как Tauri sidecar.
     pub use_builtin_tun: bool,
+    /// 12.E маскировка имени TUN-адаптера. `Some(name)` → принудительно
+    /// ставим `tun.device` в замаскированное имя (перезаписывая
+    /// провайдерское). `None` → имя из подписки / mihomo default.
+    pub tun_device: Option<&'a str>,
 }
 
 /// 8.F: применяет patch к полному mihomo-YAML из подписки и возвращает
@@ -865,18 +933,21 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
             // auto-route: пусть mihomo сам ставит half-routes/0.0.0.0
             tun.entry(Value::String("auto-route".into()))
                 .or_insert_with(|| true.into());
+            // 12.E: перезаписываем имя адаптера на замаскированное, если
+            // включена маскировка. Иначе сохраняем провайдерское / default.
+            if let Some(dev) = patch.tun_device {
+                tun.insert("device".into(), dev.into());
+            }
         } else {
             tun.insert("enable".into(), false.into());
         }
     } else if patch.use_builtin_tun {
-        // Подписка не имеет `tun:` секции — собираем минимально-
-        // рабочую с нашими дефолтами.
-        let mut tun_map = Mapping::new();
-        tun_map.insert("enable".into(), true.into());
-        tun_map.insert("stack".into(), "mixed".into());
-        tun_map.insert("auto-route".into(), true.into());
-        tun_map.insert("auto-detect-interface".into(), true.into());
-        root.insert("tun".into(), Value::Mapping(tun_map));
+        // Подписка не имеет `tun:` секции — собираем минимально-рабочую
+        // через общий helper (с dns-hijack + опциональным 12.E device).
+        root.insert(
+            "tun".into(),
+            Value::Mapping(builtin_tun_mapping(patch.tun_device)),
+        );
     }
 
     // ── ipv6 — оставляем как у провайдера ─────────────────────────────
@@ -973,6 +1044,7 @@ mod patch_tests {
             app_rules: &[],
             anti_dpi: None,
             use_builtin_tun: false,
+            tun_device: None,
         }
     }
 
@@ -1240,5 +1312,51 @@ proxy-groups:
         assert_eq!(tun["enable"], Value::Bool(true));
         assert_eq!(tun["auto-detect-interface"], Value::Bool(true));
         assert_eq!(tun["auto-route"], Value::Bool(true));
+        // Синтезированный tun должен hijack'ить DNS (защита от leak).
+        assert!(tun.contains_key("dns-hijack"));
+        // Без маскировки device не задаётся (mihomo default).
+        assert!(!tun.contains_key("device"));
+    }
+
+    /// 12.E: синтезированный tun-блок берёт замаскированное имя адаптера
+    /// из `tun_device`, перезаписывая (тут — задавая) `tun.device`.
+    #[test]
+    fn patch_synthesized_tun_uses_masked_device() {
+        let yaml = "proxies: []\n";
+        let mut p = base_patch();
+        p.use_builtin_tun = true;
+        p.tun_device = Some("wlan137");
+        let cfg = patch_full_yaml(yaml, &p).expect("patch ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let tun = v.as_mapping().unwrap()["tun"].as_mapping().unwrap();
+        assert_eq!(tun["device"].as_str(), Some("wlan137"));
+    }
+
+    /// 12.E: для подписки с уже существующей tun-секцией маскировка
+    /// перезаписывает провайдерский `device`.
+    #[test]
+    fn patch_existing_tun_overrides_device_when_masking() {
+        let yaml = "proxies: []\ntun:\n  enable: false\n  device: Meta\n";
+        let mut p = base_patch();
+        p.use_builtin_tun = true;
+        p.tun_device = Some("Ethernet 9");
+        let cfg = patch_full_yaml(yaml, &p).expect("patch ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let tun = v.as_mapping().unwrap()["tun"].as_mapping().unwrap();
+        assert_eq!(tun["device"].as_str(), Some("Ethernet 9"));
+        assert_eq!(tun["enable"], Value::Bool(true));
+    }
+
+    /// 12.E: имя адаптера из одного из ожидаемых наборов и непустое.
+    #[test]
+    fn masked_tun_name_is_plausible() {
+        let n = masked_tun_name();
+        assert!(!n.is_empty());
+        assert!(
+            n.starts_with("wlan")
+                || n.starts_with("Local Area Connection ")
+                || n.starts_with("Ethernet "),
+            "неожиданное имя: {n}"
+        );
     }
 }

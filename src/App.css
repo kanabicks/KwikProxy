@@ -1858,6 +1858,7 @@ input, textarea { font: inherit; cursor: text; }
 /* ── Mode segment (pill-style как iOS segmented) ──────────────────────── */
 .mode-seg {
   display: flex;
+  position: relative; /* контейнер-якорь для тултипов «i» */
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   background: var(--bg-glass);
@@ -1884,6 +1885,65 @@ input, textarea { font: inherit; cursor: text; }
   color: var(--bg);
 }
 .mode-seg button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Подсказка «i» на режимах (proxy / tun) ───────────────────────────
+   Кружок «i» рядом с названием режима. Сам тултип рендерится через портал
+   в body (.info-tip) — не обрезается overflow'ами и листом локаций. */
+.mode-seg-label { vertical-align: middle; }
+.mode-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-family: var(--body, system-ui);
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal; /* без курсива — иначе «i» выглядела кривой */
+  line-height: 1;
+  opacity: 0.42;
+  transition: opacity 0.15s;
+  cursor: help;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.mode-info:hover,
+.mode-info:focus-visible { opacity: 0.9; outline: none; }
+
+/* Портальный тултип (position: fixed, координаты считает InfoTip.tsx). */
+.info-tip {
+  position: fixed;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #2a2b22;
+  font-family: var(--body, system-ui);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  box-shadow:
+    0 12px 34px -8px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.22);
+  z-index: 9999;
+  pointer-events: none;
+  animation: info-tip-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* placement задаёт сдвиг по вертикали: top — коробка над точкой, bottom — под. */
+.info-tip-top { transform: translate(-50%, -100%); }
+.info-tip-bottom { transform: translate(-50%, 0); }
+@keyframes info-tip-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .info-tip { animation: none; }
+}
 
 /* ── Server drawer (плавное раскрытие через grid-rows) ────────────────
    Открытие: grid-rows 0fr → 1fr + каскадное появление строк.
@@ -2901,10 +2961,46 @@ input, textarea { font: inherit; cursor: text; }
   font-size: 13px;
   letter-spacing: -0.01em;
   text-transform: lowercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   padding-right: 16px;  /* место под чекмарк в углу */
+}
+.flag-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── SVG-флаги (flag-icons) — общие стили ──────────────────────────────
+   Заменяют regional-indicator emoji, которые не рендерятся в WebView2.
+   `.fi.fis` из flag-icons даёт квадратный SVG-фон; мы лишь задаём размер,
+   скругление и выравнивание под конкретное место. */
+.flag-svg {
+  flex: 0 0 auto;
+  border-radius: 3px;
+  vertical-align: -0.12em;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+/* Placeholder-кружок когда страна не распознана — держит выравнивание. */
+.flag-dot {
+  flex: 0 0 auto;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--line, #d8d8d2);
+  opacity: 0.5;
+}
+.mihomo-card-flag { width: 16px; height: 16px; }
+.mihomo-card-name .flag-dot { width: 8px; height: 8px; margin: 0 4px; }
+.mihomo-group-flag { width: 15px; height: 15px; margin-right: 7px; }
+.mihomo-active-flag { width: 13px; height: 13px; margin-right: 4px; }
+.soft-row-flag.flag-dot { width: 8px; height: 8px; }
+.mihomo-group-title {
+  display: flex;
+  align-items: center;
 }
 .mihomo-card-meta {
   display: flex;
@@ -3775,6 +3871,16 @@ html[data-look="swiss"] body {
      торчит квадратом из закруглённого угла. */
   border-radius: 14px 14px 0 0;
   overflow: hidden;
+  /* Плавный maximize/restore — согласовано с .soft (анимируем смещение
+     внутрь на --maxpad и скругление). */
+  transition:
+    top 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    right 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .titlebar { transition: none; }
 }
 .win-controls {
   display: flex;

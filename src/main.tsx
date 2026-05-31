@@ -36,10 +36,14 @@ import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource/jetbrains-mono/cyrillic-400.css";
 import "@fontsource/jetbrains-mono/cyrillic-500.css";
 
-// Noto Color Emoji — для флагов стран (regional indicator emoji).
-// Без него на Win10 родной Segoe UI Emoji не рендерит флаги, и в именах
-// серверов 🇩🇪 / 🇺🇸 / 🇷🇺 показываются как пустые квадраты.
+// Noto Color Emoji — fallback для прочих эмодзи в тексте.
 import "@fontsource/noto-color-emoji/400.css";
+
+// SVG-флаги стран (flag-icons). Решают долг «regional-indicator emoji не
+// рендерятся в WebView2»: вместо эмодзи-флагов в именах нод/локаций рисуем
+// SVG через `<FlagIcon>` (см. lib/flags.tsx) — это CSS background-image с
+// SVG, который WebView2 показывает корректно на любом Windows.
+import "flag-icons/css/flag-icons.min.css";
 
 // 13.O: один HTML-entrypoint обслуживает оба окна. Главное окно
 // (label "main") получает полный <App />, плавающее (label "floating") —

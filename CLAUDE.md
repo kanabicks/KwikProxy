@@ -149,22 +149,50 @@ routing/balancer, который Mihomo не понимает) — `connect()` �
 Дизайн-система в `src/soft.css` (`data-look="soft"`), динамическая компенсация
 maximize через Rust `--maxpad`, анимации открытия/закрытия sheets и Settings.
 
-**0.5.0 (текущий)**: **Mihomo-only** (sing-box выпилен). Сетка нод
+**0.5.0**: **Mihomo-only** (sing-box выпилен). Сетка нод
 mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом до connect
 (TCP + ICMP fallback через `platform/icmp.rs`) и live-latency после.
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
+**0.5.2 (текущий) — закрытие хвостов Mihomo-only + SVG-флаги**:
+- **12.E маскировка TUN-имени для Mihomo** — `tun.device` ставится в
+  замаскированное имя (`wlan99` / `Ethernet 7` / `Local Area Connection N`)
+  через `mihomo_config::masked_tun_name`; работает и в `build` (URI), и в
+  `patch_full_yaml` (full-profile). Kill-switch детект адаптера падает на
+  Description/IP когда alias замаскирован.
+- **TUN для URI/base64-подписок** — `mihomo_config::build` синтезирует
+  `tun:` секцию (built-in TUN) с `dns-hijack`; bail «только mihomo-profile»
+  снят, `builtin_tun = tun_mode`. PROCESS-NAME app-rules теперь точны и для
+  URI (mihomo владеет адаптером, видит реальный PID) — устаревшее
+  предупреждение в Settings убрано.
+- **SVG-флаги** (`src/lib/flags.tsx` + пакет `flag-icons`) — детект страны
+  по regional-indicator паре / названию / ISO-токену (только отдельный
+  2-буквенный токен, иначе ловило «fi» в «Nemefisto») → SVG-флаг
+  (`<FlagIcon>`/`<FlagByCode>`). Решает «emoji-флаги не рендерятся в
+  WebView2». Встроены в карточки нод, заголовки групп, список серверов.
+- **Дашборд соединения** (`ConnectionDashboard`, левая панель при connect):
+  имя локации, скорости ↑/↓ (13.I), время сессии, трафик, exit-IP+страна.
+  На узком экране — компактная плашка (2 строки), на широком — полный набор
+  графиков (`DashboardCharts`): area-трафик с **бесшовным скроллом**
+  (фикс-окно + компенсирующий сдвиг `<g>`), стабильность пинга
+  (`usePingSamples` через VPN-путь), кольцо квоты, спидометр. Все на SVG,
+  сглаживание Catmull-Rom + EMA (`lib/chartPath.ts`).
+- **Правая панель**: `SubStrip` (трафик/срок/«осталось N ГБ»/поддержка-
+  премиум с валидацией URL) под заголовком «Локации»; `NodePingOverview`
+  (бары задержек с relative-масштабом + стаггер-анимация); `AnnounceBanner`.
+- **UX-полиш**: подсказки «i» на режимах (портальный `InfoTip`, не
+  обрезается), кастомный тонкий скроллбар (soft), плавный maximize/restore
+  (transition inset/radius), анимация появления дашборда (grid 0fr→1fr).
+
 ## Что осталось (значимое)
-- **Редизайн добить**: SVG-флаги (regional-indicator не рендерятся в
-  WebView2), судьба classic/swiss looks, полировка Settings, тест frameless
-  на чистой машине.
+- **Редизайн добить**: судьба classic/swiss looks, полировка Settings, тест
+  frameless на чистой машине.
 - **14.B code signing** ⚠️ — без подписи SmartScreen ругается (релиз-блокер).
 - **14.H** privacy policy + LICENSE (до публичного релиза).
-- **11.A…G** routing-профили + geofiles + autorouting + deep-links (большой
-  блок, не начат).
-- **Mihomo-only хвосты**: вернуть 12.E маскировку TUN-имени для Mihomo;
-  built-in TUN для URI-подписок (сейчас TUN только для full mihomo-profile).
+- **11.A…G** routing-профили + geofiles + autorouting + deep-links — большой
+  блок, частично реализован (`routing_profile.rs`, `RoutingProfilesPanel`,
+  `routing_add_url/static`, geofiles) — проверить полноту/UI.
 - Опционально: 13.C failover, 13.E история, 13.F speed-test, 13.J Windows
   Hello, 13.P слияние подписок (частично), 13.Q auto-grouping, 13.G WFP
   per-app (большой).
@@ -172,11 +200,10 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 ## Долги / известные проблемы
 - ~~TUN 15-сек задержка~~ ✅ закрыто (Mihomo, без warmup'а).
 - ~~XHTTP не поддерживается~~ ✅ закрыто — Mihomo умеет XHTTP нативно.
-- **12.E маскировка TUN-имени** — после выпила sing-box стала no-op
-  (работала только в sing-box-ветке). Вернуть для Mihomo отдельно.
-- **TUN для URI-подписок** недоступен — Mihomo built-in TUN работает только
-  для full `mihomo-profile`. URI/base64-подписки — только proxy-режим.
+- ~~12.E маскировка TUN-имени~~ ✅ закрыто в 0.5.2 (через `tun.device`).
+- ~~TUN для URI-подписок~~ ✅ закрыто в 0.5.2 (синтез `tun:` в `build`).
+- ~~SVG-флаги~~ ✅ закрыто в 0.5.2 (`flag-icons` + `FlagIcon`).
 - **xray-json с кастомным routing/balancer** не подключается (Mihomo не
   понимает формат) — connect даёт понятную ошибку, бейдж «!» в списке.
-- **SVG-флаги**: regional-indicator emoji не рендерятся в WebView2 (даже с
-  Noto Color Emoji) — нужны SVG-флаги.
+- 12.D backup/restore, 14.D IPv6-leak, 14.E crash-recovery, 14.G onboarding —
+  ✅ реализованы (ранее статус в роадмапе был устаревшим).

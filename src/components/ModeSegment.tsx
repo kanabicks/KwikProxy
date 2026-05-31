@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { VpnMode } from "../stores/vpnStore";
+import { InfoTip } from "./InfoTip";
 
 /**
  * Segmented control: переключение режима VPN (proxy / tun).
@@ -25,7 +26,18 @@ export function ModeSegment({
           onClick={() => onChange(m)}
           className={mode === m ? "is-active" : ""}
         >
-          {m === "proxy" ? t("modeSegment.proxy") : t("modeSegment.tun")}
+          <span className="mode-seg-label">
+            {m === "proxy" ? t("modeSegment.proxy") : t("modeSegment.tun")}
+          </span>
+          {/* Подсказка «i» (портальный тултип — не обрезается листом). */}
+          <InfoTip
+            text={
+              m === "proxy"
+                ? t("modeSegment.proxyHint")
+                : t("modeSegment.tunHint")
+            }
+            label={t("modeSegment.infoLabel")}
+          />
         </button>
       ))}
     </div>

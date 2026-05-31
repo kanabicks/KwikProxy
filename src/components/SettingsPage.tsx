@@ -142,11 +142,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
     window.setTimeout(onClose, 240);
   };
 
-  // Mihomo-only архитектура: движок всегда Mihomo, выбор убран из меню.
-  // mihomoActive — константа, на неё опираются UI-гейты ниже (app-rules,
-  // anti-DPI предупреждения).
-  const mihomoActive = true;
-
   // Anti-DPI: эффективное значение DoH-резолва с учётом override из подписки
   // (если юзер не трогал и заголовок прислал значение — берём из подписки).
   // Используется и для тоггла, и для показа под-полей (раньше был desync:
@@ -777,7 +772,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
               </section>
 
               {/* 8.D: per-process правила (Mihomo PROCESS-NAME matcher). */}
-              <AppRulesSection mihomoActive={mihomoActive} />
+              <AppRulesSection />
             </>
           )}
 
@@ -1166,24 +1161,18 @@ function CategoryList({
  * Список правил `<exe-name> → PROXY|DIRECT|BLOCK` + форма добавления.
  *
  * Mihomo нативно умеет PROCESS-NAME matcher (требует
- * `find-process-mode: always` в YAML). Параметр `mihomoActive` всегда
- * true в Mihomo-only архитектуре — оставлен для совместимости сигнатуры.
+ * `find-process-mode: always` в YAML).
  */
-function AppRulesSection({ mihomoActive }: { mihomoActive: boolean }) {
+function AppRulesSection() {
   const { t } = useTranslation();
   const rules = useSettingsStore((s) => s.appRules);
   const set = useSettingsStore((s) => s.set);
-  // 8.D: PROCESS-NAME matcher Mihomo на Windows работает в двух
-  // случаях: (1) proxy-режим — приложение коннектится напрямую к
-  // mixed-inbound Mihomo; (2) TUN-режим с mihomo-profile подпиской
-  // (Mihomo built-in TUN через WinTUN, helper SYSTEM-spawn) — Mihomo
-  // сам владеет адаптером и видит ядерный PID. Для URI-серверов
-  // (vless/vmess/...) в TUN-режиме всё ещё используется tun2proxy
-  // sidecar pipeline — там Mihomo видит PID tun2proxy, не исходного
-  // приложения, matcher не срабатывает.
-  const vpnMode = useVpnStore((s) => s.mode);
-  const tunMode = vpnMode === "tun";
-
+  // 8.D: PROCESS-NAME matcher Mihomo на Windows работает всегда —
+  // и в proxy-режиме (приложение коннектится напрямую к mixed-inbound),
+  // и в TUN-режиме (Mihomo built-in TUN через WinTUN сам владеет
+  // адаптером и видит ядерный PID исходного приложения). Это верно как
+  // для mihomo-profile, так и для URI-серверов (TUN-для-URI) — оба идут
+  // через built-in TUN, tun2proxy-pipeline выпилен.
   const [draftExe, setDraftExe] = useState("");
   const [draftAction, setDraftAction] = useState<AppRuleAction>("direct");
   const [draftComment, setDraftComment] = useState("");
@@ -1218,14 +1207,6 @@ function AppRulesSection({ mihomoActive }: { mihomoActive: boolean }) {
     <section className="settings-section">
       <div className="settings-section-title">{t("settings.appRules.title")}</div>
 
-      {/* Mihomo PROCESS-NAME правила в TUN работают только для
-          mihomo-profile подписок (full clash YAML с built-in TUN). Для
-          URI-серверов Mihomo+TUN правила не применяются. */}
-      {mihomoActive && tunMode && (
-        <div className="hint-warning">
-          {t("settings.appRules.tunWarning")}
-        </div>
-      )}
 
       <div className="settings-row-hint" style={{ marginBottom: 10 }}>
         {t("settings.appRules.intro")}

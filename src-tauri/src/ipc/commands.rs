@@ -194,7 +194,7 @@ fn build_mihomo_preview(entry: &ProxyEntry) -> Result<Option<String>, String> {
     }
     // Превью без user-настроек (anti-DPI / app-rules применяются только
     // при реальном connect через `connect()` команду).
-    let cfg = mihomo_config::build(entry, 30000, "127.0.0.1", None, None, &[], None)
+    let cfg = mihomo_config::build(entry, 30000, "127.0.0.1", None, None, &[], None, false, None)
         .map_err(|e| e.to_string())?;
     Ok(Some(cfg.yaml))
 }
@@ -392,16 +392,10 @@ pub async fn connect(
         ));
     }
 
-    // Mihomo built-in TUN работает только когда подписка отдала full
-    // mihomo-profile (с tun: enable в YAML). Для URI-серверов mihomo
-    // в TUN-режиме — sidecar без TUN-туннеля, не имеет смысла.
-    if mode == "tun" && entry.protocol != "mihomo-profile" {
-        return Err(format!(
-            "сервер «{}» (тип {}): Mihomo+TUN работает только для \
-             mihomo-profile подписок; переключитесь на режим proxy",
-            entry.name, entry.protocol
-        ));
-    }
+    // Mihomo built-in TUN теперь работает и для URI/base64-серверов:
+    // `mihomo_config::build` синтезирует `tun:` секцию (раньше TUN был
+    // только для full mihomo-profile подписок). Ограничения нет —
+    // mihomo сам поднимает WinTUN для любого proxy-конфига.
 
     // 9.H — рандомизация портов inbound. Старт с псевдослучайных значений
     // в диапазоне [30000, 60000) вместо фиксированных 1080/1087, чтобы
@@ -426,14 +420,16 @@ pub async fn connect(
         None
     };
 
-    // Mihomo built-in TUN делает auto_detect_interface сам — отдельный
-    // physic_iface больше не нужен.
-    let _ = tun_mode;
-    // 12.E TUN-name masking: применялся только в sing-box-ветке (TunOptions
-    // с custom interface_name). Mihomo built-in TUN берёт имя адаптера из
-    // mihomo-profile YAML, наш override его не задаёт — параметр принимаем
-    // для совместимости IPC-контракта, но он не влияет на mihomo.
-    let _ = tun_masking;
+    // 12.E TUN-name masking для Mihomo. Когда включено и режим TUN —
+    // генерируем замаскированное имя адаптера (`wlan99` / `Ethernet 7`
+    // и т.п.) и ставим его в `tun.device` собранного конфига. Сторонний
+    // процесс при перечислении интерфейсов не распознает VPN по имени.
+    // В proxy-режиме TUN-адаптера нет — маскировать нечего.
+    let tun_device: Option<String> = if tun_mode && tun_masking.unwrap_or(false) {
+        Some(mihomo_config::masked_tun_name())
+    } else {
+        None
+    };
 
     // Mihomo: YAML с mixed-port; mihomo built-in TUN если подписка пришла
     // как полный mihomo-profile (в URI-режиме TUN запрещён — см. валидацию
@@ -492,10 +488,14 @@ pub async fn connect(
                 app_rules: rules_slice,
                 anti_dpi: anti_dpi.as_ref(),
                 use_builtin_tun,
+                tun_device: tun_device.as_deref(),
             };
             mihomo_config::patch_full_yaml(raw_yaml, &patch)
                 .map_err(|e| format!("патч full-mihomo YAML: {e:#}"))?
         } else {
+            // URI/base64-сервер: built-in TUN если запрошен TUN-режим
+            // (mihomo_config::build синтезирует tun-секцию). 12.E
+            // маскировка имени — через tun_device.
             mihomo_config::build(
                 &entry,
                 default_socks,
@@ -504,6 +504,8 @@ pub async fn connect(
                 auth_pair,
                 rules_slice,
                 active_profile.as_ref(),
+                tun_mode,
+                tun_device.as_deref(),
             )
             .map_err(|e| e.to_string())?
         };
@@ -511,7 +513,9 @@ pub async fn connect(
         // 13.L: для built-in TUN запускаем mihomo через helper-сервис
         // (он SYSTEM, имеет права на CreateAdapter WinTUN). Tauri-main
         // как user-level не справится. Иначе — старый sidecar-spawn.
-        let builtin_tun = entry.protocol == "mihomo-profile" && tun_mode;
+        // TUN теперь поддержан и для URI-серверов, поэтому условие —
+        // просто tun_mode (а не только mihomo-profile).
+        let builtin_tun = tun_mode;
         if builtin_tun {
             // Конфиг и data-dir в ProgramData — туда у обоих процессов
             // (helper-SYSTEM и Tauri-user) стандартный read+write.
@@ -567,10 +571,9 @@ pub async fn connect(
             stamp("system proxy set");
         }
         "tun" => {
-            // TUN всегда через built-in TUN-inbound Mihomo — когда подписка
-            // приходит как полный mihomo-profile (full YAML с tun: enable).
-            // Для URI-серверов Mihomo+TUN была проверка ранее в connect
-            // (bail с понятным сообщением).
+            // TUN всегда через built-in TUN-inbound Mihomo. Работает и для
+            // full mihomo-profile (tun: enable в YAML), и для URI/base64-
+            // серверов (tun-секция синтезируется в mihomo_config::build).
             stamp("tun: built-in TUN — движок сам поднимает WinTUN-адаптер");
         }
         other => {

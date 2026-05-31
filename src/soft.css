@@ -12,6 +12,11 @@
    Типографика: Inter Tight на ВСё (включая заголовки) — ближе к Apple SF,
    чем геометричный Space Grotesk. Чище и нейтральнее. */
 :root[data-look="soft"] {
+  /* Кастомный тонкий скроллбар во всём soft (наследуемые свойства —
+     каскадятся на все scroll-контейнеры: список локаций, настройки,
+     шторки). Системный скроллбар выглядел чужеродно. */
+  scrollbar-width: thin;
+  scrollbar-color: #cfcfc7 transparent;
   --bg: #0d0d0f;
   --fg: #f5f5f3;
   --display: "Inter Tight", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
@@ -51,6 +56,30 @@ html[data-look="soft"] #root {
   cursor: pointer;
 }
 
+/* Кастомный скроллбар (WebView2 = Chromium) — тонкий, мягкий, в палитре
+   soft. Показывается только при реальном переполнении (overflow auto).
+   Глобально на все scroll-контейнеры soft для единообразия. */
+[data-look="soft"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-look="soft"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-look="soft"] ::-webkit-scrollbar-thumb {
+  background: #d3d3cb;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+[data-look="soft"] ::-webkit-scrollbar-thumb:hover {
+  background: #b9b9ae;
+  background-clip: padding-box;
+}
+[data-look="soft"] ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Карта .soft заполняет окно целиком (никакого центрирования — иначе
    #root сжимается по контенту и вокруг видно рабочий стол). Прозрачны
    только скруглённые углы. Страница не скроллится — скролл внутри списка. */
@@ -80,10 +109,20 @@ html[data-look="soft"] #root {
   overflow: hidden;
   /* Скруглённые углы окна (по углам видно desktop — frameless). */
   border-radius: 14px;
+  /* Плавный переход при maximize/restore: содержимое «оседает» в новые
+     границы вместо резкого скачка (само окно ОС меняет размер мгновенно,
+     но inset/радиус карты анимируются). */
+  transition:
+    inset 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.34s cubic-bezier(0.22, 1, 0.36, 1);
   /* Чёткий рендер шрифтов (HD-ощущение). */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+/* Уважаем системную настройку «уменьшить движение». */
+@media (prefers-reduced-motion: reduce) {
+  .soft { transition: none; }
 }
 /* Развёрнутое окно: поджимаем на ~8px (Windows-overflow за края экрана),
    убираем скругление — иначе кнопки/контент у краёв обрезаются. */
@@ -110,6 +149,9 @@ html[data-maximized="true"] .soft {
   .soft-aside {
     flex: 0 0 42%;
     padding-bottom: 112px;
+    /* Графики дашборда могут не влезать по высоте — даём панели скролл
+       (кастомный тонкий скроллбар из soft применится). */
+    overflow-y: auto;
   }
 }
 
@@ -471,13 +513,12 @@ html[data-maximized="true"] .soft {
 }
 .soft-row-flag {
   flex: 0 0 auto;
-  width: 26px;
-  text-align: center;
-  /* Только эмодзи-шрифт: гарантирует цветной флаг (Segoe на Win не умеет
-     regional-indicator'ы). Noto Color Emoji загружен в main.tsx. */
-  font-family: "Noto Color Emoji", var(--body);
-  font-size: 20px;
-  line-height: 1;
+  /* SVG-флаг (flag-icons): рендерится в WebView2 в отличие от
+     regional-indicator emoji. Квадратный (`fis`) 18px со скруглением. */
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  margin-right: 2px;
 }
 .soft-row-title {
   flex: 1;
@@ -920,6 +961,13 @@ html[data-look="soft"] .settings-page {
   -webkit-backdrop-filter: none;
   border-radius: 14px;
   color: var(--s-ink);
+  /* Согласованная с .soft анимация maximize/restore. */
+  transition:
+    inset 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-look="soft"] .settings-page { transition: none; }
 }
 html[data-maximized="true"] .settings-page {
   inset: var(--maxpad, 8px);
@@ -1237,4 +1285,516 @@ html[data-look="soft"] .shortcut-input {
     transform: translateY(60px) scale(0.96);
     opacity: 0;
   }
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ДАШБОРД СОЕДИНЕНИЯ (левая тёмная панель soft-aside, только при connect)
+   ════════════════════════════════════════════════════════════════════════ */
+/* Обёртка дашборда: плавное появление через анимацию высоты
+   (grid-template-rows 0fr→1fr) — локации внизу съезжают мягко, а не
+   прыгают. Сам .dash с overflow:hidden, чтобы клипаться при сворачивании. */
+.dash-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin: 18px 20px 0;
+  animation: dash-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes dash-grow {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to   { grid-template-rows: 1fr; opacity: 1; }
+}
+.dash-wrap > .dash {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash-wrap { animation: none; }
+}
+.dash {
+  padding: 16px 16px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e9e9e3;
+}
+@keyframes dash-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Компактный дашборд (узкий экран) — две тесные строки, без графиков,
+   чтобы не отъедать высоту у списка локаций. */
+.dash-compact { padding: 12px 14px; }
+.dashc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dashc-flag { width: 17px; height: 17px; flex: 0 0 auto; }
+.dashc-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dashc-speeds {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: flex;
+  gap: 12px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dashc-dl { color: var(--s-lime); }
+.dashc-ul { color: #86b2ff; }
+.dashc-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.dashc-dot { opacity: 0.4; }
+.dashc-exit-flag { width: 13px; height: 13px; flex: 0 0 auto; }
+.dashc-place {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Имя активной локации — заголовок дашборда. */
+.dash-loc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 13px;
+}
+.dash-loc-flag { width: 18px; height: 18px; }
+.dash-loc-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-speeds {
+  display: flex;
+  gap: 22px;
+}
+.dash-speed {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.dash-speed-arrow {
+  font-size: 13px;
+  font-weight: 700;
+}
+.dash-dl { color: var(--s-lime); }
+.dash-ul { color: #86b2ff; }
+.dash-speed-val {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+.dash-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dash-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.dash-stat-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+.dash-stat-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e9e9e3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-stat-exit { flex: 1; min-width: 92px; }
+.dash-exit { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dash-exit-flag { width: 15px; height: 15px; }
+.dash-exit-place { overflow: hidden; text-overflow: ellipsis; }
+.dash-exit-pending { color: rgba(255, 255, 255, 0.42); }
+
+/* ── Графики дашборда (широкий экран) ─────────────────────────────────── */
+.dash-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+}
+.dash-chart {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: 12px;
+}
+.dash-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.dash-chart-title {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+.dash-chart-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: #e9e9e3;
+}
+.dash-chart-legend .lg {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-left: 6px;
+}
+.dash-chart-legend .lg-dn { background: #d8ec5a; }
+.dash-chart-legend .lg-up { background: #86b2ff; }
+
+.chart-thr { width: 100%; height: 110px; display: block; }
+.chart-ping { width: 100%; height: 90px; display: block; }
+.chart-line {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke; /* крепкая толщина при preserveAspectRatio=none */
+}
+.chart-line-dn { stroke: #d8ec5a; }
+.chart-line-up { stroke: rgba(134, 178, 255, 0.9); }
+.chart-line-ping { stroke: #d8ec5a; }
+
+.dash-charts-row {
+  display: flex;
+  gap: 14px;
+}
+.dash-chart-mini {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Кольцо квоты */
+.chart-ring-box { position: relative; width: 96px; height: 96px; }
+.chart-ring { width: 96px; height: 96px; transform: none; }
+.chart-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 7;
+}
+.chart-ring-prog {
+  fill: none;
+  stroke: #d8ec5a;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chart-ring-prog.is-warn { stroke: #ff6b4a; }
+.chart-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.chart-ring-val {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+}
+.chart-ring-val.is-warn { color: #ff8a6e; }
+.chart-ring-sub {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Спидометр */
+.chart-gauge-box {
+  position: relative;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Явная высота (не auto): в флекс-колонке auto схлопывалось почти в 0 и
+   полудуга превращалась в две точки. viewBox 88×54 → высота под ширину. */
+.chart-gauge { width: 110px; height: 68px; display: block; }
+.chart-gauge-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.chart-gauge-prog {
+  fill: none;
+  stroke: #86b2ff;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.chart-gauge-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-top: -8px;
+}
+.chart-gauge-val {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-weight: 600;
+  font-size: 13px;
+  color: #ffffff;
+}
+.chart-gauge-sub {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ДОП-БЛОКИ ПРАВОЙ ПАНЕЛИ (светлая soft-sheet): полоса подписки + обзор пинга
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Полоса подписки (под заголовком «Локации», фикс — не в скролле) ── */
+.sub-strip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 22px 10px;
+  padding: 11px 14px;
+  background: #f7f7f3;
+  border: 1px solid var(--s-line);
+  border-radius: 14px;
+  animation: dash-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.sub-strip-info { flex: 1; min-width: 0; }
+.sub-strip-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sub-strip-traffic {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--s-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sub-strip-expiry {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--s-sub);
+}
+.sub-strip-expiry.is-warn { color: var(--s-red); }
+/* «осталось N ГБ» — на месте срока, когда трафик на исходе (всегда warn). */
+.sub-strip-left {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--s-sub);
+}
+.sub-strip-left.is-warn { color: var(--s-red); }
+.sub-strip-bar {
+  margin-top: 7px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e8e8e1;
+  overflow: hidden;
+}
+.sub-strip-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--s-ink);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sub-strip-bar-fill.is-warn { background: var(--s-red); }
+.sub-strip-links {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sub-strip-link {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 10px;
+  /* Заметный контур на светлой полосе (раньше брался почти невидимый
+     --s-line) + лёгкая тень — чтобы кнопка читалась как кнопка. */
+  border: 1px solid #d4d4cb;
+  background: #fff;
+  color: var(--s-ink);
+  font-family: var(--body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(20, 23, 15, 0.06);
+  transition: background 0.15s, border-color 0.15s;
+}
+.sub-strip-link:hover { background: #f3f3ee; border-color: #bdbdb2; }
+.sub-strip-link.is-premium {
+  background: var(--s-lime-tint);
+  border-color: var(--s-lime);
+}
+.sub-strip-link.is-premium:hover { background: var(--s-lime-soft); }
+
+/* ── Карточка-блок (обзор задержек) — теперь внутри скролла soft-rows ── */
+.home-card {
+  background: #fff;
+  border: 1px solid #e7e6df;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(20, 23, 15, 0.03), 0 16px 32px -28px rgba(20, 23, 15, 0.22);
+  animation: dash-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.ping-card { margin-top: 14px; }
+.home-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.home-card-title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--s-ink);
+}
+.home-card-sub {
+  font-size: 11px;
+  color: var(--s-sub);
+}
+
+/* ── Обзор задержек нод ── */
+.ping-list { display: flex; flex-direction: column; gap: 8px; }
+.ping-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  /* Появление топ-нод с анимацией (стаггер задаётся inline-delay'ем). */
+  animation: ping-row-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ping-row-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.ping-flag { width: 15px; height: 15px; }
+.ping-name {
+  flex: 0 0 34%;
+  max-width: 34%;
+  font-size: 12.5px;
+  color: var(--s-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ping-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: #efeee8;
+  overflow: hidden;
+}
+.ping-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left center;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Бар «вырастает» слева-направо при появлении (delay — inline, чуть
+     позже строки). После — width-transition для live-обновлений. */
+  animation: ping-bar-grow 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ping-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.ping-bar-fill.delay-good { background: var(--s-green); }
+.ping-bar-fill.delay-ok { background: var(--s-amber); }
+.ping-bar-fill.delay-slow { background: #c2702a; }
+.ping-bar-fill.delay-bad { background: var(--s-red); }
+.ping-val {
+  flex: 0 0 auto;
+  width: 52px;
+  text-align: right;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 11px;
+}
+.ping-val.delay-good { color: var(--s-green); }
+.ping-val.delay-ok { color: var(--s-amber); }
+.ping-val.delay-slow { color: #c2702a; }
+.ping-val.delay-bad { color: var(--s-red); }
+.ping-val.delay-none { color: var(--s-sub); }
+.ping-fastest { color: var(--s-lime); font-size: 12px; }
+
+/* ── Announce-баннер в soft (светлый контекст) ── */
+[data-look="soft"] .soft-sheet .announce-banner {
+  background: var(--s-lime-tint);
+  border-color: var(--s-lime);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 16px;
+  margin-bottom: 14px;
+}
+[data-look="soft"] .soft-sheet .announce-banner-body {
+  color: var(--s-ink);
+  align-items: flex-start;
+  padding: 11px 14px;
+}
+[data-look="soft"] .soft-sheet .announce-banner-close {
+  color: var(--s-sub);
+  border-left-color: rgba(22, 23, 15, 0.10);
+}
+[data-look="soft"] .soft-sheet .announce-banner-close:hover {
+  background: rgba(22, 23, 15, 0.05);
+  color: var(--s-ink);
+}
+[data-look="soft"] .soft-sheet .announce-banner-icon { color: #8a9a2f; margin-top: 1px; }
+[data-look="soft"] .soft-sheet .announce-banner-arrow { color: var(--s-sub); margin-top: 2px; }
+/* Текст статуса должен влезать целиком — переносим на несколько строк,
+   а не обрезаем по ellipsis. */
+[data-look="soft"] .soft-sheet .announce-banner-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.4;
+  word-break: break-word;
 }

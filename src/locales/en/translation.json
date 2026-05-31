@@ -80,7 +80,10 @@
   },
   "modeSegment": {
     "proxy": "system proxy",
-    "tun": "tun"
+    "tun": "tun",
+    "infoLabel": "what's this?",
+    "proxyHint": "Through the VPN — browsers and apps set to the system proxy. Direct — everything else. No admin rights.",
+    "tunHint": "Through the VPN — all system traffic (intercepted at the adapter level). Nothing goes around the tunnel. Needs WinTUN."
   },
   "toaster": {
     "dismissTitle": "click to dismiss"

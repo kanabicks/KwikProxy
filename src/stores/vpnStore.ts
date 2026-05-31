@@ -108,6 +108,10 @@ type VpnState = {
    *  null когда LAN выключен или connect ещё не выполнялся. */
   socksUsername: string | null;
   socksPassword: string | null;
+  /** Unix-ms момента успешного connect — для таймера сессии в дашборде.
+   *  null когда не подключён. После рефреша «живого» соединения без
+   *  известного старта подставляем текущее время (best-effort). */
+  connectedAt: number | null;
 
   setMode: (mode: VpnMode) => void;
   selectServer: (index: number) => void;
@@ -196,6 +200,7 @@ export const useVpnStore = create<VpnState>((set, get) => ({
   httpPort: null,
   socksUsername: null,
   socksPassword: null,
+  connectedAt: null,
 
   setMode: (mode) => set({ mode }),
   selectServer: (index) => {
@@ -245,6 +250,9 @@ export const useVpnStore = create<VpnState>((set, get) => ({
         errorMessage: null,
         socksPort: running ? s.socksPort : null,
         httpPort: running ? s.httpPort : null,
+        // Живое соединение без известного connectedAt (рестарт app при
+        // активном VPN) — стартуем таймер с текущего момента.
+        connectedAt: running ? s.connectedAt ?? Date.now() : null,
       }));
     } catch (e) {
       set({ status: "error", errorMessage: String(e) });
@@ -330,6 +338,7 @@ export const useVpnStore = create<VpnState>((set, get) => ({
         httpPort: result.http_port,
         socksUsername: result.socks_username ?? null,
         socksPassword: result.socks_password ?? null,
+        connectedAt: Date.now(),
         errorMessage: null,
       });
       // 8.F: для mihomo-движка применяем сохранённые пользователем
@@ -364,6 +373,7 @@ export const useVpnStore = create<VpnState>((set, get) => ({
         httpPort: null,
         socksUsername: null,
         socksPassword: null,
+        connectedAt: null,
         errorMessage: null,
       });
     } catch (e) {

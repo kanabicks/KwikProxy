@@ -8,6 +8,7 @@ import {
 } from "../stores/subscriptionStore";
 import { useSettingsStore } from "../stores/settingsStore";
 import { showToast } from "../stores/toastStore";
+import { FlagIcon } from "../lib/flags";
 
 /**
  * 8.F (UI v2) — Inline-вид прокси-групп Mihomo на главном экране.
@@ -324,7 +325,10 @@ export function MihomoGroupsInline({
               onClick={() => toggleCollapse(g.name)}
             >
               <div className="mihomo-group-title-block">
-                <div className="mihomo-group-title">{cleanLabel(g.name)}</div>
+                <div className="mihomo-group-title">
+                  <FlagIcon name={g.name} className="mihomo-group-flag" />
+                  <span className="flag-label">{cleanLabel(g.name)}</span>
+                </div>
                 <div className="mihomo-group-sub">
                   {/* Для Selector скрываем typeLabel («выбор»), потому
                       что «выбрана: X» сам по себе сигнализирует тип —
@@ -344,7 +348,12 @@ export function MihomoGroupsInline({
                         {liveMode
                           ? t("mihomoGroups.active")
                           : t("mihomoGroups.selected")}
-                        : {cleanLabel(displayActive)}
+                        :{" "}
+                        <FlagIcon
+                          name={displayActive}
+                          className="mihomo-active-flag"
+                        />
+                        {cleanLabel(displayActive)}
                       </span>
                       <span className="dot-sep">·</span>
                     </>
@@ -415,7 +424,12 @@ export function MihomoGroupsInline({
                       }
                     >
                       <div className="mihomo-card-name" title={m.name}>
-                        {cleanLabel(m.name)}
+                        <FlagIcon
+                          name={m.name}
+                          className="mihomo-card-flag"
+                          placeholder
+                        />
+                        <span className="flag-label">{cleanLabel(m.name)}</span>
                       </div>
                       <div className="mihomo-card-meta">
                         <span className="mihomo-card-proto">
