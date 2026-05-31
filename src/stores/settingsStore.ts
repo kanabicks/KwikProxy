@@ -236,6 +236,20 @@ export type Settings = {
    *  активном kill-switch — без него WFP-сессии нет. */
   forceDisableIpv6: boolean;
 
+  /** #4: разрешить IPv6 внутри ядра mihomo (`ipv6: true` в конфиге + dns).
+   *  По умолчанию false (анти-leak). Полезно если ноды доступны по IPv6
+   *  или провайдер IPv6-only. ⚠️ Не путать с `forceDisableIpv6` — тот
+   *  режет v6 в WFP-файрволе (kill-switch), этот управляет v6 в ядре.
+   *  Если включён `forceDisableIpv6`, файрвол всё равно отрежет v6. */
+  ipv6: boolean;
+
+  /** #3: пользовательские DNS-серверы (свободный текст, разделители —
+   *  запятая/пробел/перевод строки). DoH-URL (`https://...`), DoT
+   *  (`tls://1.1.1.1`) или IP. Если непусто — перетирают `dns.nameserver`
+   *  (высший приоритет над профилем/anti-DPI/дефолтом). Пусто — дефолтная
+   *  логика. */
+  customDns: string;
+
   /** Метод проверки текущего соединения (Settings → пинг). Для
    *  per-server пингов в drawer всегда используется TCP — этот
    *  параметр влияет только на ручной «тест соединения».
@@ -433,6 +447,8 @@ const DEFAULTS: Settings = {
   autoApplyMinimalRuRules: false,
   dnsLeakProtection: false,
   forceDisableIpv6: false,
+  ipv6: false,
+  customDns: "",
   pingMethod: "tcp",
   pingUrl: "https://www.gstatic.com/generate_204",
   pingTimeoutSec: 7,

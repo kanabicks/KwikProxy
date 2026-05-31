@@ -108,6 +108,11 @@ pub fn build(
     // ставится в замаскированное имя (`wlan99` / `Ethernet 7` и т.п.);
     // `None` → mihomo default (kill-switch детектит по Description/IP).
     tun_device: Option<&str>,
+    // #4: разрешить IPv6 (root + dns). По умолчанию false (анти-leak).
+    ipv6: bool,
+    // #3: пользовательские DNS-серверы из настроек (высший приоритет для
+    // `nameserver`). Пустой/None → дефолтная логика (профиль/anti-DPI/DoH).
+    custom_dns: Option<&[String]>,
 ) -> Result<MihomoConfig> {
     let proxy = proxy_for_entry(entry)
         .with_context(|| format!("не удалось собрать mihomo-proxy для «{}»", entry.name))?;
@@ -136,7 +141,33 @@ pub fn build(
     // ── Базовое поведение ────────────────────────────────────────────
     root.insert("mode".into(), "rule".into());
     root.insert("log-level".into(), "info".into());
-    root.insert("ipv6".into(), false.into());
+    root.insert("ipv6".into(), ipv6.into());
+
+    // 11.B: используем v2ray `.dat` geo-базы (geofiles::provision_into
+    // кладёт их в data-dir). Авто-обновление выключено — geofiles тянет
+    // scheduler по интервалу профиля, без сюрприз-загрузок при connect.
+    root.insert("geodata-mode".into(), true.into());
+    root.insert("geo-auto-update".into(), false.into());
+
+    // #7: tcp-concurrent — happy-eyeballs (параллельные попытки к
+    // нескольким IP домена, берём первый успешный → быстрее коннект);
+    // unified-delay — единая методика замера задержки (честный пинг в UI).
+    root.insert("tcp-concurrent".into(), true.into());
+    root.insert("unified-delay".into(), true.into());
+
+    // #2: глобальный uTLS-отпечаток ClientHello. Маскирует TLS-handshake
+    // под Chrome (анти-DPI, 10.x). Применяется только к нодам БЕЗ своего
+    // `client-fingerprint` — per-proxy значение из подписки приоритетнее.
+    root.insert("global-client-fingerprint".into(), "chrome".into());
+
+    // #8: помнить выбранную ноду и fake-ip кеш между рестартами (cache.db
+    // в data-dir). store-selected — выбор в proxy-group; store-fake-ip —
+    // стабильные fake-ip, чтобы приложения не теряли соединения после
+    // рестарта ядра.
+    let mut profile_persist = Mapping::new();
+    profile_persist.insert("store-selected".into(), true.into());
+    profile_persist.insert("store-fake-ip".into(), true.into());
+    root.insert("profile".into(), Value::Mapping(profile_persist));
 
     // 8.D: per-process routing требует `find-process-mode: always` —
     // Mihomo при каждом новом соединении проверяет какой процесс его
@@ -159,7 +190,16 @@ pub fn build(
     // Включаем всегда, чтобы предотвратить DNS-leak (аналог Prizrak-Box
     // DNS rewrite). При активном anti-DPI server-resolve — берём DoH
     // и bootstrap из настроек, иначе разумные дефолты.
-    root.insert("dns".into(), Value::Mapping(build_dns(anti_dpi)));
+    root.insert(
+        "dns".into(),
+        Value::Mapping(build_dns(anti_dpi, routing_profile, ipv6, custom_dns)),
+    );
+
+    // #1: sniffer — определяет реальный домен из SNI (TLS) / Host (HTTP) /
+    // QUIC, даже когда приложение ходит по «голому» IP или через fake-ip.
+    // Без него правила DOMAIN/GEOSITE и per-app промахиваются по
+    // IP-трафику, а fake-ip (11.E) теряет смысл.
+    root.insert("sniffer".into(), Value::Mapping(build_sniffer()));
 
     // ── Proxies / proxy-groups / rules ───────────────────────────────
     root.insert(
@@ -185,28 +225,31 @@ pub fn build(
     // block→REJECT.
     let mut rules: Vec<Value> = Vec::new();
     for r in app_rules {
-        if r.exe.trim().is_empty() {
-            continue;
+        if let Some(rule) = app_rule_to_mihomo(r) {
+            rules.push(Value::String(rule));
         }
-        let target = match r.action.as_str() {
-            "direct" => "DIRECT",
-            "block" => "REJECT",
-            _ => "PROXY",
-        };
-        rules.push(Value::String(format!("PROCESS-NAME,{},{}", r.exe.trim(), target)));
     }
 
     // 11.F: правила из routing-профиля. block — первый (override любого
     // direct/proxy), потом direct, потом proxy. После — MATCH с дефолтом
     // от GlobalProxy.
     let default_action = if let Some(p) = routing_profile {
-        for r in mihomo_rules_from_profile(p) {
+        // URI-путь: outbound — proxy-group с именем "PROXY" (см. выше),
+        // поэтому target для proxy-правил — литерал "PROXY".
+        for r in mihomo_rules_from_profile(p, "PROXY") {
             rules.push(Value::String(r));
         }
         if p.global_proxy.0 { "PROXY" } else { "DIRECT" }
     } else {
         "PROXY"
     };
+    // Базовые DIRECT для приватных/локальных диапазонов — ПЕРЕД MATCH, чтобы
+    // LAN/loopback/link-local не уходили в туннель (иначе со `strict-route`
+    // недоступны роутер/принтеры/локалка). Профильные explicit-правила выше
+    // приоритетнее (могут переопределить конкретный адрес).
+    for r in local_direct_rules() {
+        rules.push(Value::String(r));
+    }
     rules.push(Value::String(format!("MATCH,{default_action}")));
     root.insert("rules".into(), Value::Sequence(rules));
 
@@ -239,6 +282,23 @@ fn builtin_tun_mapping(device: Option<&str>) -> Mapping {
     tun.insert("stack".into(), "mixed".into());
     tun.insert("auto-route".into(), true.into());
     tun.insert("auto-detect-interface".into(), true.into());
+    // #3: strict-route — mihomo ставит файрвол-правила, чтобы НИ один пакет
+    // не ушёл мимо TUN (анти-leak). Дополняет WFP kill switch (13.D).
+    tun.insert("strict-route".into(), true.into());
+    // route-exclude-address: приватные/link-local диапазоны НЕ заворачиваем
+    // в TUN — идут штатной OS-маршрутизацией (LAN/роутер доступны даже при
+    // strict-route). Резолв этих IP в DIRECT добавлен правилами отдельно.
+    tun.insert(
+        "route-exclude-address".into(),
+        Value::Sequence(vec![
+            "10.0.0.0/8".into(),
+            "172.16.0.0/12".into(),
+            "192.168.0.0/16".into(),
+            "169.254.0.0/16".into(),
+            "fc00::/7".into(),
+            "fe80::/10".into(),
+        ]),
+    );
     tun.insert(
         "dns-hijack".into(),
         Value::Sequence(vec!["any:53".into()]),
@@ -283,16 +343,102 @@ pub fn masked_tun_name() -> String {
 /// - `*.example.com` → `DOMAIN-SUFFIX,example.com,DIRECT`
 /// - `keyword:word` → `DOMAIN-KEYWORD,word,DIRECT`
 ///
+/// `proxy_target` — имя outbound'а для proxy-правил. В URI-пути это
+/// литерал `"PROXY"` (group, который мы сами создаём); в full-profile
+/// passthrough — имя провайдерской группы из `MATCH`/`FINAL` (детектится
+/// в `detect_proxy_target`), чтобы правила не указывали на несуществующий
+/// outbound и mihomo их не отбрасывал.
+///
 /// Order: block → direct → proxy (block перебивает остальное).
-fn mihomo_rules_from_profile(p: &super::routing_profile::RoutingProfile) -> Vec<String> {
+fn mihomo_rules_from_profile(
+    p: &super::routing_profile::RoutingProfile,
+    proxy_target: &str,
+) -> Vec<String> {
     let mut out = Vec::new();
     push_site_rules(&mut out, &p.block_sites, "REJECT");
     push_ip_rules(&mut out, &p.block_ip, "REJECT");
     push_site_rules(&mut out, &p.direct_sites, "DIRECT");
     push_ip_rules(&mut out, &p.direct_ip, "DIRECT");
-    push_site_rules(&mut out, &p.proxy_sites, "PROXY");
-    push_ip_rules(&mut out, &p.proxy_ip, "PROXY");
+    push_site_rules(&mut out, &p.proxy_sites, proxy_target);
+    push_ip_rules(&mut out, &p.proxy_ip, proxy_target);
     out
+}
+
+/// 11.F (full-profile): определить имя outbound-группы для proxy-правил
+/// активного профиля. Стратегия — повторно использовать ту группу, в
+/// которую провайдер сам направляет дефолтный трафик:
+///
+///  1. `MATCH,<group>` / `FINAL,<group>` из провайдерских `rules` —
+///     это «куда уходит всё непойманное», самый надёжный сигнал;
+///  2. иначе — имя первой `proxy-groups[].name`;
+///  3. иначе — встроенная mihomo-группа `GLOBAL` (есть всегда).
+fn detect_proxy_target(root: &Mapping) -> String {
+    if let Some(Value::Sequence(rules)) = root.get("rules") {
+        for r in rules {
+            let Some(s) = r.as_str() else { continue };
+            let mut parts = s.splitn(3, ',');
+            let head = parts.next().unwrap_or("").trim().to_uppercase();
+            if head == "MATCH" || head == "FINAL" {
+                if let Some(t) = parts.next().map(str::trim) {
+                    if !t.is_empty() {
+                        return t.to_string();
+                    }
+                }
+            }
+        }
+    }
+    if let Some(Value::Sequence(groups)) = root.get("proxy-groups") {
+        if let Some(name) = groups
+            .first()
+            .and_then(|g| g.get("name"))
+            .and_then(|v| v.as_str())
+        {
+            return name.to_string();
+        }
+    }
+    "GLOBAL".to_string()
+}
+
+/// 8.D / #5: одно app-rule → строка правила mihomo. Если `exe` содержит
+/// разделитель пути (`\` или `/`) — матчим по полному пути (`PROCESS-PATH`,
+/// различает два разных exe с одним именем), иначе по имени (`PROCESS-NAME`).
+/// `action`: proxy→PROXY / direct→DIRECT / block→REJECT. `None` если exe пуст.
+fn app_rule_to_mihomo(r: &AppRule) -> Option<String> {
+    let exe = r.exe.trim();
+    if exe.is_empty() {
+        return None;
+    }
+    let target = match r.action.as_str() {
+        "direct" => "DIRECT",
+        "block" => "REJECT",
+        _ => "PROXY",
+    };
+    let matcher = if exe.contains('\\') || exe.contains('/') {
+        "PROCESS-PATH"
+    } else {
+        "PROCESS-NAME"
+    };
+    Some(format!("{matcher},{exe},{target}"))
+}
+
+/// Базовые DIRECT-правила для loopback / приватных / link-local /
+/// multicast диапазонов. Нужны чтобы локальный трафик не уходил в туннель
+/// (особенно со `strict-route`). `no-resolve` — не резолвим домен в IP.
+fn local_direct_rules() -> Vec<String> {
+    [
+        "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+        "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
+        "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
+        "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+        "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+        "IP-CIDR,224.0.0.0/4,DIRECT,no-resolve",
+        "IP-CIDR6,::1/128,DIRECT,no-resolve",
+        "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+        "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .collect()
 }
 
 fn push_site_rules(out: &mut Vec<String>, sites: &[String], action: &str) {
@@ -308,8 +454,8 @@ fn push_site_rules(out: &mut Vec<String>, sites: &[String], action: &str) {
         } else if let Some(rest) = s.strip_prefix("*.") {
             out.push(format!("DOMAIN-SUFFIX,{rest},{action}"));
         } else if let Some(rest) = s.strip_prefix("regex:") {
-            // Mihomo не имеет regex matcher — пропускаем с warning
-            eprintln!("[mihomo-rules] regex не поддерживается, skip: {rest}");
+            // #4: mihomo умеет DOMAIN-REGEX — раньше ошибочно скипали.
+            out.push(format!("DOMAIN-REGEX,{rest},{action}"));
         } else if s.starts_with("domain:") {
             out.push(format!("DOMAIN,{},{action}", &s[7..]));
         } else if s.contains('.') {
@@ -345,44 +491,286 @@ fn push_ip_rules(out: &mut Vec<String>, ips: &[String], action: &str) {
     }
 }
 
-/// Собрать DNS-секцию. С DoH-резолвом (10.C) если активен, иначе
-/// минимальные дефолты с бутстрапом на 1.1.1.1 / 8.8.8.8.
-fn build_dns(anti_dpi: Option<&AntiDpiOptions>) -> Mapping {
+/// 11.E: собрать DNS-секцию mihomo с раздельным резолвом (split-DNS).
+///
+/// Идея: *куда трафик идёт — оттуда и резолв*. Проксируемые домены
+/// резолвятся удалённым DoH (без leak'а и подмены провайдером), а direct
+/// (`DirectSites`, обычно `geosite:ru`) — местным DNS (правильные CDN-IP).
+///
+/// Источники с приоритетом **профиль → anti-DPI (10.C) → дефолты**:
+///  - `nameserver` (общий резолвер) ← `RemoteDNS` профиля / DoH anti-DPI /
+///    Cloudflare+Google;
+///  - `default-nameserver` (bootstrap, только plain-IP для резолва самого
+///    DoH-хоста) ← `RemoteDNSIP` / anti-DPI bootstrap / 1.1.1.1+8.8.8.8;
+///  - `nameserver-policy` (per-zone override) ← `DomesticDNS` для зон из
+///    `DirectSites` (geosite/домены);
+///  - `hosts` ← `DnsHosts` профиля;
+///  - `enhanced-mode: fake-ip` если `FakeDNS=true` (+ `fake-ip-filter` с
+///    direct-зонами и локальными именами, чтобы им выдавался реальный IP).
+fn build_dns(
+    anti_dpi: Option<&AntiDpiOptions>,
+    profile: Option<&super::routing_profile::RoutingProfile>,
+    ipv6: bool,
+    custom_dns: Option<&[String]>,
+) -> Mapping {
     let mut dns = Mapping::new();
     dns.insert("enable".into(), true.into());
     dns.insert("listen".into(), "0.0.0.0:0".into()); // не открываем DNS-сервер наружу
-    dns.insert("ipv6".into(), false.into());
-    dns.insert("enhanced-mode".into(), "redir-host".into());
+    dns.insert("ipv6".into(), ipv6.into());
 
-    let dpi_resolve = anti_dpi.map(|d| d.server_resolve).unwrap_or(false);
-
-    if dpi_resolve {
-        let bootstrap = anti_dpi.map(|d| d.server_resolve_bootstrap.as_str()).unwrap_or("1.1.1.1");
-        let doh = anti_dpi.map(|d| d.server_resolve_doh.as_str())
-            .unwrap_or("https://cloudflare-dns.com/dns-query");
-
-        dns.insert(
-            "default-nameserver".into(),
-            Value::Sequence(vec![bootstrap.into()]),
-        );
-        dns.insert(
-            "nameserver".into(),
-            Value::Sequence(vec![doh.into()]),
-        );
+    // ── enhanced-mode + fake-ip ───────────────────────────────────────
+    let fake = profile.map(|p| p.fake_dns.0).unwrap_or(false);
+    if fake {
+        dns.insert("enhanced-mode".into(), "fake-ip".into());
+        dns.insert("fake-ip-range".into(), "198.18.0.1/16".into());
+        // fake-ip-filter: эти имена должны получать НАСТОЯЩИЙ IP (не
+        // fake) — локальные + direct-зоны профиля (они идут мимо прокси).
+        let mut filter: Vec<Value> = vec![
+            "+.lan".into(),
+            "+.local".into(),
+            "localhost".into(),
+            "*.localdomain".into(),
+            "time.*.com".into(),
+        ];
+        if let Some(p) = profile {
+            for k in dns_policy_keys(&p.direct_sites) {
+                filter.push(k.into());
+            }
+        }
+        dns.insert("fake-ip-filter".into(), Value::Sequence(filter));
     } else {
-        dns.insert(
-            "default-nameserver".into(),
-            Value::Sequence(vec!["1.1.1.1".into(), "8.8.8.8".into()]),
-        );
-        dns.insert(
-            "nameserver".into(),
-            Value::Sequence(vec![
+        dns.insert("enhanced-mode".into(), "redir-host".into());
+    }
+
+    // ── remote nameserver + bootstrap ─────────────────────────────────
+    let dpi_resolve = anti_dpi.map(|d| d.server_resolve).unwrap_or(false);
+    // #3: пользовательский DNS из настроек — высший приоритет (юзер явно
+    // выбрал «использовать мой DNS»). Пустые строки отфильтровываем.
+    let custom: Option<Vec<Value>> = custom_dns.and_then(|d| {
+        let v: Vec<Value> = d
+            .iter()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(|s| Value::from(s.to_string()))
+            .collect();
+        (!v.is_empty()).then_some(v)
+    });
+    // Общий резолвер: custom > профиль > anti-DPI DoH > дефолт-DoH.
+    let remote = custom
+        .clone()
+        .or_else(|| {
+            profile
+                .and_then(|p| profile_dns_addr(&p.remote_dns_domain, &p.remote_dns_ip))
+                .map(|s| vec![Value::from(s)])
+        })
+        .or_else(|| {
+            if dpi_resolve {
+                anti_dpi
+                    .map(|d| vec![Value::from(d.server_resolve_doh.clone())])
+                    .filter(|v| v.first().and_then(|x| x.as_str()).is_some_and(|s| !s.is_empty()))
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| {
+            vec![
                 "https://cloudflare-dns.com/dns-query".into(),
                 "https://dns.google/dns-query".into(),
-            ]),
-        );
+            ]
+        });
+    // Bootstrap (plain-IP): профиль RemoteDNSIP > anti-DPI bootstrap > дефолт.
+    let bootstrap = profile
+        .map(|p| p.remote_dns_ip.trim())
+        .filter(|s| s.parse::<std::net::IpAddr>().is_ok())
+        .map(|s| vec![Value::from(s)])
+        .or_else(|| {
+            if dpi_resolve {
+                anti_dpi
+                    .map(|d| d.server_resolve_bootstrap.trim())
+                    .filter(|s| s.parse::<std::net::IpAddr>().is_ok())
+                    .map(|s| vec![Value::from(s)])
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| vec!["1.1.1.1".into(), "8.8.8.8".into()]);
+    dns.insert("default-nameserver".into(), Value::Sequence(bootstrap));
+    dns.insert("nameserver".into(), Value::Sequence(remote.clone()));
+
+    // respect-rules: DNS-запросы следуют routing-правилам — проксируемые
+    // домены резолвятся ВНУТРИ туннеля (провайдер/DPI не видит их),
+    // direct — напрямую. proxy-server-nameserver резолвит хосты самих нод
+    // (чистым DoH, мимо fake-ip/policy) — иначе петля «чтобы поднять
+    // прокси, нужен прокси». Без него respect-rules не имеет смысла.
+    dns.insert("respect-rules".into(), true.into());
+    dns.insert("proxy-server-nameserver".into(), Value::Sequence(remote));
+
+    // #5: fallback + fallback-filter — анти-подмена DNS. Если ответ
+    // основного резолвера не проходит фильтр (не-RU IP, где ожидался RU,
+    // либо зарезервированный диапазон) — берём чистый DoH-фолбэк. Это
+    // ловит DNS-poisoning от провайдера/DPI на спорных доменах.
+    dns.insert(
+        "fallback".into(),
+        Value::Sequence(vec![
+            "https://dns.google/dns-query".into(),
+            "tls://1.1.1.1:853".into(),
+        ]),
+    );
+    let mut ff = Mapping::new();
+    ff.insert("geoip".into(), true.into());
+    ff.insert("geoip-code".into(), "RU".into());
+    // CGNAT/зарезервированные — частый признак заглушки-подмены.
+    ff.insert(
+        "ipcidr".into(),
+        Value::Sequence(vec!["240.0.0.0/4".into(), "0.0.0.0/32".into()]),
+    );
+    dns.insert("fallback-filter".into(), Value::Mapping(ff));
+
+    // ── domestic split (nameserver-policy) + hosts ────────────────────
+    if let Some(p) = profile {
+        if let Some(domestic) = profile_dns_addr(&p.domestic_dns_domain, &p.domestic_dns_ip) {
+            let keys = dns_policy_keys(&p.direct_sites);
+            if !keys.is_empty() {
+                let mut policy = Mapping::new();
+                for k in keys {
+                    policy.insert(k.into(), Value::Sequence(vec![domestic.clone().into()]));
+                }
+                dns.insert("nameserver-policy".into(), Value::Mapping(policy));
+            }
+        }
+        if !p.dns_hosts.is_empty() {
+            let mut hosts = Mapping::new();
+            for (host, ip) in &p.dns_hosts {
+                hosts.insert(host.clone().into(), ip.clone().into());
+            }
+            dns.insert("hosts".into(), Value::Mapping(hosts));
+        }
     }
     dns
+}
+
+/// 11.E: выбрать адрес DNS-сервера для mihomo из пары (domain, ip)
+/// Marzban-профиля. `domain` приоритетнее — он несёт полную форму
+/// (`https://...` DoH, `tls://...` DoT, или plain-адрес); `ip` — fallback.
+/// `None` если оба пусты.
+fn profile_dns_addr(domain: &str, ip: &str) -> Option<String> {
+    let d = domain.trim();
+    if !d.is_empty() {
+        return Some(d.to_string());
+    }
+    let i = ip.trim();
+    if !i.is_empty() {
+        return Some(i.to_string());
+    }
+    None
+}
+
+/// 11.E: преобразовать `DirectSites`-зоны в ключи `nameserver-policy` /
+/// `fake-ip-filter` mihomo. Поддерживаются geosite/домены/суффиксы;
+/// `keyword:`/голые слова пропускаем (policy не матчит по keyword).
+fn dns_policy_keys(sites: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for s in sites {
+        let s = s.trim();
+        if s.is_empty() {
+            continue;
+        }
+        if let Some(r) = s.strip_prefix("geosite:") {
+            out.push(format!("geosite:{r}"));
+        } else if s.starts_with("keyword:") {
+            // nameserver-policy не умеет keyword-матчинг — пропускаем.
+        } else if let Some(r) = s.strip_prefix("*.") {
+            out.push(format!("+.{r}"));
+        } else if let Some(r) = s.strip_prefix("domain:") {
+            out.push(r.to_string());
+        } else if s.contains('.') {
+            // Голый домен → суффикс (как DOMAIN-SUFFIX в правилах).
+            out.push(format!("+.{s}"));
+        }
+    }
+    out
+}
+
+/// 11.E (full-profile): аддитивно домержить DNS активного профиля в
+/// провайдерскую `dns:` секцию — только `hosts` и `nameserver-policy`
+/// для direct-зон. Общий `nameserver` / `enhanced-mode` провайдера НЕ
+/// трогаем (его выбор — источник истины). Если `dns:` секции нет —
+/// пропускаем (не фабрикуем, чтобы не сломать резолв провайдера).
+fn merge_profile_dns(root: &mut Mapping, profile: &super::routing_profile::RoutingProfile) {
+    let Some(dns) = root
+        .get_mut(Value::String("dns".into()))
+        .and_then(|v| v.as_mapping_mut())
+    else {
+        return;
+    };
+    // hosts: мёрж, профиль приоритетнее при коллизии ключа.
+    if !profile.dns_hosts.is_empty() {
+        let hosts = dns
+            .entry(Value::String("hosts".into()))
+            .or_insert_with(|| Value::Mapping(Mapping::new()));
+        if let Some(h) = hosts.as_mapping_mut() {
+            for (k, v) in &profile.dns_hosts {
+                h.insert(k.clone().into(), v.clone().into());
+            }
+        }
+    }
+    // nameserver-policy для domestic-зон: добавляем только отсутствующие
+    // ключи — провайдерскую политику для того же домена не перетираем.
+    if let Some(domestic) = profile_dns_addr(&profile.domestic_dns_domain, &profile.domestic_dns_ip)
+    {
+        let keys = dns_policy_keys(&profile.direct_sites);
+        if !keys.is_empty() {
+            let pol = dns
+                .entry(Value::String("nameserver-policy".into()))
+                .or_insert_with(|| Value::Mapping(Mapping::new()));
+            if let Some(p) = pol.as_mapping_mut() {
+                for k in keys {
+                    p.entry(Value::String(k))
+                        .or_insert_with(|| Value::Sequence(vec![domestic.clone().into()]));
+                }
+            }
+        }
+    }
+}
+
+/// #1: секция `sniffer` — извлечение реального домена из трафика.
+///
+/// `override-destination: true` — подменяем dst на заснифанный домен, чтобы
+/// domain-правила и per-app сработали даже по IP/fake-ip. `force-dns-mapping`
+/// + `parse-pure-ip` — сниффим и «голый» IP-трафик. `skip-domain` — то, что
+/// ломается от подмены (Apple push). Порты заданы для TLS/HTTP/QUIC.
+fn build_sniffer() -> Mapping {
+    let mut s = Mapping::new();
+    s.insert("enable".into(), true.into());
+    s.insert("override-destination".into(), true.into());
+    s.insert("force-dns-mapping".into(), true.into());
+    s.insert("parse-pure-ip".into(), true.into());
+
+    let mut sniff = Mapping::new();
+    let mut tls = Mapping::new();
+    tls.insert(
+        "ports".into(),
+        Value::Sequence(vec![443.into(), 8443.into()]),
+    );
+    let mut http = Mapping::new();
+    http.insert(
+        "ports".into(),
+        Value::Sequence(vec![80.into(), Value::from("8080-8880")]),
+    );
+    // HTTP без override-destination — plaintext Host часто врёт за CDN.
+    http.insert("override-destination".into(), false.into());
+    let mut quic = Mapping::new();
+    quic.insert("ports".into(), Value::Sequence(vec![443.into()]));
+    sniff.insert("TLS".into(), Value::Mapping(tls));
+    sniff.insert("HTTP".into(), Value::Mapping(http));
+    sniff.insert("QUIC".into(), Value::Mapping(quic));
+    s.insert("sniff".into(), Value::Mapping(sniff));
+
+    s.insert(
+        "skip-domain".into(),
+        Value::Sequence(vec!["+.push.apple.com".into()]),
+    );
+    s
 }
 
 // ─── Per-protocol mappers ────────────────────────────────────────────────────
@@ -496,6 +884,22 @@ fn apply_stream(map: &mut Mapping, raw: &serde_json::Value) {
     }
     if b(raw, "allowInsecure").unwrap_or(false) || b(raw, "insecure").unwrap_or(false) {
         map.insert("skip-cert-verify".into(), true.into());
+    }
+    // #2: ECH (Encrypted ClientHello) — прячет SNI на уровне TLS-handshake
+    // (анти-DPI). Источник: готовый объект `ech-opts` в raw (clash-shape)
+    // ИЛИ URI-параметр `ech` с base64 ECHConfigList. Требует поддержки на
+    // сервере; если параметра нет — ничего не добавляем.
+    if let Some(ech_opts) = raw.get("ech-opts") {
+        if let Ok(v) = serde_yaml::to_value(ech_opts) {
+            map.insert("ech-opts".into(), v);
+        }
+    } else if let Some(ech) = s(raw, "ech") {
+        if !ech.is_empty() {
+            let mut eo = Mapping::new();
+            eo.insert("enable".into(), true.into());
+            eo.insert("config".into(), ech.into());
+            map.insert("ech-opts".into(), Value::Mapping(eo));
+        }
     }
     // REALITY (vless only обычно)
     if security == "reality" {
@@ -822,6 +1226,22 @@ pub struct FullYamlPatch<'a> {
     /// ставим `tun.device` в замаскированное имя (перезаписывая
     /// провайдерское). `None` → имя из подписки / mihomo default.
     pub tun_device: Option<&'a str>,
+    /// 11.F: активный routing-профиль. `Some(p)` → его explicit-правила
+    /// (block/direct/proxy) вставляются ПЕРЕД провайдерскими (после
+    /// app-rules) — split-tunnel override поверх базовой маршрутизации
+    /// подписки. Провайдерский `MATCH` (глобальный дефолт) НЕ трогаем:
+    /// его группы/балансировка остаются как задумал провайдер, поэтому
+    /// `GlobalProxy` профиля в full-profile-режиме не переопределяет
+    /// финальное правило (только явные rule'ы). `None` → без изменений.
+    pub routing_profile: Option<&'a super::routing_profile::RoutingProfile>,
+    /// #4: если `true` — принудительно включаем IPv6 (root + dns), даже
+    /// если провайдер выставил false. `false` → провайдерский выбор не
+    /// трогаем (наш дефолт — не навязывать).
+    pub ipv6: bool,
+    /// #3: пользовательские DNS из настроек. `Some(non-empty)` →
+    /// перезаписываем `dns.nameserver` (общий резолвер), сохраняя
+    /// провайдерскую `nameserver-policy`. `None` → не трогаем DNS провайдера.
+    pub custom_dns: Option<&'a [String]>,
 }
 
 /// 8.F: применяет patch к полному mihomo-YAML из подписки и возвращает
@@ -933,6 +1353,10 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
             // auto-route: пусть mihomo сам ставит half-routes/0.0.0.0
             tun.entry(Value::String("auto-route".into()))
                 .or_insert_with(|| true.into());
+            // #3: strict-route — анти-leak (не override, если провайдер
+            // явно выключил).
+            tun.entry(Value::String("strict-route".into()))
+                .or_insert_with(|| true.into());
             // 12.E: перезаписываем имя адаптера на замаскированное, если
             // включена маскировка. Иначе сохраняем провайдерское / default.
             if let Some(dev) = patch.tun_device {
@@ -961,19 +1385,22 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
     // ── Префиксные правила (наш приоритет) ────────────────────────────
     let mut prefix_rules: Vec<Value> = Vec::new();
     for r in patch.app_rules {
-        if r.exe.trim().is_empty() {
-            continue;
+        if let Some(rule) = app_rule_to_mihomo(r) {
+            prefix_rules.push(Value::String(rule));
         }
-        let target = match r.action.as_str() {
-            "direct" => "DIRECT",
-            "block" => "REJECT",
-            _ => "PROXY",
-        };
-        prefix_rules.push(Value::String(format!(
-            "PROCESS-NAME,{},{}",
-            r.exe.trim(),
-            target
-        )));
+    }
+
+    // 11.F: explicit-правила активного routing-профиля. Идут ПОСЛЕ
+    // app-rules (PROCESS-NAME точечнее) и ПЕРЕД провайдерскими — так
+    // пользовательский split-tunnel override перебивает дефолтную
+    // маршрутизацию подписки, но провайдерский MATCH остаётся финальным.
+    // proxy-target — провайдерская группа (detect_proxy_target), иначе
+    // mihomo отбросил бы правило на несуществующий outbound.
+    if let Some(p) = patch.routing_profile {
+        let proxy_target = detect_proxy_target(root);
+        for r in mihomo_rules_from_profile(p, &proxy_target) {
+            prefix_rules.push(Value::String(r));
+        }
     }
 
     // Anti-DPI server-resolve через DoH: если включён, подставляем в
@@ -1003,6 +1430,13 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
         }
     }
 
+    // 11.E: аддитивный мёрж DNS активного профиля (hosts + domestic
+    // nameserver-policy). Общий nameserver/enhanced-mode провайдера не
+    // трогаем — это его зона ответственности в full-profile.
+    if let Some(p) = patch.routing_profile {
+        merge_profile_dns(root, p);
+    }
+
     // ── Префиксные правила в начало rules ─────────────────────────────
     if !prefix_rules.is_empty() {
         let rules_entry = root
@@ -1020,6 +1454,77 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
     // войдёт в global mode (всё через PROXY) и наши rules не сработают.
     if !root.contains_key("mode") {
         root.insert("mode".into(), "rule".into());
+    }
+
+    // 11.B: если вшили geo-правила активного профиля — гарантируем
+    // `.dat`-режим (geofiles::provision_into кладёт файлы в data-dir) и
+    // выключаем авто-обновление. Провайдерский `geodata-mode` НЕ перетираем
+    // (entry/or_insert): если он явно выбрал mmdb — это его решение.
+    if patch.routing_profile.is_some() {
+        root.entry(Value::String("geodata-mode".into()))
+            .or_insert_with(|| true.into());
+        root.entry(Value::String("geo-auto-update".into()))
+            .or_insert_with(|| false.into());
+    }
+
+    // #2/#7/#8/#1: фичи mihomo для full-profile — добавляем ТОЛЬКО если
+    // провайдер их не задал (or_insert), чтобы не перетереть его выбор.
+    root.entry(Value::String("tcp-concurrent".into()))
+        .or_insert_with(|| true.into());
+    root.entry(Value::String("unified-delay".into()))
+        .or_insert_with(|| true.into());
+    // #2: глобальный fingerprint — per-proxy и провайдерский имеют приоритет.
+    root.entry(Value::String("global-client-fingerprint".into()))
+        .or_insert_with(|| "chrome".into());
+    // #1: sniffer — если у провайдера секции нет, ставим свою (для domain-
+    // правил/per-app по IP). Если есть — не трогаем.
+    root.entry(Value::String("sniffer".into()))
+        .or_insert_with(|| Value::Mapping(build_sniffer()));
+    // #8: persist выбранной ноды/fake-ip. Мёржим в существующий profile.
+    {
+        let prof = root
+            .entry(Value::String("profile".into()))
+            .or_insert_with(|| Value::Mapping(Mapping::new()));
+        if let Some(pm) = prof.as_mapping_mut() {
+            pm.entry(Value::String("store-selected".into()))
+                .or_insert_with(|| true.into());
+            pm.entry(Value::String("store-fake-ip".into()))
+                .or_insert_with(|| true.into());
+        }
+    }
+
+    // #4: включаем IPv6 только если пользователь явно попросил — override
+    // провайдерского false. Выключение оставляем провайдеру.
+    if patch.ipv6 {
+        root.insert("ipv6".into(), true.into());
+        if let Some(d) = root
+            .entry(Value::String("dns".into()))
+            .or_insert_with(|| Value::Mapping(Mapping::new()))
+            .as_mapping_mut()
+        {
+            d.insert("ipv6".into(), true.into());
+        }
+    }
+
+    // #3: пользовательский DNS перезаписывает общий nameserver провайдера
+    // (его nameserver-policy сохраняем). Только непустые значения.
+    if let Some(cdns) = patch.custom_dns {
+        let v: Vec<Value> = cdns
+            .iter()
+            .map(|s| s.trim())
+            .filter(|s| !s.is_empty())
+            .map(|s| Value::from(s.to_string()))
+            .collect();
+        if !v.is_empty() {
+            if let Some(d) = root
+                .entry(Value::String("dns".into()))
+                .or_insert_with(|| Value::Mapping(Mapping::new()))
+                .as_mapping_mut()
+            {
+                d.insert("enable".into(), true.into());
+                d.insert("nameserver".into(), Value::Sequence(v));
+            }
+        }
     }
 
     let yaml = serde_yaml::to_string(&value)
@@ -1045,6 +1550,9 @@ mod patch_tests {
             anti_dpi: None,
             use_builtin_tun: false,
             tun_device: None,
+            routing_profile: None,
+            ipv6: false,
+            custom_dns: None,
         }
     }
 
@@ -1153,6 +1661,426 @@ proxy-groups:
             Some("127.0.0.1:31001")
         );
         assert_eq!(m["secret"].as_str(), Some("test-secret-uuid"));
+    }
+
+    /// 11.F: правила активного routing-профиля вставляются в full-profile
+    /// ПОСЛЕ app-rules и ПЕРЕД провайдерскими; proxy-target берётся из
+    /// провайдерского MATCH (а не литерал "PROXY"), MATCH не трогаем.
+    #[test]
+    fn patch_injects_routing_profile_rules() {
+        use crate::config::routing_profile::{BoolString, RoutingProfile};
+        let yaml = r#"
+proxies: []
+proxy-groups:
+  - name: "🚀 Выбор"
+    type: select
+    proxies: []
+rules:
+  - DOMAIN-SUFFIX,provider.example,DIRECT
+  - MATCH,🚀 Выбор
+"#;
+        let profile = RoutingProfile {
+            name: "T".into(),
+            global_proxy: BoolString(true),
+            direct_sites: vec!["geosite:ru".into()],
+            block_sites: vec!["geosite:category-ads-all".into()],
+            proxy_sites: vec!["geosite:youtube".into()],
+            ..Default::default()
+        };
+        let mut p = base_patch();
+        p.routing_profile = Some(&profile);
+        let cfg = patch_full_yaml(yaml, &p).expect("patch ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let rules = v.as_mapping().unwrap()["rules"].as_sequence().unwrap();
+        let strs: Vec<&str> = rules.iter().filter_map(|r| r.as_str()).collect();
+        // block идёт первым, proxy-target = провайдерская группа.
+        assert_eq!(strs[0], "GEOSITE,category-ads-all,REJECT");
+        assert!(strs.contains(&"GEOSITE,ru,DIRECT"));
+        assert!(strs.contains(&"GEOSITE,youtube,🚀 Выбор"));
+        // Провайдерские правила и их MATCH сохранены и идут ПОСЛЕ наших.
+        let our_last = strs
+            .iter()
+            .position(|s| *s == "GEOSITE,youtube,🚀 Выбор")
+            .unwrap();
+        let provider_match = strs.iter().position(|s| *s == "MATCH,🚀 Выбор").unwrap();
+        assert!(our_last < provider_match, "наши правила до MATCH провайдера");
+        assert!(
+            strs.contains(&"DOMAIN-SUFFIX,provider.example,DIRECT"),
+            "провайдерское правило сохранено"
+        );
+    }
+
+    /// 11.F: app-rules (PROCESS-NAME) приоритетнее правил профиля —
+    /// идут раньше в списке.
+    #[test]
+    fn patch_app_rules_precede_profile_rules() {
+        use crate::config::routing_profile::RoutingProfile;
+        let yaml = r#"
+proxies: []
+proxy-groups:
+  - name: select
+    type: select
+    proxies: []
+rules:
+  - MATCH,select
+"#;
+        let profile = RoutingProfile {
+            name: "T".into(),
+            direct_sites: vec!["geosite:ru".into()],
+            ..Default::default()
+        };
+        let app = vec![AppRule {
+            exe: "telegram.exe".into(),
+            action: "proxy".into(),
+            comment: None,
+        }];
+        let mut p = base_patch();
+        p.app_rules = &app;
+        p.routing_profile = Some(&profile);
+        let cfg = patch_full_yaml(yaml, &p).expect("patch ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let rules = v.as_mapping().unwrap()["rules"].as_sequence().unwrap();
+        let strs: Vec<&str> = rules.iter().filter_map(|r| r.as_str()).collect();
+        let app_pos = strs
+            .iter()
+            .position(|s| s.starts_with("PROCESS-NAME,telegram.exe"))
+            .unwrap();
+        let prof_pos = strs.iter().position(|s| *s == "GEOSITE,ru,DIRECT").unwrap();
+        assert!(app_pos < prof_pos, "app-rule раньше правила профиля");
+    }
+
+    /// 11.E: split-DNS из профиля — remote nameserver, domestic policy,
+    /// hosts, fake-ip с фильтром direct-зон.
+    #[test]
+    fn build_dns_full_split_from_profile() {
+        use crate::config::routing_profile::{BoolString, RoutingProfile};
+        let mut hosts = std::collections::BTreeMap::new();
+        hosts.insert("router.lan".to_string(), "192.168.1.1".to_string());
+        let p = RoutingProfile {
+            name: "T".into(),
+            fake_dns: BoolString(true),
+            remote_dns_domain: "https://dns.example/dns-query".into(),
+            remote_dns_ip: "9.9.9.9".into(),
+            domestic_dns_domain: "".into(),
+            domestic_dns_ip: "77.88.8.8".into(),
+            direct_sites: vec!["geosite:ru".into(), "*.local-cdn.ru".into()],
+            dns_hosts: hosts,
+            ..Default::default()
+        };
+        let dns = build_dns(None, Some(&p), false, None);
+        // enhanced-mode fake-ip + фильтр содержит direct-зону.
+        assert_eq!(dns["enhanced-mode"].as_str(), Some("fake-ip"));
+        let filter = dns["fake-ip-filter"].as_sequence().unwrap();
+        let fstr: Vec<&str> = filter.iter().filter_map(|v| v.as_str()).collect();
+        assert!(fstr.contains(&"geosite:ru"));
+        assert!(fstr.contains(&"+.local-cdn.ru"));
+        // remote nameserver = RemoteDNSDomain, bootstrap = RemoteDNSIP.
+        assert_eq!(
+            dns["nameserver"][0].as_str(),
+            Some("https://dns.example/dns-query")
+        );
+        assert_eq!(dns["default-nameserver"][0].as_str(), Some("9.9.9.9"));
+        // domestic policy для geosite:ru → DomesticDNSIP.
+        let pol = dns["nameserver-policy"].as_mapping().unwrap();
+        let dom = pol.get(Value::String("geosite:ru".into())).unwrap();
+        assert_eq!(dom[0].as_str(), Some("77.88.8.8"));
+        // hosts.
+        assert_eq!(dns["hosts"]["router.lan"].as_str(), Some("192.168.1.1"));
+    }
+
+    /// 11.E: без профиля — дефолтный redir-host + Cloudflare/Google.
+    #[test]
+    fn build_dns_defaults_without_profile() {
+        let dns = build_dns(None, None, false, None);
+        assert_eq!(dns["enhanced-mode"].as_str(), Some("redir-host"));
+        assert!(!dns.contains_key(Value::String("nameserver-policy".into())));
+        assert!(dns["nameserver"][0]
+            .as_str()
+            .unwrap()
+            .contains("cloudflare"));
+    }
+
+    /// 11.E: dns_policy_keys — geosite/суффикс/домен; keyword и голые
+    /// слова пропускаются.
+    #[test]
+    fn dns_policy_keys_conversion() {
+        let keys = dns_policy_keys(&[
+            "geosite:ru".into(),
+            "*.example.com".into(),
+            "domain:exact.com".into(),
+            "plain.org".into(),
+            "keyword:vk".into(),
+            "ads".into(),
+        ]);
+        assert_eq!(
+            keys,
+            vec!["geosite:ru", "+.example.com", "exact.com", "+.plain.org"]
+        );
+    }
+
+    /// 11.E (full-profile): merge_profile_dns добавляет hosts и domestic
+    /// policy, но НЕ перетирает провайдерский nameserver и policy-ключ.
+    #[test]
+    fn merge_profile_dns_is_additive() {
+        use crate::config::routing_profile::RoutingProfile;
+        let mut root: Mapping = serde_yaml::from_str(
+            "dns:\n  enable: true\n  nameserver: [https://provider.dns/q]\n  nameserver-policy:\n    \"geosite:ru\": [1.1.1.1]\n",
+        )
+        .unwrap();
+        let mut hosts = std::collections::BTreeMap::new();
+        hosts.insert("my.host".to_string(), "10.0.0.5".to_string());
+        let p = RoutingProfile {
+            name: "T".into(),
+            domestic_dns_ip: "77.88.8.8".into(),
+            direct_sites: vec!["geosite:ru".into(), "geosite:private".into()],
+            dns_hosts: hosts,
+            ..Default::default()
+        };
+        merge_profile_dns(&mut root, &p);
+        let dns = root[Value::String("dns".into())].as_mapping().unwrap();
+        // провайдерский nameserver не тронут.
+        assert_eq!(dns["nameserver"][0].as_str(), Some("https://provider.dns/q"));
+        let pol = dns["nameserver-policy"].as_mapping().unwrap();
+        // существующий ключ geosite:ru НЕ перетёрт (остался 1.1.1.1).
+        assert_eq!(
+            pol.get(Value::String("geosite:ru".into())).unwrap()[0].as_str(),
+            Some("1.1.1.1")
+        );
+        // новый ключ geosite:private добавлен с DomesticDNS.
+        assert_eq!(
+            pol.get(Value::String("geosite:private".into())).unwrap()[0].as_str(),
+            Some("77.88.8.8")
+        );
+        // hosts домержены.
+        assert_eq!(dns["hosts"]["my.host"].as_str(), Some("10.0.0.5"));
+    }
+
+    /// 11.E (full-profile): без `dns:` секции merge не фабрикует её.
+    #[test]
+    fn merge_profile_dns_skips_when_no_dns_section() {
+        use crate::config::routing_profile::RoutingProfile;
+        let mut root: Mapping = serde_yaml::from_str("proxies: []\n").unwrap();
+        let p = RoutingProfile {
+            name: "T".into(),
+            domestic_dns_ip: "77.88.8.8".into(),
+            direct_sites: vec!["geosite:ru".into()],
+            ..Default::default()
+        };
+        merge_profile_dns(&mut root, &p);
+        assert!(!root.contains_key(Value::String("dns".into())));
+    }
+
+    /// #4: regex-правило профиля → DOMAIN-REGEX (раньше скипалось).
+    #[test]
+    fn regex_rule_maps_to_domain_regex() {
+        use crate::config::routing_profile::RoutingProfile;
+        let p = RoutingProfile {
+            name: "T".into(),
+            proxy_sites: vec![r"regex:.*\.example\.(com|org)".into()],
+            ..Default::default()
+        };
+        let rules = mihomo_rules_from_profile(&p, "PROXY");
+        assert!(rules.contains(&r"DOMAIN-REGEX,.*\.example\.(com|org),PROXY".to_string()));
+    }
+
+    /// #1: sniffer включает TLS/HTTP/QUIC + override-destination.
+    #[test]
+    fn sniffer_has_tls_http_quic() {
+        let s = build_sniffer();
+        assert_eq!(s["enable"].as_bool(), Some(true));
+        assert_eq!(s["override-destination"].as_bool(), Some(true));
+        let sniff = s["sniff"].as_mapping().unwrap();
+        assert!(sniff.contains_key(Value::String("TLS".into())));
+        assert!(sniff.contains_key(Value::String("HTTP".into())));
+        assert!(sniff.contains_key(Value::String("QUIC".into())));
+    }
+
+    /// #3: built-in TUN mapping содержит strict-route + route-exclude
+    /// приватных диапазонов (LAN не ломается при strict-route).
+    #[test]
+    fn builtin_tun_has_strict_route_and_lan_exclude() {
+        let tun = builtin_tun_mapping(None);
+        assert_eq!(tun["strict-route"].as_bool(), Some(true));
+        let excl = tun["route-exclude-address"].as_sequence().unwrap();
+        let s: Vec<&str> = excl.iter().filter_map(|v| v.as_str()).collect();
+        assert!(s.contains(&"192.168.0.0/16"));
+        assert!(s.contains(&"fc00::/7"));
+    }
+
+    /// LAN/loopback/link-local идут DIRECT (не в туннель).
+    #[test]
+    fn local_direct_rules_cover_private_ranges() {
+        let r = local_direct_rules();
+        assert!(r.iter().any(|x| x.contains("127.0.0.0/8") && x.contains("DIRECT")));
+        assert!(r.iter().any(|x| x.contains("192.168.0.0/16")));
+        assert!(r.iter().any(|x| x.contains("::1/128")));
+        assert!(r.iter().all(|x| x.ends_with("no-resolve")));
+    }
+
+    /// build_dns: respect-rules + proxy-server-nameserver выставлены
+    /// (DNS следует правилам, хост ноды резолвится отдельно — без петли).
+    #[test]
+    fn build_dns_has_respect_rules_and_proxy_server_ns() {
+        let dns = build_dns(None, None, false, None);
+        assert_eq!(dns["respect-rules"].as_bool(), Some(true));
+        assert!(dns
+            .get(Value::String("proxy-server-nameserver".into()))
+            .and_then(|v| v.as_sequence())
+            .is_some_and(|s| !s.is_empty()));
+    }
+
+    /// #2/#7/#8/#1: full-profile получает фичи, если провайдер их не задал.
+    #[test]
+    fn patch_adds_mihomo_features_when_absent() {
+        let yaml = "proxies: []\nproxy-groups:\n  - {name: s, type: select, proxies: []}\n";
+        let cfg = patch_full_yaml(yaml, &base_patch()).expect("ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let m = v.as_mapping().unwrap();
+        assert_eq!(m["tcp-concurrent"].as_bool(), Some(true));
+        assert_eq!(m["unified-delay"].as_bool(), Some(true));
+        assert_eq!(m["global-client-fingerprint"].as_str(), Some("chrome"));
+        assert!(m.contains_key(Value::String("sniffer".into())));
+        let prof = m["profile"].as_mapping().unwrap();
+        assert_eq!(prof["store-selected"].as_bool(), Some(true));
+    }
+
+    /// #2/#7: провайдерские значения этих фич НЕ перетираются.
+    #[test]
+    fn patch_respects_provider_feature_values() {
+        let yaml = "global-client-fingerprint: firefox\ntcp-concurrent: false\nproxies: []\nproxy-groups:\n  - {name: s, type: select, proxies: []}\n";
+        let cfg = patch_full_yaml(yaml, &base_patch()).expect("ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let m = v.as_mapping().unwrap();
+        assert_eq!(m["global-client-fingerprint"].as_str(), Some("firefox"));
+        assert_eq!(m["tcp-concurrent"].as_bool(), Some(false));
+    }
+
+    /// #1: провайдерская url-test группа (failover) переживает patch.
+    #[test]
+    fn patch_preserves_provider_url_test_group() {
+        let yaml = r#"
+proxies: []
+proxy-groups:
+  - name: auto
+    type: url-test
+    url: http://www.gstatic.com/generate_204
+    interval: 300
+    proxies: [a, b, c]
+rules:
+  - MATCH,auto
+"#;
+        let cfg = patch_full_yaml(yaml, &base_patch()).expect("ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let groups = v.as_mapping().unwrap()["proxy-groups"].as_sequence().unwrap();
+        let g = groups[0].as_mapping().unwrap();
+        assert_eq!(g["type"].as_str(), Some("url-test"));
+        assert_eq!(g["interval"].as_u64(), Some(300));
+        assert_eq!(g["proxies"].as_sequence().unwrap().len(), 3);
+    }
+
+    /// #2: ECH из URI-параметра `ech` → ech-opts {enable, config}.
+    #[test]
+    fn apply_stream_ech_from_uri_param() {
+        let raw = serde_json::json!({
+            "type": "tcp",
+            "security": "tls",
+            "sni": "example.com",
+            "ech": "SGVsbG8="
+        });
+        let mut m = Mapping::new();
+        apply_stream(&mut m, &raw);
+        let ech = m[Value::String("ech-opts".into())].as_mapping().unwrap();
+        assert_eq!(ech["enable"].as_bool(), Some(true));
+        assert_eq!(ech["config"].as_str(), Some("SGVsbG8="));
+    }
+
+    /// #2: готовый объект ech-opts в raw сохраняется как есть.
+    #[test]
+    fn apply_stream_ech_opts_object_preserved() {
+        let raw = serde_json::json!({
+            "type": "tcp", "security": "tls",
+            "ech-opts": {"enable": true, "config": "AAAA"}
+        });
+        let mut m = Mapping::new();
+        apply_stream(&mut m, &raw);
+        assert_eq!(
+            m[Value::String("ech-opts".into())]["config"].as_str(),
+            Some("AAAA")
+        );
+    }
+
+    /// #5: app-rule с путём → PROCESS-PATH, с именем → PROCESS-NAME.
+    #[test]
+    fn app_rule_path_vs_name() {
+        let by_name = AppRule { exe: "telegram.exe".into(), action: "proxy".into(), comment: None };
+        let by_path = AppRule {
+            exe: r"C:\Program Files\App\app.exe".into(),
+            action: "direct".into(),
+            comment: None,
+        };
+        assert_eq!(
+            app_rule_to_mihomo(&by_name).unwrap(),
+            "PROCESS-NAME,telegram.exe,PROXY"
+        );
+        assert_eq!(
+            app_rule_to_mihomo(&by_path).unwrap(),
+            r"PROCESS-PATH,C:\Program Files\App\app.exe,DIRECT"
+        );
+    }
+
+    /// #4: ipv6=true включает ipv6 в dns; #3: custom_dns — высший приоритет.
+    #[test]
+    fn build_dns_ipv6_and_custom_dns() {
+        let custom = vec!["https://my.dns/q".to_string(), "1.0.0.1".to_string()];
+        let dns = build_dns(None, None, true, Some(&custom));
+        assert_eq!(dns["ipv6"].as_bool(), Some(true));
+        assert_eq!(dns["nameserver"][0].as_str(), Some("https://my.dns/q"));
+        assert_eq!(dns["nameserver"][1].as_str(), Some("1.0.0.1"));
+        // bootstrap всё ещё дефолтный (custom не обязан быть plain-IP).
+        assert!(dns
+            .get(Value::String("default-nameserver".into()))
+            .is_some());
+    }
+
+    /// #4 (full-profile): ipv6=true override; #3: custom_dns перетирает
+    /// nameserver, но сохраняет провайдерскую policy.
+    #[test]
+    fn patch_ipv6_and_custom_dns_override() {
+        let yaml = "ipv6: false\ndns:\n  nameserver: [https://prov/q]\n  nameserver-policy:\n    \"geosite:ru\": [1.1.1.1]\nproxies: []\nproxy-groups:\n  - {name: s, type: select, proxies: []}\n";
+        let mut p = base_patch();
+        p.ipv6 = true;
+        let custom = vec!["8.8.4.4".to_string()];
+        p.custom_dns = Some(&custom);
+        let cfg = patch_full_yaml(yaml, &p).expect("ok");
+        let v: Value = serde_yaml::from_str(&cfg.yaml).unwrap();
+        let m = v.as_mapping().unwrap();
+        assert_eq!(m["ipv6"].as_bool(), Some(true));
+        let dns = m["dns"].as_mapping().unwrap();
+        assert_eq!(dns["ipv6"].as_bool(), Some(true));
+        assert_eq!(dns["nameserver"][0].as_str(), Some("8.8.4.4"));
+        // policy провайдера сохранена.
+        assert!(dns
+            .get(Value::String("nameserver-policy".into()))
+            .and_then(|v| v.as_mapping())
+            .is_some_and(|p| p.contains_key(Value::String("geosite:ru".into()))));
+    }
+
+    /// 11.F: detect_proxy_target — приоритет MATCH > первая группа > GLOBAL.
+    #[test]
+    fn detect_proxy_target_priority() {
+        // 1. из MATCH
+        let m: Mapping = serde_yaml::from_str(
+            "rules:\n  - MATCH,my-group\nproxy-groups:\n  - name: other\n",
+        )
+        .unwrap();
+        assert_eq!(detect_proxy_target(&m), "my-group");
+        // 2. из первой группы (нет MATCH)
+        let m: Mapping =
+            serde_yaml::from_str("proxy-groups:\n  - name: first\n  - name: second\n").unwrap();
+        assert_eq!(detect_proxy_target(&m), "first");
+        // 3. fallback
+        let m: Mapping = serde_yaml::from_str("proxies: []\n").unwrap();
+        assert_eq!(detect_proxy_target(&m), "GLOBAL");
     }
 
     /// 8.F: provider's authentication перезаписывается нашим SOCKS-auth.

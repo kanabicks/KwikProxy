@@ -5,10 +5,11 @@
 //! берём `.sha256` (64 hex-символа, ≤100 байт) и сравниваем с
 //! сохранённым. Если совпадает — пропускаем `.dat` (5-15 МБ экономии).
 //!
-//! Файлы кешируются в `%LOCALAPPDATA%\NemefistoVPN\geofiles\`. Xray
-//! находит их через env-var `XRAY_LOCATION_ASSET` (выставляется в
-//! `vpn::xray::spawn` перед стартом sidecar). Mihomo получает прямой
-//! путь через `geox-url:` в YAML-конфиге.
+//! Файлы кешируются в `%LOCALAPPDATA%\NemefistoVPN\geofiles\`. Mihomo
+//! читает geo-базы из своей `-d` data-dir, поэтому перед стартом мы
+//! копируем туда лучший доступный источник через [`provision_into`]:
+//! пользовательский (свежескачанный) приоритетнее бандла из ресурсов.
+//! В YAML-конфиге выставляется `geodata-mode: true` (формат v2ray .dat).
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -41,6 +42,70 @@ pub fn geofiles_dir() -> Option<PathBuf> {
             .map(PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))?;
         Some(base.join(DIR_NAME).join(GEOFILES_SUBDIR))
+    }
+}
+
+/// Имена geo-файлов, которые понимает mihomo в `geodata-mode: true`.
+const GEO_FILES: [&str; 2] = ["geoip.dat", "geosite.dat"];
+
+/// Найти бандл-копию geo-файла (положена сборкой в `resources/` или
+/// `binaries/`). Логика поиска повторяет `resolve_sidecar_path`: рядом с
+/// exe, в `resources`/`binaries`, и dev-путь `target/{profile}/binaries`.
+fn bundled_geo_path(name: &str) -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    let mut candidates = vec![
+        exe_dir.join("resources").join(name),
+        exe_dir.join("binaries").join(name),
+        exe_dir.join(name),
+    ];
+    if let Some(dev_root) = exe_dir.parent().and_then(|p| p.parent()) {
+        candidates.push(dev_root.join("binaries").join(name));
+    }
+    candidates.into_iter().find(|c| c.is_file())
+}
+
+/// Обеспечить наличие geo `.dat` в data-dir mihomo (`-d`).
+///
+/// Mihomo при `geodata-mode: true` ищет `geoip.dat` / `geosite.dat` в
+/// своей data-dir. Без них правила `GEOSITE:` / `GEOIP:` (и встроенный
+/// `minimal_ru`-шаблон) ломают старт mihomo. Скачанные пользователем
+/// файлы лежат в [`geofiles_dir`] (другой каталог), бандл — в ресурсах.
+///
+/// Для каждого файла копируем лучший источник: пользовательский
+/// (свежий) приоритетнее бандла. Копируем только если в data-dir файла
+/// нет или он другого размера — geo `.dat` ~10-20 МБ, лишние копии при
+/// каждом connect не нужны. Ошибки копирования логируем, но не валим
+/// connect (mihomo всё равно попробует свои дефолты).
+pub fn provision_into(data_dir: &Path) {
+    let user_dir = geofiles_dir();
+    for name in GEO_FILES {
+        let src = user_dir
+            .as_ref()
+            .map(|d| d.join(name))
+            .filter(|p| p.is_file())
+            .or_else(|| bundled_geo_path(name));
+        let Some(src) = src else {
+            eprintln!("[geofiles] нет источника для {name} (ни user, ни bundle)");
+            continue;
+        };
+        let dest = data_dir.join(name);
+        if same_size(&src, &dest) {
+            continue;
+        }
+        match std::fs::copy(&src, &dest) {
+            Ok(n) => eprintln!("[geofiles] provision {name} ({n} байт) → {}", data_dir.display()),
+            Err(e) => eprintln!("[geofiles] copy {name} → data-dir не удался: {e}"),
+        }
+    }
+}
+
+/// `true` если оба файла существуют и одного размера (дешёвая проверка
+/// «копировать не нужно» без хеширования 20 МБ).
+fn same_size(a: &Path, b: &Path) -> bool {
+    match (std::fs::metadata(a), std::fs::metadata(b)) {
+        (Ok(ma), Ok(mb)) => ma.len() == mb.len() && ma.len() > 0,
+        _ => false,
     }
 }
 

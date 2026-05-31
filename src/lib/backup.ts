@@ -63,6 +63,8 @@ const SETTINGS_WHITELIST: Array<keyof Settings> = [
   "autoApplyMinimalRuRules",
   "dnsLeakProtection",
   "forceDisableIpv6",
+  "ipv6",
+  "customDns",
   "pingMethod",
   "pingUrl",
   "pingTimeoutSec",

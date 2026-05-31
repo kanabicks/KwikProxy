@@ -85,6 +85,9 @@ impl MihomoState {
 
         // Mihomo требует «директорию данных» где хранятся geoip/geosite и cache.db.
         // Используем тот же %TEMP%\NemefistoVPN — Mihomo сам создаст при необходимости.
+        // 11.B: кладём geo `.dat` (user-скачанные приоритетнее бандла) в data-dir,
+        // иначе правила GEOSITE:/GEOIP: профиля ломают старт mihomo.
+        crate::config::geofiles::provision_into(&tmp_dir);
         let data_dir_str = tmp_dir
             .to_str()
             .ok_or_else(|| "путь к data-dir содержит не-UTF-8 символы".to_string())?;

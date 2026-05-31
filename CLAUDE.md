@@ -155,7 +155,13 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
-**0.5.2 (текущий) — закрытие хвостов Mihomo-only + SVG-флаги**:
+**0.6.0 (текущий) — аудит routing 11.x + split-DNS + расширенные
+возможности mihomo**: см. блок «11.A…G routing» и «Доп. mihomo-фичи» в
+разделе «Что осталось» (split-DNS 11.E, sniffer, global-client-fingerprint,
+TUN strict-route, DOMAIN-REGEX, DNS fallback, ECH passthrough, IPv6-тоггл,
+свой DNS, PROCESS-PATH, LAN-direct + route-exclude, respect-rules).
+
+**0.5.2 — закрытие хвостов Mihomo-only + SVG-флаги**:
 - **12.E маскировка TUN-имени для Mihomo** — `tun.device` ставится в
   замаскированное имя (`wlan99` / `Ethernet 7` / `Local Area Connection N`)
   через `mihomo_config::masked_tun_name`; работает и в `build` (URI), и в
@@ -190,9 +196,45 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
   frameless на чистой машине.
 - **14.B code signing** ⚠️ — без подписи SmartScreen ругается (релиз-блокер).
 - **14.H** privacy policy + LICENSE (до публичного релиза).
-- **11.A…G** routing-профили + geofiles + autorouting + deep-links — большой
-  блок, частично реализован (`routing_profile.rs`, `RoutingProfilesPanel`,
-  `routing_add_url/static`, geofiles) — проверить полноту/UI.
+- **11.A…G** routing-профили — ✅ **аудит проведён 2026-06-01, ядро рабочее**
+  (модель/стор/scheduler/UI/deep-links/применение правил при connect). Две
+  дыры закрыты: (1) профиль теперь применяется и в full-mihomo-profile
+  passthrough (`FullYamlPatch.routing_profile` + `detect_proxy_target`),
+  (2) geo `.dat` копируются в data-dir mihomo (`geofiles::provision_into`,
+  `geodata-mode: true`) — раньше mihomo их не видел и падал на geo-правилах.
+  **11.E split-DNS** ✅ — DNS-поля профиля транслируются в mihomo `dns:`
+  (`build_dns`: remote DoH + bootstrap, domestic `nameserver-policy`,
+  `hosts`, `fake-ip`+filter; full-profile — аддитивный `merge_profile_dns`).
+- **Батч mihomo-фич** ✅ (по запросу «использовать всё что умеет ядро»):
+  #1 `sniffer` (SNI/Host/QUIC, override-destination) — фундамент domain-
+  правил и fake-ip; #2 `global-client-fingerprint: chrome` (uTLS, per-proxy
+  fp приоритетнее); #3 TUN `strict-route` (анти-leak); #4 `DOMAIN-REGEX`
+  (`regex:` теперь поддержан); #5 DNS `fallback`+`fallback-filter`
+  (geoip RU, анти-подмена); #7 `tcp-concurrent`+`unified-delay`; #8
+  `profile.store-selected/store-fake-ip`. В full-profile всё через
+  `or_insert` (провайдерский выбор приоритетнее). **Не сделано**: #6
+  rule-providers для URI (нет источника rule-set URL в формате профиля),
+  #9 url-test/fallback-группы (= 13.C failover, нужен multi-node),
+  #10 протоколы snell/ssr/mieru/ssh + smux (нет спроса от панелей).
+- **Аудит по офиц. wiki mihomo (2026-06-01)** + добавлено: базовые DIRECT
+  для приватных/loopback/link-local диапазонов перед MATCH (`local_direct_rules`)
+  и TUN `route-exclude-address` — иначе `strict-route` ломал LAN/роутер;
+  DNS `respect-rules: true` + `proxy-server-nameserver` (проксируемые домены
+  резолвятся внутри туннеля, хост ноды — отдельно без петли). Осознанно НЕ
+  делаем (нет входных данных/спроса или нужен multi-node): listeners,
+  proxy-providers, url-test/fallback-группы, доп. rule-типы (DST-PORT/
+  IP-ASN/PROCESS-PATH/AND-OR-NOT/SUB-RULE), ECH/tfo/mptcp/smux per-proxy,
+  ntp, keep-alive-тюнинг — full-profile passthrough их и так сохраняет.
+- **Доп. mihomo-фичи (2026-06-01, по запросу)**: #1 failover — только из
+  конфига провайдера (url-test/fallback группы переживают passthrough; свою
+  для URI не синтезируем); #2 **ECH** passthrough в `apply_stream` (из
+  URI-параметра `ech` или объекта `ech-opts`); #5 **PROCESS-PATH** в
+  app-rules (`app_rule_to_mihomo`: путь с разделителем → PROCESS-PATH, имя →
+  PROCESS-NAME); #4 **IPv6-тоггл** (`settings.ipv6` → root/dns; в full-profile
+  override провайдерского false); #3 **свой DNS** (`settings.customDns` →
+  высший приоритет для `dns.nameserver`, profile domestic-policy сохраняется).
+  Прокинуто через `connect(ipv6, custom_dns)`; настройки в `settingsStore`
+  (+ backup-allowlist) и Settings → «сеть».
 - Опционально: 13.C failover, 13.E история, 13.F speed-test, 13.J Windows
   Hello, 13.P слияние подписок (частично), 13.Q auto-grouping, 13.G WFP
   per-app (большой).
@@ -207,3 +249,6 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
   понимает формат) — connect даёт понятную ошибку, бейдж «!» в списке.
 - 12.D backup/restore, 14.D IPv6-leak, 14.E crash-recovery, 14.G onboarding —
   ✅ реализованы (ранее статус в роадмапе был устаревшим).
+- ~~routing-профиль игнорировался в full-mihomo-profile~~ ✅ закрыто 2026-06-01.
+- ~~geofiles качались, но mihomo их не видел~~ ✅ закрыто 2026-06-01
+  (`provision_into` + `geodata-mode`).

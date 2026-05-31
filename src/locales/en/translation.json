@@ -382,6 +382,15 @@
         "label": "allow LAN connections",
         "hint": "inbound listens on 0.0.0.0 — other devices on the network can use this proxy (login/password are shown after connect)"
       },
+      "ipv6": {
+        "label": "allow IPv6",
+        "hint": "enables IPv6 inside the core (useful if nodes are IPv6 or the ISP is IPv6-only). off by default for leak safety. not the same as «block IPv6» in kill-switch — that one cuts v6 at the firewall"
+      },
+      "customDns": {
+        "label": "custom DNS",
+        "hint": "your own DNS servers instead of defaults. DoH (https://...), DoT (tls://1.1.1.1) or IP. multiple — comma/space separated. overrides the main resolver (profile's domestic-DNS is kept)",
+        "placeholder": "https://dns.google/dns-query, 1.1.1.1"
+      },
       "tunMasking": {
         "label": "TUN name masking",
         "hint": "the adapter is named like a regular network interface (wlan99 / Local Area Connection / Ethernet). protects against spy apps that detect VPN by adapter name via GetAdaptersAddresses"

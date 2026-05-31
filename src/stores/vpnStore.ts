@@ -294,6 +294,14 @@ export const useVpnStore = create<VpnState>((set, get) => ({
       useSettingsStore.getState().dnsLeakProtection;
     const forceDisableIpv6 =
       useSettingsStore.getState().forceDisableIpv6;
+    // #4: IPv6 внутри ядра. #3: пользовательские DNS — парсим свободный
+    // текст (запятая/пробел/перевод строки) в массив, пустые отбрасываем.
+    const ipv6 = useSettingsStore.getState().ipv6;
+    const customDns = useSettingsStore
+      .getState()
+      .customDns.split(/[\s,]+/)
+      .map((x) => x.trim())
+      .filter((x) => x.length > 0);
     // Mux выпилен вместе с sing-box (был его фичей; Mihomo mux не применяет).
     const antiDpi = buildEffectiveAntiDpi();
     // 8.D: per-process правила. Подаём в Rust в camelCase
@@ -331,6 +339,8 @@ export const useVpnStore = create<VpnState>((set, get) => ({
         forceDisableIpv6,
         autoApplyMinimalRuRules,
         appRules,
+        ipv6,
+        customDns,
       });
       set({
         status: "running",

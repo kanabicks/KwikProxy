@@ -32,28 +32,6 @@ impl Default for DomainStrategy {
     }
 }
 
-/// Тип DNS-записи (DoH или обычный UDP).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub enum DnsKind {
-    #[default]
-    DoH,
-    Plain,
-}
-
-/// DNS-конфиг для проксированного либо direct трафика.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct DnsConfig {
-    /// Тип резолвера (`DoH` или `Plain`).
-    #[serde(default)]
-    pub kind: DnsKind,
-    /// Для DoH — URL `https://...`, для Plain — IP-адрес.
-    #[serde(default)]
-    pub domain: String,
-    /// Bootstrap IP для самого DoH-сервера (чтобы не резолвить через себя же).
-    #[serde(default)]
-    pub ip: String,
-}
-
 /// Routing-профиль — единая декларация split-routing правил.
 ///
 /// Поля имеют PascalCase для совместимости с Marzban / 3x-ui / sing-box
@@ -75,10 +53,18 @@ pub struct RoutingProfile {
     pub last_updated: String,
 
     /// Стратегия резолва доменов (см. enum).
+    ///
+    /// В mihomo поведение «домен → IP при необходимости» задаётся per-rule
+    /// (`no-resolve` на IP-правилах = `IPIfNonMatch`, наш дефолт). Отдельного
+    /// глобального knob'а нет, поэтому `AsIs`/`IPOnDemand` к точному режиму
+    /// mihomo не транслируются — поле сохраняется для round-trip формата.
     #[serde(rename = "DomainStrategy")]
     pub domain_strategy: DomainStrategy,
 
     // ── DNS ────────────────────────────────────────────────────────────────
+    // 11.E: применяются в `mihomo_config::build_dns` (URI-путь — полностью:
+    // remote/domestic/hosts/fake-ip) и `merge_profile_dns` (full-profile —
+    // аддитивно hosts + domestic nameserver-policy).
     #[serde(rename = "RemoteDNSType")]
     pub remote_dns_type: String,
     #[serde(rename = "RemoteDNSDomain")]

@@ -309,17 +309,11 @@ async function handleRoutingDeepLink(
         intervalHours: 24,
       });
     } else {
-      // routing: или base64-encoded JSON, или URL (тогда скачиваем
-      // одноразово через routing_add_url + interval=8760 = «раз в год»
-      // ≈ no-update; либо лучше: качаем один раз сами и кидаем в
-      // routing_add_static как JSON).
+      // routing: либо base64/JSON-профиль, либо URL для разового
+      // скачивания. URL качаем один раз и сохраняем как Static (без
+      // autorouting-метки и авто-обновления).
       if (/^https?:\/\//i.test(raw)) {
-        // Одноразовое скачивание — используем routing_add_url с
-        // эффективным «no-update» интервалом (8760ч = 1 год).
-        id = await invoke<string>("routing_add_url", {
-          url: raw,
-          intervalHours: 8760,
-        });
+        id = await invoke<string>("routing_add_static_from_url", { url: raw });
       } else {
         // base64 / JSON
         id = await invoke<string>("routing_add_static", { payload: raw });

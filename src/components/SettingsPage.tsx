@@ -473,6 +473,49 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                   />
                 </div>
 
+                {/* #4: IPv6 внутри ядра mihomo. */}
+                <div className="settings-row">
+                  <div>
+                    <div className="settings-row-label">{t("settings.tunnel.ipv6.label")}</div>
+                    <div className="settings-row-hint">
+                      {t("settings.tunnel.ipv6.hint")}
+                    </div>
+                  </div>
+                  <Toggle on={s.ipv6} onChange={(v) => s.set("ipv6", v)} />
+                </div>
+
+                {/* #3: пользовательский DNS. */}
+                <div
+                  className="settings-row"
+                  style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}
+                >
+                  <div>
+                    <div className="settings-row-label">
+                      {t("settings.tunnel.customDns.label")}
+                    </div>
+                    <div className="settings-row-hint">
+                      {t("settings.tunnel.customDns.hint")}
+                    </div>
+                  </div>
+                  <input
+                    type="text"
+                    className="textinput"
+                    placeholder={t("settings.tunnel.customDns.placeholder")}
+                    value={s.customDns}
+                    onChange={(e) => s.set("customDns", e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "8px 10px",
+                      background: "var(--bg-glass)",
+                      border: "1px solid var(--line)",
+                      borderRadius: "var(--r-md, 12px)",
+                      color: "var(--fg)",
+                      fontSize: 12,
+                      fontFamily: "var(--font-mono, monospace)",
+                    }}
+                  />
+                </div>
+
                 {/* 12.E маскировка имени TUN убрана: в Mihomo built-in TUN
                     имя берётся из YAML, наш override не применялся (no-op
                     после выпила sing-box). Вернуть, если реализуем patch
@@ -1178,11 +1221,16 @@ function AppRulesSection() {
   const [draftComment, setDraftComment] = useState("");
 
   const addRule = () => {
-    const exe = draftExe.trim().toLowerCase();
-    if (!exe) return;
+    const trimmed = draftExe.trim();
+    if (!trimmed) return;
+    // #5: если введён полный путь (есть разделитель) — сохраняем регистр
+    // (Rust выберет PROCESS-PATH, mihomo матчит путь как есть). Для голого
+    // имени — нижний регистр (PROCESS-NAME у mihomo case-insensitive).
+    const isPath = trimmed.includes("\\") || trimmed.includes("/");
+    const exe = isPath ? trimmed : trimmed.toLowerCase();
     // Дедупликация по exe — одна запись на исполняемый файл, при
     // повторном добавлении обновляется action/comment.
-    const filtered = rules.filter((r) => r.exe.toLowerCase() !== exe);
+    const filtered = rules.filter((r) => r.exe.toLowerCase() !== exe.toLowerCase());
     const next: AppRule[] = [
       ...filtered,
       {
@@ -1252,7 +1300,7 @@ function AppRulesSection() {
           className="input"
           value={draftExe}
           onChange={(e) => setDraftExe(e.target.value)}
-          placeholder="telegram.exe"
+          placeholder={"telegram.exe  ·  C:\\App\\app.exe"}
           onKeyDown={(e) => e.key === "Enter" && addRule()}
         />
         <select

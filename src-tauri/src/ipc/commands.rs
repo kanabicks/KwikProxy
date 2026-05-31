@@ -194,8 +194,10 @@ fn build_mihomo_preview(entry: &ProxyEntry) -> Result<Option<String>, String> {
     }
     // Превью без user-настроек (anti-DPI / app-rules применяются только
     // при реальном connect через `connect()` команду).
-    let cfg = mihomo_config::build(entry, 30000, "127.0.0.1", None, None, &[], None, false, None)
-        .map_err(|e| e.to_string())?;
+    let cfg = mihomo_config::build(
+        entry, 30000, "127.0.0.1", None, None, &[], None, false, None, false, None,
+    )
+    .map_err(|e| e.to_string())?;
     Ok(Some(cfg.yaml))
 }
 
@@ -340,6 +342,13 @@ pub async fn connect(
     // минимальный RU-шаблон (geosite:ru → DIRECT, ads → BLOCK).
     auto_apply_minimal_ru_rules: Option<bool>,
     app_rules: Option<Vec<AppRule>>,
+    // #4: разрешить IPv6 в конфиге mihomo (root + dns). По умолчанию false —
+    // анти-leak. Не путать с `force_disable_ipv6` (WFP-блокировка v6 на уровне
+    // kill-switch): тот режет v6 в файрволе, этот управляет v6 внутри ядра.
+    ipv6: Option<bool>,
+    // #3: пользовательские DNS-серверы из настроек (DoH-URL или IP). Высший
+    // приоритет для `dns.nameserver`. Пусто/None → дефолтная логика.
+    custom_dns: Option<Vec<String>>,
     app: tauri::AppHandle,
     mihomo: State<'_, MihomoState>,
     mihomo_api: State<'_, vpn::MihomoApiState>,
@@ -463,6 +472,9 @@ pub async fn connect(
         // Иначе — старый путь сборки конфига из ProxyEntry.
         let controller_port = find_free_port(default_socks.saturating_add(1));
         let controller_secret = uuid::Uuid::new_v4().to_string();
+        // #4/#3: IPv6-тоггл и пользовательский DNS из настроек.
+        let ipv6_enabled = ipv6.unwrap_or(false);
+        let custom_dns_slice: Option<&[String]> = custom_dns.as_deref();
 
         let cfg = if entry.protocol == "mihomo-profile" {
             // raw["yaml"] всегда есть для mihomo-profile (см. subscription.rs)
@@ -489,6 +501,9 @@ pub async fn connect(
                 anti_dpi: anti_dpi.as_ref(),
                 use_builtin_tun,
                 tun_device: tun_device.as_deref(),
+                routing_profile: active_profile.as_ref(),
+                ipv6: ipv6_enabled,
+                custom_dns: custom_dns_slice,
             };
             mihomo_config::patch_full_yaml(raw_yaml, &patch)
                 .map_err(|e| format!("патч full-mihomo YAML: {e:#}"))?
@@ -506,6 +521,8 @@ pub async fn connect(
                 active_profile.as_ref(),
                 tun_mode,
                 tun_device.as_deref(),
+                ipv6_enabled,
+                custom_dns_slice,
             )
             .map_err(|e| e.to_string())?
         };
@@ -522,6 +539,9 @@ pub async fn connect(
             let shared_dir = std::path::PathBuf::from(r"C:\ProgramData\NemefistoVPN");
             std::fs::create_dir_all(&shared_dir)
                 .map_err(|e| format!("создание ProgramData/NemefistoVPN: {e}"))?;
+            // 11.B: geo `.dat` в data-dir mihomo (user-скачанные > бандл) —
+            // нужно для правил GEOSITE:/GEOIP: активного профиля.
+            crate::config::geofiles::provision_into(&shared_dir);
             let config_path = shared_dir.join("mihomo-config.yaml");
             std::fs::write(&config_path, &cfg.yaml)
                 .map_err(|e| format!("запись mihomo-config.yaml: {e}"))?;
@@ -1670,9 +1690,7 @@ pub async fn fetch_settings_backup(url: String) -> Result<String, String> {
 
 // ─── 11.C/D/E — управление routing-профилями ──────────────────────────────────
 
-use crate::config::routing_profile::{
-    parse_profile_input, ProfileSource, RoutingProfile,
-};
+use crate::config::routing_profile::{parse_profile_input, ProfileSource};
 use crate::config::routing_store::{
     canonicalize_github_blob, fetch_profile_from_url, RoutingStoreSnapshot, RoutingStoreState,
 };
@@ -1694,6 +1712,26 @@ pub fn routing_add_static(
     state: State<'_, RoutingStoreState>,
 ) -> Result<String, String> {
     let profile = parse_profile_input(&payload).map_err(|e| e.to_string())?;
+    let id = state
+        .inner
+        .lock()
+        .map_err(|e| e.to_string())?
+        .add(profile, ProfileSource::Static)
+        .map_err(|e| e.to_string())?;
+    state.wake.notify_one();
+    Ok(id)
+}
+
+/// Скачать профиль по URL **один раз** и сохранить как статический
+/// (`Static`) — без авто-обновления и без autorouting-метки в UI.
+/// Для deep-link `nemefisto://routing/add/{url}`, где URL — разовый
+/// источник, а не подписка на обновления.
+#[tauri::command]
+pub async fn routing_add_static_from_url(
+    url: String,
+    state: State<'_, RoutingStoreState>,
+) -> Result<String, String> {
+    let profile = fetch_profile_from_url(&url).await.map_err(|e| e.to_string())?;
     let id = state
         .inner
         .lock()
@@ -1807,12 +1845,6 @@ pub async fn geofiles_refresh(
 #[tauri::command]
 pub fn geofiles_status() -> crate::config::geofiles::GeofilesStatus {
     crate::config::geofiles::status()
-}
-
-// Suppress dead_code для неиспользуемых пока хелперов из routing_profile.
-#[allow(dead_code)]
-fn _routing_profile_unused_check(p: &RoutingProfile) -> usize {
-    p.direct_sites.len()
 }
 
 // ─── 9.B / 9.C — детект конфликтов с другими VPN ──────────────────────────────
