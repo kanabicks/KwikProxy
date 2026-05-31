@@ -111,7 +111,6 @@ struct TunCandidate {
     if_index: u32,
     alias: String,
     description: String,
-    matched_by_alias: bool,
 }
 
 /// Многокритериальный синхронный поиск нашего TUN-адаптера.
@@ -225,14 +224,12 @@ fn scan_interfaces() -> ScanResult {
                 if_index: entry.InterfaceIndex,
                 alias,
                 description,
-                matched_by_alias: true,
             });
         } else if desc_match {
             result.description_only.push(TunCandidate {
                 if_index: entry.InterfaceIndex,
                 alias,
                 description,
-                matched_by_alias: false,
             });
         }
     }

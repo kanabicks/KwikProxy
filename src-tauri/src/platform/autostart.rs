@@ -73,7 +73,6 @@ pub async fn enable() -> Result<()> {
     ]);
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
@@ -94,7 +93,6 @@ pub async fn disable() -> Result<()> {
     cmd.args(["/Delete", "/F", "/TN", TASK_NAME]);
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 
@@ -116,7 +114,6 @@ pub async fn is_enabled() -> bool {
     cmd.args(["/Query", "/TN", TASK_NAME]);
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
         cmd.creation_flags(CREATE_NO_WINDOW);
     }
 

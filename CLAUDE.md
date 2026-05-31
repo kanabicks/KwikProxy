@@ -155,7 +155,14 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
-**0.6.2 (текущий) — кастомные дропдауны**: нативные `<select>` заменены на
+**0.6.3 (текущий) — чистая сборка**: удалён мёртвый код в helper
+(`routing.rs`: 15 функций-остатков external tun2socks — `add_route`,
+`assign_ip`, `set_dns`, `get_default_route`, `wait_for_interface` и т.д.;
+struct `DefaultRoute`), лишние `use CommandExt` (×4, creation_flags — inherent
+у tokio::Command), поле `matched_by_alias` в `tun.rs`. Сборка без warning'ов
+(было 20). Живое оставлено: `delete_route_with_nexthop` (9.E), `cleanup_orphan_tun`.
+
+**0.6.2 — кастомные дропдауны**: нативные `<select>` заменены на
 `SoftSelect` (триггер + портальное меню в soft-стиле: белый лист, лайм-hover,
 галочка выбора, flip вверх/вниз, закрытие по клику-вне/Escape/скроллу).
 Применён ко всем селектам настроек (тема, app-rule action, язык, trusted-ssid,
