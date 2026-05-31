@@ -41,17 +41,75 @@ function formatDuration(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+/** Задержка размонтирования (мс) — должна быть ≥ длительности CSS-transition
+ *  `.dash-wrap` (0.42s), чтобы fade-out успел доиграть до unmount. */
+const LEAVE_MS = 480;
+
 export function ConnectionDashboard() {
   const status = useVpnStore((s) => s.status);
-  const connectedAt = useVpnStore((s) => s.connectedAt);
-  const socksPort = useVpnStore((s) => s.socksPort);
-  const mode = useVpnStore((s) => s.mode);
-  const selectedIndex = useVpnStore((s) => s.selectedIndex);
+  const connectedAtLive = useVpnStore((s) => s.connectedAt);
+  const socksPortLive = useVpnStore((s) => s.socksPort);
+  const modeLive = useVpnStore((s) => s.mode);
+  const selectedIndexLive = useVpnStore((s) => s.selectedIndex);
   const servers = useSubscriptionStore((s) => s.servers);
   const meta = useSubscriptionStore((s) => s.meta);
   const preferred = useSettingsStore((s) => s.preferredMihomoNodes);
   const isRunning = status === "running";
   const wide = useIsWide();
+
+  // ── Анимация появления/ухода (CSS transition + класс-переключатель) ──
+  // `mounted` — гейт рендера (true пока подключён ИЛИ идёт уход).
+  // `visible` — переключает класс `is-visible`, по которому CSS-transition
+  // плавно меняет opacity/translateY. CSS-transition надёжнее @keyframes и
+  // WAAPI: играет всегда, композитно, без измерений высоты и race'ов;
+  // одинаково на широком/узком экране, на первом коннекте и реконнектах.
+  const [mounted, setMounted] = useState(isRunning);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (isRunning) {
+      setMounted(true);
+      // 2 кадра: блок монтируется невидимым (opacity:0 базово) — тяжёлые
+      // SVG-графики рисуются скрытыми, потом включаем is-visible → плавный
+      // composited fade-in (без рывка от монтажа контента).
+      let r2 = 0;
+      const r1 = requestAnimationFrame(() => {
+        r2 = requestAnimationFrame(() => setVisible(true));
+      });
+      return () => {
+        cancelAnimationFrame(r1);
+        cancelAnimationFrame(r2);
+      };
+    }
+    if (mounted) {
+      // Уход: снимаем is-visible → transition fade-out → размонтаж после LEAVE_MS.
+      setVisible(false);
+      const id = setTimeout(() => setMounted(false), LEAVE_MS);
+      return () => clearTimeout(id);
+    }
+  }, [isRunning, mounted]);
+  const alive = mounted;
+
+  // Заморозка значений: обновляем пока connected, читаем замороженные на уходе.
+  const frozen = useRef({
+    connectedAt: connectedAtLive,
+    socksPort: socksPortLive,
+    mode: modeLive,
+    selectedIndex: selectedIndexLive,
+  });
+  if (isRunning) {
+    frozen.current = {
+      connectedAt: connectedAtLive,
+      socksPort: socksPortLive,
+      mode: modeLive,
+      selectedIndex: selectedIndexLive,
+    };
+  }
+  const connectedAt = isRunning ? connectedAtLive : frozen.current.connectedAt;
+  const socksPort = isRunning ? socksPortLive : frozen.current.socksPort;
+  const mode = isRunning ? modeLive : frozen.current.mode;
+  const selectedIndex = isRunning
+    ? selectedIndexLive
+    : frozen.current.selectedIndex;
 
   // Имя активной локации: для URI — имя выбранного сервера; для
   // mihomo-профиля — выбранная нода (preferredMihomoNodes). null → не
@@ -66,7 +124,7 @@ export function ConnectionDashboard() {
     return sel.name;
   }, [selectedIndex, servers, preferred]);
 
-  const bw = useBandwidth(isRunning, connectedAt);
+  const bw = useBandwidth(alive, connectedAt);
   // Семплим пинг только когда графики реально видны (широкий экран + connect).
   const pingSamples = usePingSamples(
     isRunning && wide,
@@ -89,29 +147,42 @@ export function ConnectionDashboard() {
   const [exit, setExit] = useState<ExitInfo | null>(null);
   const reqKey = useRef<number | null>(null);
   useEffect(() => {
-    if (!isRunning || connectedAt == null) {
+    // Полностью ушли — сбрасываем. Во время exit-анимации (leaving) НЕ
+    // трогаем exit-IP, чтобы он «уезжал» вместе с дашбордом.
+    if (!alive) {
       setExit(null);
+      reqKey.current = null;
       return;
     }
+    if (!isRunning || connectedAt == null) return;
     if (reqKey.current === connectedAt) return;
     reqKey.current = connectedAt;
     setExit(null);
-    let alive = true;
+    let live = true;
     void invoke<ExitInfo>("leak_test", {
       socksPort: mode === "proxy" ? socksPort : null,
     })
       .then((r) => {
-        if (alive) setExit(r);
+        if (live) setExit(r);
       })
       .catch(() => {
         /* нет инета / leak-test упал — просто не показываем exit-IP */
       });
     return () => {
-      alive = false;
+      live = false;
     };
-  }, [isRunning, connectedAt, mode, socksPort]);
+  }, [alive, isRunning, connectedAt, mode, socksPort]);
 
-  if (!isRunning) return null;
+  if (!alive) return null;
+
+  // На узком экране (компактная ветка) дополнительно анимируем высоту —
+  // дашборд в одном столбце с «локациями», и без height-анимации секция
+  // снизу прыгала бы при появлении/уходе. На широком высоту не трогаем
+  // (дашборд в отдельной колонке, layout-shift'а нет, а max-height по
+  // тяжёлым графикам дёргался бы).
+  const wrapClass = `dash-wrap${visible ? " is-visible" : ""}${
+    wide ? "" : " is-compact"
+  }`;
 
   const elapsed = connectedAt != null ? now - connectedAt : 0;
   const place =
@@ -122,7 +193,7 @@ export function ConnectionDashboard() {
   // ── Узкий экран: компактная, но информативная плашка (без графиков) ──
   if (!wide) {
     return (
-      <div className="dash-wrap">
+      <div className={wrapClass}>
         <section className="dash dash-compact" aria-label="Состояние соединения">
           <div className="dashc-row">
             {activeName && (
@@ -155,7 +226,7 @@ export function ConnectionDashboard() {
 
   // ── Широкий/развёрнутый экран: полный дашборд с графиками ──
   return (
-    <div className="dash-wrap">
+    <div className={wrapClass}>
       <section className="dash" aria-label="Состояние соединения">
         {activeName && (
           <div className="dash-loc">

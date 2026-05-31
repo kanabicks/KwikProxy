@@ -311,11 +311,18 @@ export function MihomoGroupsInline({
         // 0.3.0: showSelection=false (multi-sub non-primary card) — не
         // подсвечиваем «активную» ноду, чтобы globally была только одна
         // visual selection (на active subscription).
+        //
+        // Подсветка = preferred (намерение пользователя) ВСЕГДА, если он
+        // задан — и до, и после connect. Раньше в live-режиме брали g.now,
+        // но при старте mihomo держит активной ПЕРВУЮ ноду группы, пока
+        // vpnStore не применит preferred через select_proxy — из-за этого
+        // подсветка на доли секунды прыгала на первую ноду (напр. Германию)
+        // и возвращалась. preferred сходится с g.now (ручное переключение
+        // обновляет и preferred), а для auto-групп (url-test/fallback) без
+        // preferred — fallback на live `now`.
         const displayActive = !showSelection
           ? null
-          : liveMode
-            ? liveActive
-            : preferredName ?? liveActive;
+          : preferredName ?? liveActive;
         const isCollapsed = collapsed.has(g.name);
         const isSelector = g.type === "Selector";
         return (

@@ -155,7 +155,14 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
-**0.6.3 (текущий) — чистая сборка**: удалён мёртвый код в helper
+**0.6.4 (текущий) — UI-полиш**: анимация появления/ухода дашборда соединения
+(CSS-transition opacity/translateY; на узком экране ещё max-height/margin —
+секция локаций плавно подвигается, не прыгает); фикс подсветки ноды при
+connect (показываем preferred всегда, без скачка на первую ноду); фикс
+горизонтального дёрганья на узком экране (скроллбар нулевой ширины у
+`.soft-rows`/`.soft-aside` — контент не сдвигается при появлении прокрутки).
+
+**0.6.3 — чистая сборка**: удалён мёртвый код в helper
 (`routing.rs`: 15 функций-остатков external tun2socks — `add_route`,
 `assign_ip`, `set_dns`, `get_default_route`, `wait_for_interface` и т.д.;
 struct `DefaultRoute`), лишние `use CommandExt` (×4, creation_flags — inherent

@@ -150,8 +150,13 @@ html[data-maximized="true"] .soft {
     flex: 0 0 42%;
     padding-bottom: 112px;
     /* Графики дашборда могут не влезать по высоте — даём панели скролл
-       (кастомный тонкий скроллбар из soft применится). */
+       без ширины полосы (контент не сдвигается при появлении прокрутки). */
     overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .soft-aside::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
 }
 
@@ -458,7 +463,16 @@ html[data-maximized="true"] .soft {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Скроллбар без ширины: не занимает место → контент остаётся на полную
+     ширину и выровнен с шапкой/SubStrip (они вне скролла), и при появлении
+     прокрутки (дашборд раздвигает панель) ничего не дёргается влево.
+     Прокрутка — колёсиком/тачем; снизу есть градиент-фейд как подсказка. */
+  scrollbar-width: none;
   padding: 2px 22px 120px;
+}
+.soft-rows::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 @media (min-width: 820px) {
   .soft-rows {
@@ -1297,18 +1311,47 @@ html[data-look="soft"] .shortcut-input {
   display: grid;
   grid-template-rows: 1fr;
   margin: 18px 20px 0;
-  animation: dash-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Появление/уход — CSS-transition по классу is-visible (управляется из
+     ConnectionDashboard.tsx). Базово блок СКРЫТ (прозрачный + сдвиг вниз);
+     is-visible → плавно проявляется. Только opacity/transform — композитно,
+     без reflow и без зависимости от @keyframes/grid-анимаций. Надёжно
+     играет на любом экране, при первом коннекте и реконнектах. */
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
-@keyframes dash-grow {
-  from { grid-template-rows: 0fr; opacity: 0; }
-  to   { grid-template-rows: 1fr; opacity: 1; }
+.dash-wrap.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.dash-wrap:not(.is-visible) {
+  pointer-events: none;
+}
+/* Узкий экран: дашборд в одном столбце с «локациями» — анимируем ещё и
+   высоту (max-height + margin-top), чтобы секция снизу не прыгала, а
+   плавно подвигалась. Контент компактной плашки лёгкий → reflow дешёвый. */
+.dash-wrap.is-compact {
+  overflow: hidden;
+  max-height: 0;
+  margin-top: 0;
+  /* opacity/transform — energetic easeOutQuint; высоту/отступ — ровный
+     ease-in-out, чтобы рост шёл равномерно всю длительность (не «допрыгивал»
+     до контента в первые кадры). cap max-height тесный (~высота плашки +
+     запас), иначе высота достигала бы контента слишком рано → рывок. */
+  transition: opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 0.44s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.44s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dash-wrap.is-compact.is-visible {
+  max-height: 110px;
+  margin-top: 18px;
 }
 .dash-wrap > .dash {
   min-height: 0;
   overflow: hidden;
-}
-@media (prefers-reduced-motion: reduce) {
-  .dash-wrap { animation: none; }
 }
 .dash {
   padding: 16px 16px 14px;
