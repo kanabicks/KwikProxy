@@ -147,6 +147,15 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
   // anti-DPI предупреждения).
   const mihomoActive = true;
 
+  // Anti-DPI: эффективное значение DoH-резолва с учётом override из подписки
+  // (если юзер не трогал и заголовок прислал значение — берём из подписки).
+  // Используется и для тоггла, и для показа под-полей (раньше был desync:
+  // тоггл читал эффективное, под-поля — сырой стор).
+  const effResolve =
+    !s.antiDpiTouched && subMeta?.serverResolveEnable != null
+      ? subMeta.serverResolveEnable
+      : s.antiDpiServerResolve;
+
   const copyHwid = async () => {
     if (!deviceHwid) return;
     try {
@@ -189,7 +198,9 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
           <h2 className="settings-title">{headerTitle}</h2>
         </header>
 
-        <div className="settings-body">
+        {/* key по категории — при переключении вкладки body ремоунтится и
+            заново проигрывает enter-анимацию (settings-tab-in). */}
+        <div className="settings-body" key={category ?? "root"}>
           {category === null && (
             <CategoryList onSelect={setCategory} />
           )}
@@ -449,7 +460,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
             </>
           )}
 
-          {/* ── Движок ──────────────────────────────────────────────────── */}
           {/* ── Туннель ─────────────────────────────────────────────────── */}
           {category === "tunnel" && (
             <>
@@ -468,18 +478,10 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                   />
                 </div>
 
-                <div className="settings-row">
-                  <div>
-                    <div className="settings-row-label">{t("settings.tunnel.tunMasking.label")}</div>
-                    <div className="settings-row-hint">
-                      {t("settings.tunnel.tunMasking.hint")}
-                    </div>
-                  </div>
-                  <Toggle
-                    on={s.tunMasking}
-                    onChange={(v) => s.set("tunMasking", v)}
-                  />
-                </div>
+                {/* 12.E маскировка имени TUN убрана: в Mihomo built-in TUN
+                    имя берётся из YAML, наш override не применялся (no-op
+                    после выпила sing-box). Вернуть, если реализуем patch
+                    имени адаптера для Mihomo. */}
 
                 <div className="settings-row">
                   <div>
@@ -504,103 +506,16 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
               <section className="settings-section">
                 <div className="settings-section-title">
                   {t("settings.antiDpi.title")}
-                  {!s.antiDpiTouched &&
-                    (subMeta?.fragmentationEnable != null ||
-                      subMeta?.noisesEnable != null ||
-                      subMeta?.serverResolveEnable != null) && (
-                      <span className="hint-badge" style={{ marginLeft: 8 }}>
-                        {t("settings.fromSubscription")}
-                      </span>
-                    )}
+                  {!s.antiDpiTouched && subMeta?.serverResolveEnable != null && (
+                    <span className="hint-badge" style={{ marginLeft: 8 }}>
+                      {t("settings.fromSubscription")}
+                    </span>
+                  )}
                 </div>
 
-                {/* Mihomo-only: anti-DPI fragmentation / noises движок не
-                    реализует — работает только DoH-резолв адреса сервера. */}
-                <div className="hint-warning">
-                  {t("settings.antiDpi.mihomoWarning")}
-                </div>
-
-                <div className="settings-row">
-                  <div>
-                    <div className="settings-row-label">{t("settings.antiDpi.fragmentation.label")}</div>
-                    <div className="settings-row-hint">
-                      {t("settings.antiDpi.fragmentation.hint")}
-                    </div>
-                  </div>
-                  <Toggle
-                    on={
-                      !s.antiDpiTouched && subMeta?.fragmentationEnable != null
-                        ? subMeta.fragmentationEnable
-                        : s.antiDpiFragmentation
-                    }
-                    onChange={(v) => s.set("antiDpiFragmentation", v)}
-                  />
-                </div>
-
-                {s.antiDpiFragmentation && (
-                  <>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">{t("settings.antiDpi.fragmentation.packetsLabel")}</div>
-                      </div>
-                      <select
-                        className="select-field"
-                        value={s.antiDpiFragmentationPackets}
-                        onChange={(e) =>
-                          s.set("antiDpiFragmentationPackets", e.target.value)
-                        }
-                      >
-                        <option value="tlshello">tlshello</option>
-                        <option value="1-3">1-3</option>
-                        <option value="all">{t("settings.antiDpi.fragmentation.packetsAll")}</option>
-                      </select>
-                    </div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">{t("settings.antiDpi.fragmentation.lengthLabel")}</div>
-                      </div>
-                      <input
-                        type="text"
-                        className="input input-num"
-                        value={s.antiDpiFragmentationLength}
-                        onChange={(e) =>
-                          s.set("antiDpiFragmentationLength", e.target.value)
-                        }
-                      />
-                    </div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">{t("settings.antiDpi.fragmentation.intervalLabel")}</div>
-                      </div>
-                      <input
-                        type="text"
-                        className="input input-num"
-                        value={s.antiDpiFragmentationInterval}
-                        onChange={(e) =>
-                          s.set("antiDpiFragmentationInterval", e.target.value)
-                        }
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="settings-row">
-                  <div>
-                    <div className="settings-row-label">{t("settings.antiDpi.noises.label")}</div>
-                    <div className="settings-row-hint">
-                      {t("settings.antiDpi.noises.hint")}
-                    </div>
-                  </div>
-                  <Toggle
-                    on={
-                      !s.antiDpiTouched && subMeta?.noisesEnable != null
-                        ? subMeta.noisesEnable
-                        : s.antiDpiNoises
-                    }
-                    onChange={(v) => s.set("antiDpiNoises", v)}
-                  />
-                </div>
-
+                {/* Mihomo-only: TCP-фрагментация и шумовые пакеты движком не
+                    поддерживаются (это были фичи sing-box) — убраны. Остался
+                    обход DNS-блокировок через DoH-резолв адреса сервера. */}
                 <div className="settings-row">
                   <div>
                     <div className="settings-row-label">{t("settings.antiDpi.dohResolve.label")}</div>
@@ -609,16 +524,12 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                     </div>
                   </div>
                   <Toggle
-                    on={
-                      !s.antiDpiTouched && subMeta?.serverResolveEnable != null
-                        ? subMeta.serverResolveEnable
-                        : s.antiDpiServerResolve
-                    }
+                    on={effResolve}
                     onChange={(v) => s.set("antiDpiServerResolve", v)}
                   />
                 </div>
 
-                {s.antiDpiServerResolve && (
+                {effResolve && (
                   <>
                     <div className="settings-row">
                       <div>
@@ -672,6 +583,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                   <Toggle
                     on={s.killSwitchStrict}
                     onChange={(v) => s.set("killSwitchStrict", v)}
+                    disabled={!s.killSwitch}
                   />
                 </div>
                 <div className="settings-row">
@@ -684,6 +596,7 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                   <Toggle
                     on={s.dnsLeakProtection}
                     onChange={(v) => s.set("dnsLeakProtection", v)}
+                    disabled={!s.killSwitch}
                   />
                 </div>
                 <div className="settings-row">
@@ -939,9 +852,6 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
                         <option value="system">{t("settings.appearance.theme.options.system")}</option>
                         <option value="dark">{t("settings.appearance.theme.options.dark")}</option>
                         <option value="light">{t("settings.appearance.theme.options.light")}</option>
-                        <option value="midnight">midnight</option>
-                        <option value="sunset">sunset</option>
-                        <option value="sand">sand</option>
                       </select>
                     </div>
                     <div className="settings-row">

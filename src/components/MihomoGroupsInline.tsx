@@ -56,6 +56,17 @@ const YAML_TO_API_GROUP_TYPE: Record<string, string> = {
   relay: "Relay",
 };
 
+/** Убрать эмодзи (флаги, пиктограммы, символы, variation-selector, ZWJ) из
+ *  отображаемого имени ноды/группы. Имена в подписках часто содержат
+ *  флаги вроде «NJ 🇩🇪 Германия | 28» — выглядит мусорно, чистим до
+ *  «NJ Германия | 28». ВАЖНО: применять только для ОТОБРАЖЕНИЯ — реальное
+ *  имя (ключ) нужно сохранять для mihomo API (select/delay). */
+const EMOJI_RE =
+  /[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{25A0}-\u{25FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu;
+function cleanLabel(name: string): string {
+  return name.replace(EMOJI_RE, "").replace(/\s{2,}/g, " ").trim() || name;
+}
+
 function lastDelay(p: ProxyInfo | undefined): number | null {
   if (!p?.history?.length) return null;
   const v = p.history[p.history.length - 1].delay;
@@ -191,32 +202,13 @@ export function MihomoGroupsInline({
 
   const groups = useMemo(() => {
     if (!snap) return [];
-    const all = Object.values(snap.proxies).filter(
+    // Показываем ВСЕ proxy-группы (как FlClashX): selector + url-test +
+    // fallback + load-balance + relay, кроме служебной GLOBAL. Порядок —
+    // как в конфиге (Object.values сохраняет порядок вставки snapshot'а).
+    // Каждая группа — отдельная сворачиваемая секция с выбранной нодой в
+    // шапке; auto-типы по дефолту свёрнуты (см. autoCollapsed ниже).
+    return Object.values(snap.proxies).filter(
       (p) => GROUP_TYPES.has(p.type) && p.name !== "GLOBAL"
-    );
-    // Показываем только «root»-группы — те, на которые не ссылается
-    // никакая другая группа как на свой proxy. В типичной подписке
-    // вида `ariyvpn (Selector) → [fastest (LoadBalance), latvia, ...]`
-    // мы показываем только `ariyvpn`. `fastest` уже виден как карточка
-    // внутри `ariyvpn` — дублировать его на верхнем уровне (с тем же
-    // содержимым раскрыто) — лишний шум.
-    //
-    // Fallback: если ВСЕ группы участвуют в членстве (циклы между
-    // селекторами), показываем все — лучше чем пустой список.
-    const referenced = new Set<string>();
-    for (const g of all) {
-      for (const member of g.all) referenced.add(member);
-    }
-    // Показываем root-группы + ВСЕ Selector-группы (даже вложенные).
-    // Selector — точка ручного выбора пользователя: если её спрятать как
-    // «не-root», вложенные локации (страны) станут недостижимы. Auto-типы
-    // (url-test / fallback / load-balance), на которые ссылается родитель,
-    // остаются карточками внутри родителя — отдельной секцией не дублируем.
-    const visible = all.filter(
-      (g) => !referenced.has(g.name) || g.type === "Selector"
-    );
-    return (visible.length > 0 ? visible : all).sort((a, b) =>
-      a.name.localeCompare(b.name)
     );
   }, [snap]);
 
@@ -332,7 +324,7 @@ export function MihomoGroupsInline({
               onClick={() => toggleCollapse(g.name)}
             >
               <div className="mihomo-group-title-block">
-                <div className="mihomo-group-title">{g.name}</div>
+                <div className="mihomo-group-title">{cleanLabel(g.name)}</div>
                 <div className="mihomo-group-sub">
                   {/* Для Selector скрываем typeLabel («выбор»), потому
                       что «выбрана: X» сам по себе сигнализирует тип —
@@ -352,7 +344,7 @@ export function MihomoGroupsInline({
                         {liveMode
                           ? t("mihomoGroups.active")
                           : t("mihomoGroups.selected")}
-                        : {displayActive}
+                        : {cleanLabel(displayActive)}
                       </span>
                       <span className="dot-sep">·</span>
                     </>
@@ -423,7 +415,7 @@ export function MihomoGroupsInline({
                       }
                     >
                       <div className="mihomo-card-name" title={m.name}>
-                        {m.name}
+                        {cleanLabel(m.name)}
                       </div>
                       <div className="mihomo-card-meta">
                         <span className="mihomo-card-proto">

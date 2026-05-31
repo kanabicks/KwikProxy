@@ -41,6 +41,7 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
   const connect = useVpnStore((s) => s.connect);
   const disconnect = useVpnStore((s) => s.disconnect);
   const tunOnlyStrict = useSettingsStore((s) => s.tunOnlyStrict);
+  const sortMode = useSettingsStore((s) => s.sort);
 
   const servers = useSubscriptionStore((s) => s.servers);
   const pings = useSubscriptionStore((s) => s.pings);
@@ -298,7 +299,8 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
           </div>
         ) : (
           <div className="soft-rows">
-            {servers.map((s, i) => {
+            {orderServers(servers, pings, sortMode).map((i) => {
+              const s = servers[i];
               const ping = pings[i];
               const sel = i === selectedIndex;
               const { flag, label } = splitFlag(s.name);
@@ -579,6 +581,36 @@ function nodeCountOf(list: ProxyEntry[]): number {
     return raw.proxy_count;
   if (Array.isArray(raw?.proxies)) return raw.proxies.length;
   return list.length;
+}
+
+/** Порядок индексов серверов по выбранной сортировке (Settings → подключение).
+ *  none — как пришло из подписки; ping — по возрастанию (нет пинга в конец);
+ *  name — по алфавиту (по очищенной подписи без флага). Возвращаем индексы,
+ *  чтобы pings/selectedIndex продолжали ссылаться на исходный массив. */
+function orderServers(
+  servers: ProxyEntry[],
+  pings: (number | null)[],
+  mode: string
+): number[] {
+  const order = servers.map((_, i) => i);
+  if (mode === "name") {
+    order.sort((a, b) =>
+      splitFlag(servers[a].name).label.localeCompare(
+        splitFlag(servers[b].name).label,
+        "ru"
+      )
+    );
+  } else if (mode === "ping") {
+    order.sort((a, b) => {
+      const pa = pings[a];
+      const pb = pings[b];
+      if (pa == null && pb == null) return 0;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return pa - pb;
+    });
+  }
+  return order;
 }
 
 /** Список нод mihomo-профиля для TCP-пинга: {name, server, port}.

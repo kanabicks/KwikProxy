@@ -3807,6 +3807,39 @@ html[data-look="swiss"] body {
   background: #c50f1f;
 }
 
+/* soft: верх-право зависит от раскладки.
+   - узкое окно (<820px): контролы над тёмной зоной → светлые иконки (база);
+   - широкое (≥820px): контролы над белой шторкой → тёмные ink-иконки.
+   Никакого chip — чисто, фон титлбара прозрачный. */
+@media (min-width: 820px) {
+  [data-look="soft"] .win-btn {
+    color: #50504a;
+  }
+  [data-look="soft"] .win-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--s-ink);
+  }
+  [data-look="soft"] .win-close:hover {
+    background: #e81123;
+    color: #fff;
+  }
+}
+
+/* Открыты настройки → фон под контролами светлый при ЛЮБОЙ ширине →
+   тёмные иконки. :has реактивен: цвет сам переключается при открытии/
+   закрытии настроек (перекрывает базовые светлые иконки узкого main). */
+html[data-look="soft"]:has(.settings-page) .win-btn {
+  color: #50504a;
+}
+html[data-look="soft"]:has(.settings-page) .win-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--s-ink);
+}
+html[data-look="soft"]:has(.settings-page) .win-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
 /* Развёрнутое окно: поджимаем титлбар внутрь (Windows-overflow за края),
    убираем скругление и отключаем resize-хваты. */
 html[data-maximized="true"] .titlebar {

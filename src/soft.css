@@ -335,6 +335,14 @@ html[data-maximized="true"] .soft {
     margin-top: 0;
     box-shadow: -1px 0 0 rgba(0, 0, 0, 0.06);
   }
+  /* Шторка доходит до самого верха окна → её шапка (Локации + refresh/
+     pulse) попадала бы под 40px кастомный титлбар и под кнопки окна
+     справа. Отступаем сверху. Селектор с [data-look] — выше специфичности,
+     чем базовый `.soft-sheet-head { padding: 20px }` (иначе shorthand
+     ниже по коду перебивал бы наш padding-top). */
+  [data-look="soft"] .soft-sheet-head {
+    padding-top: 48px;
+  }
 }
 .soft-sheet-head {
   display: flex;
@@ -903,29 +911,30 @@ html[data-maximized="true"] .soft {
    SETTINGS в soft-стиле — тёмный фон как у главного экрана, карточки-секции,
    лаймовые акценты. Только под [data-look="soft"].
    ═══════════════════════════════════════════════════════════════════════ */
+/* Светлая «шторка» как на главной, в стиле iOS-настроек: спокойный
+   тёплый фон, сгруппированные белые контейнеры с hairline-разделителями,
+   тёмный ink-текст, лайм только как тонкий акцент. */
 html[data-look="soft"] .settings-page {
-  background:
-    radial-gradient(120% 55% at 50% -8%, rgba(216, 236, 90, 0.08), transparent 60%),
-    linear-gradient(180deg, #161618 0%, #0d0d0f 100%);
+  background: #ecebe4;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-radius: 14px;
-  color: #f5f5f3;
+  color: var(--s-ink);
 }
 html[data-maximized="true"] .settings-page {
   inset: var(--maxpad, 8px);
   border-radius: 0;
 }
 html[data-look="soft"] .settings-frame {
-  max-width: 560px;
+  max-width: 600px;
 }
 
-/* Шапка */
+/* Шапка — светлая, sticky */
 html[data-look="soft"] .settings-header {
-  background: rgba(20, 20, 22, 0.72);
+  background: rgba(236, 235, 228, 0.86);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid #e1e0d8;
 }
 html[data-look="soft"] .back-btn {
   display: inline-flex;
@@ -936,90 +945,279 @@ html[data-look="soft"] .back-btn {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: #cfcfcb;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #56564f;
+  background: #ffffff;
+  border: 1px solid var(--s-line);
   border-radius: 999px;
   padding: 8px 14px;
   cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 html[data-look="soft"] .back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: #fafaf7;
+  color: var(--s-ink);
+  border-color: #e2e2dc;
 }
 html[data-look="soft"] .settings-title {
   font-family: var(--display);
   font-weight: 700;
   text-transform: none;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--s-ink);
 }
 
-/* Список категорий (уровень 1) — карточки */
+/* Список категорий — ОДИН белый контейнер, категории = строки с
+   hairline-разделителями (iOS grouped list). Без отдельных карточек/теней. */
 html[data-look="soft"] .settings-categories {
-  gap: 10px;
+  gap: 0;
+  background: #ffffff;
+  border: 1px solid #e7e6df;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 20, 12, 0.05),
+    0 16px 32px -24px rgba(20, 20, 12, 0.55);
 }
 html[data-look="soft"] .settings-category {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 18px;
-  padding: 16px 16px;
-  transition: background 0.18s, border-color 0.18s, transform 0.12s;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #f0efe9;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 15px 16px;
+  transition: background 0.15s;
+}
+html[data-look="soft"] .settings-category:last-child {
+  border-bottom: 0;
 }
 html[data-look="soft"] .settings-category:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: #fafaf7;
+  border-color: #f0efe9;
 }
 html[data-look="soft"] .settings-category:active {
-  transform: scale(0.99);
+  transform: none;
+  background: #f3f2ec;
+}
+/* Эмодзи-иконки ненадёжно рендерятся в WebView2 (пустой блоб) — в soft
+   делаем чистый текстовый список без иконок. */
+html[data-look="soft"] .settings-category-icon {
+  display: none;
 }
 html[data-look="soft"] .settings-category-title {
   font-family: var(--display);
   font-weight: 600;
   font-size: 15px;
-  color: #f5f5f3;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--s-ink);
 }
 html[data-look="soft"] .settings-category-desc {
-  color: #8f8f88;
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--s-sub);
 }
 html[data-look="soft"] .settings-category-arrow {
-  color: #6f6f68;
+  color: #c8c8c0;
 }
 
-/* Секции внутри категории — карточки */
+/* Секции — мягкие белые группы, тонкая граница, почти без тени */
+html[data-look="soft"] .settings-body {
+  gap: 22px;
+  /* enter-анимация при переключении вкладки (ремоунт по key). */
+  animation: settings-tab-in 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes settings-tab-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 html[data-look="soft"] .settings-section {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 18px;
-  padding: 16px;
-  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e7e6df;
+  border-radius: 16px;
+  padding: 16px 16px 18px;
+  gap: 14px;
+  box-shadow: 0 1px 2px rgba(20, 20, 12, 0.05),
+    0 16px 32px -24px rgba(20, 20, 12, 0.5);
 }
 html[data-look="soft"] .settings-section-title {
-  font-family: var(--mono);
-  color: #8f8f88;
-  letter-spacing: 0.14em;
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--s-ink);
+  border-bottom: 0;
+  padding-bottom: 2px;
+}
+html[data-look="soft"] .settings-section-title::before {
+  display: none;
 }
 html[data-look="soft"] .settings-row-label {
-  color: #ededea;
-  font-weight: 500;
+  font-family: var(--display);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--s-ink);
 }
 html[data-look="soft"] .settings-row-hint {
-  color: #86867f;
+  font-family: var(--body);
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--s-sub);
 }
 
-/* Контролы: на тёмном фоне делаем явный фон/цвет (иначе var(--bg)
-   прозрачный → инпуты «исчезают»). */
+/* Инпуты / селекты / textarea — светлые */
 html[data-look="soft"] .settings-page input,
 html[data-look="soft"] .settings-page select,
 html[data-look="soft"] .settings-page textarea {
-  background: rgba(255, 255, 255, 0.06);
-  color: #f5f5f3;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #f7f7f3;
+  color: var(--s-ink);
+  border: 1px solid #e2e2dd;
   border-radius: 12px;
 }
 html[data-look="soft"] .settings-page input::placeholder,
 html[data-look="soft"] .settings-page textarea::placeholder {
-  color: #6f6f68;
+  color: #adada3;
+}
+html[data-look="soft"] .select-field {
+  font-family: var(--body);
+  text-transform: none;
+  font-size: 13px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%2393938c' d='M0 0h8L4 5z'/></svg>");
+}
+html[data-look="soft"] .select-field option {
+  background: #ffffff;
+  color: var(--s-ink);
+}
+html[data-look="soft"] .select-field option:checked,
+html[data-look="soft"] .select-field option:hover {
+  background: var(--s-lime-tint);
+  color: var(--s-ink);
+}
+
+/* Toggle: вкл — ink-трек + белый knob (как чек на soft-row), выкл — серый */
+html[data-look="soft"] .toggle {
+  background: #e2e2dd;
+}
+html[data-look="soft"] .toggle.is-on {
+  background: var(--s-ink);
+}
+html[data-look="soft"] .toggle-knob {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+html[data-look="soft"] .toggle.is-on .toggle-knob {
+  background: #ffffff;
+}
+
+/* Радио */
+html[data-look="soft"] .radio-row {
+  font-family: var(--display);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  color: var(--s-ink);
+}
+html[data-look="soft"] .radio-row input[type="radio"] {
+  background: #f7f7f3;
+  border-color: #d8d8d2;
+}
+html[data-look="soft"] .radio-row input[type="radio"]:checked {
+  border-color: var(--s-ink);
+}
+html[data-look="soft"] .radio-row input[type="radio"]:checked::after {
+  background: var(--s-ink);
+}
+
+/* Кнопки */
+html[data-look="soft"] .btn-ghost {
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: #56564f;
+  background: #f3f3f0;
+  border: 1px solid var(--s-line);
+  border-radius: 999px;
+}
+html[data-look="soft"] .btn-ghost:hover:not(:disabled) {
+  background: #ebebe6;
+  color: var(--s-ink);
+}
+html[data-look="soft"] .btn-primary {
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  color: var(--s-ink);
+  background: var(--s-lime);
+  border: 0;
+  border-radius: 999px;
+}
+
+/* Бейджи / предупреждения */
+html[data-look="soft"] .hint-badge {
+  background: var(--s-lime-tint);
+  color: #5b6b15;
+  border: 1px solid #e6efbf;
+  text-transform: none;
+  letter-spacing: 0;
+}
+html[data-look="soft"] .hint-warning {
+  background: #fff7e6;
+  color: #8a6d1f;
+  border: 1px solid #f0e2bd;
+}
+html[data-look="soft"] .hint-danger,
+html[data-look="soft"] .warn-box {
+  background: #fdecea;
+  color: #b23c2b;
+  border-color: #f3cfc8;
+}
+
+/* About / схемы */
+html[data-look="soft"] .about-key {
+  color: var(--s-sub);
+}
+html[data-look="soft"] .about-val {
+  color: var(--s-ink);
+}
+html[data-look="soft"] .about-link {
+  color: var(--s-ink);
+  border-bottom-color: #cfcfc8;
+}
+html[data-look="soft"] .scheme-row {
+  border-color: var(--s-line);
+}
+html[data-look="soft"] .scheme-url {
+  color: var(--s-ink);
+}
+html[data-look="soft"] .scheme-desc {
+  color: var(--s-sub);
+}
+
+/* App-rules / shortcuts / trusted — светлые контролы */
+html[data-look="soft"] .app-rule-row,
+html[data-look="soft"] .trusted-current {
+  background: #f7f7f3;
+  border: 1px solid var(--s-line);
+}
+html[data-look="soft"] .shortcut-input {
+  background: #f7f7f3;
+  border: 1px solid #e2e2dd;
+  color: var(--s-ink);
 }
 
 /* Exit-анимации bottom-sheet (пикер/добавление) — фаза .is-closing. */

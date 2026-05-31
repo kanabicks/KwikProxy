@@ -471,6 +471,19 @@ const load = (): Settings => {
     // "sing-box") из старых конфигов принудительно переезжает на "mihomo"
     // — единственный поддерживаемый движок.
     merged.engine = "mihomo";
+    // Mihomo-only миграция UA: старый дефолт был "Happ/2.7.0" (под sing-box/
+    // Marzban xray-json). Если в localStorage остался legacy Happ-UA — это
+    // не осознанный выбор пользователя, а старый дефолт, переводим на
+    // clash-verge (дефолт Mihomo), сбрасываем touched.
+    if (/^happ\//i.test((merged.userAgent || "").trim())) {
+      merged.userAgent = DEFAULT_USER_AGENT_MIHOMO;
+      merged.userAgentTouched = false;
+    }
+    // Убрали темы midnight/sunset/sand из UI — persisted значение мигрируем
+    // на dark, чтобы select не показывал пустоту.
+    if (["midnight", "sunset", "sand"].includes(merged.theme as string)) {
+      merged.theme = "dark";
+    }
     return merged;
   } catch {
     return DEFAULTS;
