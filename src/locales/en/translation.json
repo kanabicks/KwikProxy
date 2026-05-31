@@ -372,7 +372,24 @@
         "block": "blocked"
       },
       "deleteTitle": "delete rule",
-      "commentPlaceholder": "note (optional)"
+      "commentPlaceholder": "note (optional)",
+      "picker": {
+        "button": "pick from running",
+        "title": "running processes",
+        "search": "search by name or path…",
+        "loading": "loading list…",
+        "empty": "nothing found",
+        "usePath": "path",
+        "usePathTitle": "add by full path (PROCESS-PATH)"
+      },
+      "traffic": {
+        "title": "per-app traffic",
+        "hint": "live mihomo connections; process names appear when per-app matcher is enabled",
+        "empty": "no active connections",
+        "offline": "traffic stats appear after connecting",
+        "addRule": "+ rule",
+        "addRuleTitle": "route this app through the VPN (proxy)"
+      }
     },
     "tunnel": {
       "network": {
@@ -528,8 +545,9 @@
         "presetHint": "controlled by the preset"
       },
       "theme": {
+        "title": "theme",
         "label": "theme",
-        "hint": "app and crystal palette",
+        "hint": "light or dark app palette",
         "options": {
           "system": "system default",
           "dark": "dark",

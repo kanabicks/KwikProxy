@@ -199,6 +199,92 @@ pub async fn close_all_connections(ep: &ControllerEndpoint) -> Result<()> {
     Ok(())
 }
 
+/// Агрегированный трафик одного процесса (#4 per-app статистика).
+#[derive(Debug, Clone, Serialize)]
+pub struct AppTraffic {
+    /// Имя процесса (`chrome.exe`); `—` если mihomo не определил процесс.
+    pub process: String,
+    /// Полный путь к exe (если mihomo его отдал), иначе пусто.
+    pub path: String,
+    /// Суммарно отправлено байт по живым соединениям процесса.
+    pub up: u64,
+    /// Суммарно принято байт.
+    pub down: u64,
+    /// Число активных соединений процесса.
+    pub connections: u32,
+}
+
+#[derive(Deserialize)]
+struct ConnectionsResponse {
+    #[serde(default)]
+    connections: Vec<ConnItem>,
+}
+
+#[derive(Deserialize)]
+struct ConnItem {
+    #[serde(default)]
+    upload: u64,
+    #[serde(default)]
+    download: u64,
+    #[serde(default)]
+    metadata: ConnMeta,
+}
+
+#[derive(Deserialize, Default)]
+struct ConnMeta {
+    #[serde(default)]
+    process: String,
+    #[serde(rename = "processPath", default)]
+    process_path: String,
+}
+
+/// `GET /connections` → агрегируем живые соединения по процессу
+/// (суммируем upload/download и считаем число соединений). Соединения,
+/// где mihomo не определил процесс (find-process-mode не сматчил), идут
+/// под `—`. Сортировка — по суммарному трафику убыв.
+///
+/// Процесс определяется только при `find-process-mode: always` (мы его
+/// включаем когда заданы app-rules; иначе колонка процесса будет `—`).
+pub async fn fetch_app_traffic(ep: &ControllerEndpoint) -> Result<Vec<AppTraffic>> {
+    let client = build_client()?;
+    let resp = client
+        .get(url(ep, "/connections"))
+        .bearer_auth(&ep.secret)
+        .send()
+        .await
+        .context("GET /connections")?;
+    if !resp.status().is_success() {
+        return Err(anyhow!("HTTP {}", resp.status()));
+    }
+    let body: ConnectionsResponse = resp.json().await.context("decode /connections")?;
+    let mut map: std::collections::HashMap<String, AppTraffic> = std::collections::HashMap::new();
+    for c in body.connections {
+        let name = if c.metadata.process.trim().is_empty() {
+            "—".to_string()
+        } else {
+            c.metadata.process.clone()
+        };
+        let e = map.entry(name.clone()).or_insert_with(|| AppTraffic {
+            process: name,
+            path: c.metadata.process_path.clone(),
+            up: 0,
+            down: 0,
+            connections: 0,
+        });
+        e.up = e.up.saturating_add(c.upload);
+        e.down = e.down.saturating_add(c.download);
+        e.connections += 1;
+        if e.path.is_empty() && !c.metadata.process_path.is_empty() {
+            e.path = c.metadata.process_path.clone();
+        }
+    }
+    let mut out: Vec<AppTraffic> = map.into_values().collect();
+    out.sort_by(|a, b| {
+        (b.up.saturating_add(b.down)).cmp(&(a.up.saturating_add(a.down)))
+    });
+    Ok(out)
+}
+
 /// `GET /proxies/:name/delay` — измерить latency для одной ноды через
 /// заданный url. Возвращает мс или `None` при timeout/fail.
 ///

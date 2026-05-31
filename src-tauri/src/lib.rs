@@ -10,14 +10,16 @@ use tauri::{Emitter, Manager};
 use config::hwid::load_or_create;
 use config::{HwidState, SubscriptionState};
 use ipc::commands::{
-    autostart_disable, autostart_enable, autostart_is_enabled, check_routing_conflicts, connect,
+    app_traffic_stats, autostart_disable, autostart_enable, autostart_is_enabled,
+    check_routing_conflicts, connect,
     connection_ping, count_recent_crashes, detect_competing_vpns, discard_proxy_backup, disconnect,
     export_diagnostics, export_settings_to_documents, fetch_settings_backup, fetch_subscription,
     geofiles_refresh, geofiles_status, get_hwid, get_recovery_state, get_routing_table,
     get_servers,
     get_subscription_meta, has_proxy_backup, hide_floating_window, is_xray_running,
     kill_switch_apply, kill_switch_force_cleanup, kill_switch_heartbeat, leak_test,
-    mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_mihomo_nodes, ping_servers,
+    list_processes, mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_mihomo_nodes,
+    ping_servers,
     preview_server_config,
     read_xray_log, recover_network, restore_proxy_backup, routing_add_static,
     routing_add_static_from_url, routing_add_url,
@@ -245,6 +247,8 @@ pub fn run() {
             routing_refresh,
             geofiles_refresh,
             geofiles_status,
+            list_processes,
+            app_traffic_stats,
         ])
         .build(tauri::generate_context!())
         .expect("ошибка инициализации Tauri runtime")

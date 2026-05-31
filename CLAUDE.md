@@ -155,7 +155,15 @@ mihomo-профиля в soft-UI (`MihomoGroupsInline`) с пинг-тестом
 Двухшаговый auto-updater: скачивание **без отключения VPN** → отдельное
 подтверждение установки (`downloadUpdate` / `installUpdate`).
 
-**0.6.0 (текущий) — аудит routing 11.x + split-DNS + расширенные
+**0.6.1 (текущий) — per-app UX + чистка меню тем**: #3 пикер запущенных
+процессов (`list_processes` → soft-модалка с пастельными аватарами/поиском);
+#4 живой трафик по приложениям (`app_traffic_stats` через mihomo
+`/connections` → бары + «+ правило»); фикс: `build()` берёт controller
+port/secret → mihomo API работает и для URI-серверов. Чистка Settings →
+«интерфейс»: убраны пресет/фон/стиль-кнопки (мертвы в soft-look), остались
+тема (light/dark/system)/язык/floating/память.
+
+**0.6.0 — аудит routing 11.x + split-DNS + расширенные
 возможности mihomo**: см. блок «11.A…G routing» и «Доп. mihomo-фичи» в
 разделе «Что осталось» (split-DNS 11.E, sniffer, global-client-fingerprint,
 TUN strict-route, DOMAIN-REGEX, DNS fallback, ECH passthrough, IPv6-тоггл,
@@ -235,6 +243,13 @@ TUN strict-route, DOMAIN-REGEX, DNS fallback, ECH passthrough, IPv6-тоггл,
   высший приоритет для `dns.nameserver`, profile domestic-policy сохраняется).
   Прокинуто через `connect(ipv6, custom_dns)`; настройки в `settingsStore`
   (+ backup-allowlist) и Settings → «сеть».
+- **Per-app UX (после 0.6.0, не закоммичено)**: #3 пикер запущенных
+  процессов (`list_processes` через EnumProcesses+K32GetModuleFileNameExW →
+  soft-модалка с буквенными аватарами/поиском/выбором имя-vs-путь); #4 живой
+  трафик по приложениям (`app_traffic_stats` агрегирует mihomo `/connections`
+  по процессу → бары ↑/↓ + быстрая «+ правило»). Попутный фикс: `build()`
+  теперь принимает controller-порт/secret — endpoint mihomo_api совпадает
+  и для URI-серверов (раньше был mixed_port+1 c другим UUID → API не работал).
 - Опционально: 13.C failover, 13.E история, 13.F speed-test, 13.J Windows
   Hello, 13.P слияние подписок (частично), 13.Q auto-grouping, 13.G WFP
   per-app (большой).

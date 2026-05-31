@@ -195,7 +195,7 @@ fn build_mihomo_preview(entry: &ProxyEntry) -> Result<Option<String>, String> {
     // Превью без user-настроек (anti-DPI / app-rules применяются только
     // при реальном connect через `connect()` команду).
     let cfg = mihomo_config::build(
-        entry, 30000, "127.0.0.1", None, None, &[], None, false, None, false, None,
+        entry, 30000, "127.0.0.1", None, None, &[], None, false, None, false, None, 30001, "",
     )
     .map_err(|e| e.to_string())?;
     Ok(Some(cfg.yaml))
@@ -523,6 +523,8 @@ pub async fn connect(
                 tun_device.as_deref(),
                 ipv6_enabled,
                 custom_dns_slice,
+                controller_port,
+                &controller_secret,
             )
             .map_err(|e| e.to_string())?
         };
@@ -1623,6 +1625,28 @@ pub async fn mihomo_delay_test(
     )
     .await
     .map_err(|e| e.to_string())
+}
+
+/// #3 per-app UX: список запущенных процессов (имя + полный путь) для
+/// пикера app-rules. Без admin-прав, наши/системные exe отфильтрованы.
+#[tauri::command]
+pub fn list_processes() -> Vec<platform::processes::ProcessEntry> {
+    platform::processes::list_processes()
+}
+
+/// #4 per-app UX: агрегированный трафик по процессам через mihomo
+/// `/connections`. Доступно когда mihomo жив. Процессы определяются при
+/// `find-process-mode: always` (включается с app-rules).
+#[tauri::command]
+pub async fn app_traffic_stats(
+    state: State<'_, vpn::MihomoApiState>,
+) -> Result<Vec<vpn::mihomo_api::AppTraffic>, String> {
+    let ep = state
+        .get()
+        .ok_or_else(|| "mihomo controller не активен".to_string())?;
+    vpn::mihomo_api::fetch_app_traffic(&ep)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 // ─── 12.D — backup/restore настроек ─────────────────────────────────────────

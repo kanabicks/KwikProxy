@@ -117,3 +117,118 @@ pub fn detect_competing_vpns() -> Vec<String> {
 pub fn detect_competing_vpns() -> Vec<String> {
     Vec::new()
 }
+
+/// Запущенный процесс для пикера app-rules (#3 per-app UX).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ProcessEntry {
+    /// Имя exe (нижний регистр, с расширением) — для `PROCESS-NAME`.
+    pub name: String,
+    /// Полный путь к exe — для `PROCESS-PATH` (точное правило). Пустой,
+    /// если путь не удалось получить (системный процесс без прав).
+    pub path: String,
+}
+
+/// Список уникальных запущенных процессов (имя + полный путь) для пикера
+/// per-app правил. Дедуп по полному пути (в нижнем регистре), наши и
+/// системные служебные exe отфильтрованы. Сортировка по имени.
+///
+/// Не требует admin: `PROCESS_QUERY_LIMITED_INFORMATION` + `K32Get…` для
+/// чтения имени/пути доступны без elevation.
+#[cfg(windows)]
+pub fn list_processes() -> Vec<ProcessEntry> {
+    use std::collections::HashMap;
+    use windows_sys::Win32::Foundation::{CloseHandle, FALSE, HANDLE};
+    use windows_sys::Win32::System::ProcessStatus::{
+        EnumProcesses, K32GetModuleFileNameExW,
+    };
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    // Наши собственные exe + типовой системный шум, который пользователю
+    // нет смысла маршрутизировать поштучно.
+    const SKIP: &[&str] = &[
+        "vpn-client.exe",
+        "nemefisto-helper.exe",
+        "mihomo.exe",
+        "xray.exe",
+        "tun2socks.exe",
+        "system",
+        "registry",
+        "memory compression",
+        "svchost.exe",
+        "services.exe",
+        "lsass.exe",
+        "csrss.exe",
+        "wininit.exe",
+        "smss.exe",
+        "dwm.exe",
+        "fontdrvhost.exe",
+        "winlogon.exe",
+        "conhost.exe",
+        "dllhost.exe",
+        "taskhostw.exe",
+        "sihost.exe",
+        "ctfmon.exe",
+        "runtimebroker.exe",
+        "searchhost.exe",
+        "wmiprvse.exe",
+    ];
+
+    unsafe {
+        let mut pids = vec![0u32; 4096];
+        let mut bytes_returned: u32 = 0;
+        let cb = (pids.len() * std::mem::size_of::<u32>()) as u32;
+        if EnumProcesses(pids.as_mut_ptr(), cb, &mut bytes_returned) == 0 {
+            return Vec::new();
+        }
+        let count = (bytes_returned as usize) / std::mem::size_of::<u32>();
+        pids.truncate(count);
+
+        // Ключ — полный путь в нижнем регистре (дедуп), значение — entry.
+        let mut uniq: HashMap<String, ProcessEntry> = HashMap::new();
+
+        for &pid in &pids {
+            if pid == 0 || pid == 4 {
+                continue; // 0 = idle, 4 = System
+            }
+            let h: HANDLE = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+            if h.is_null() {
+                continue;
+            }
+            let mut buf = [0u16; 1024];
+            let len = K32GetModuleFileNameExW(
+                h,
+                std::ptr::null_mut(),
+                buf.as_mut_ptr(),
+                buf.len() as u32,
+            );
+            CloseHandle(h);
+            if len == 0 {
+                continue;
+            }
+            let full = String::from_utf16_lossy(&buf[..len as usize]);
+            let name = full
+                .rsplit(['\\', '/'])
+                .next()
+                .unwrap_or(&full)
+                .to_lowercase();
+            if name.is_empty() || SKIP.contains(&name.as_str()) {
+                continue;
+            }
+            uniq.entry(full.to_lowercase()).or_insert(ProcessEntry {
+                name,
+                path: full,
+            });
+        }
+
+        let mut out: Vec<ProcessEntry> = uniq.into_values().collect();
+        out.sort_by(|a, b| a.name.cmp(&b.name).then(a.path.cmp(&b.path)));
+        out
+    }
+}
+
+#[cfg(not(windows))]
+pub fn list_processes() -> Vec<ProcessEntry> {
+    Vec::new()
+}

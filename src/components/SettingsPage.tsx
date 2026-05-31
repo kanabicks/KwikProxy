@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -6,16 +6,12 @@ import { RoutingProfilesPanel } from "./RoutingProfilesPanel";
 import { useVpnStore } from "../stores/vpnStore";
 import { useSubscriptionStore } from "../stores/subscriptionStore";
 import { useRuntimeStore } from "../stores/runtimeStore";
+import { formatVolume } from "../lib/hooks/useBandwidth";
 import {
   DEFAULT_USER_AGENT_MIHOMO,
-  PRESET_BACKGROUND,
-  PRESET_BUTTON_STYLE,
   useSettingsStore,
   type AppRule,
   type AppRuleAction,
-  type Background,
-  type ButtonStyle,
-  type Preset,
   type SortMode,
   type Theme,
 } from "../stores/settingsStore";
@@ -825,128 +821,34 @@ export function SettingsPage({ onClose }: { onClose: () => void }) {
               <LanguageSection />
 
               <section className="settings-section">
-                <div className="settings-section-title">{t("settings.appearance.preset.title")}</div>
+                <div className="settings-section-title">
+                  {t("settings.appearance.theme.title")}
+                </div>
                 <div className="settings-row">
                   <div>
                     <div className="settings-row-label">
-                      {t("settings.appearance.preset.label")}
-                      {eff.fromSubscription.preset && (
+                      {t("settings.appearance.theme.label")}
+                      {eff.fromSubscription.theme && (
                         <span className="hint-badge" style={{ marginLeft: 8 }}>
                           {t("settings.fromSubscription")}
                         </span>
                       )}
                     </div>
                     <div className="settings-row-hint">
-                      {t("settings.appearance.preset.hint")}
+                      {t("settings.appearance.theme.hint")}
                     </div>
                   </div>
                   <select
                     className="select-field"
-                    value={eff.preset}
-                    onChange={(e) => s.set("preset", e.target.value as Preset)}
+                    value={s.theme}
+                    onChange={(e) => s.set("theme", e.target.value as Theme)}
                   >
-                    <option value="none">{t("settings.appearance.preset.options.none")}</option>
-                    <option value="fluent">fluent</option>
-                    <option value="cupertino">cupertino</option>
-                    <option value="vice">vice</option>
-                    <option value="arcade">arcade</option>
-                    <option value="glacier">glacier</option>
+                    <option value="system">{t("settings.appearance.theme.options.system")}</option>
+                    <option value="dark">{t("settings.appearance.theme.options.dark")}</option>
+                    <option value="light">{t("settings.appearance.theme.options.light")}</option>
                   </select>
                 </div>
               </section>
-
-              {(() => {
-                const presetActive = eff.preset !== "none";
-                const effectiveBg = presetActive
-                  ? PRESET_BACKGROUND[eff.preset]
-                  : eff.background;
-                const effectiveStyle = presetActive
-                  ? PRESET_BUTTON_STYLE[eff.preset]
-                  : eff.buttonStyle;
-                const presetHint = t("settings.appearance.themeStyle.presetHint");
-                return (
-                  <section className="settings-section">
-                    <div className="settings-section-title">{t("settings.appearance.themeStyle.title")}</div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">
-                          {t("settings.appearance.theme.label")}
-                          {!presetActive && eff.fromSubscription.theme && (
-                            <span className="hint-badge" style={{ marginLeft: 8 }}>
-                              {t("settings.fromSubscription")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="settings-row-hint">
-                          {presetActive ? presetHint : t("settings.appearance.theme.hint")}
-                        </div>
-                      </div>
-                      <select
-                        className="select-field"
-                        value={s.theme}
-                        disabled={presetActive}
-                        onChange={(e) => s.set("theme", e.target.value as Theme)}
-                      >
-                        <option value="system">{t("settings.appearance.theme.options.system")}</option>
-                        <option value="dark">{t("settings.appearance.theme.options.dark")}</option>
-                        <option value="light">{t("settings.appearance.theme.options.light")}</option>
-                      </select>
-                    </div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">
-                          {t("settings.appearance.background.label")}
-                          {!presetActive && eff.fromSubscription.background && (
-                            <span className="hint-badge" style={{ marginLeft: 8 }}>
-                              {t("settings.fromSubscription")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="settings-row-hint">
-                          {presetActive ? presetHint : t("settings.appearance.background.hint")}
-                        </div>
-                      </div>
-                      <select
-                        className="select-field"
-                        value={effectiveBg}
-                        disabled={presetActive}
-                        onChange={(e) => s.set("background", e.target.value as Background)}
-                      >
-                        <option value="crystal">{t("settings.appearance.background.options.crystal")}</option>
-                        <option value="tunnel">{t("settings.appearance.background.options.tunnel")}</option>
-                        <option value="globe">{t("settings.appearance.background.options.globe")}</option>
-                        <option value="particles">{t("settings.appearance.background.options.particles")}</option>
-                      </select>
-                    </div>
-                    <div className="settings-row">
-                      <div>
-                        <div className="settings-row-label">
-                          {t("settings.appearance.buttonStyle.label")}
-                          {!presetActive && eff.fromSubscription.buttonStyle && (
-                            <span className="hint-badge" style={{ marginLeft: 8 }}>
-                              {t("settings.fromSubscription")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="settings-row-hint">
-                          {presetActive ? presetHint : t("settings.appearance.buttonStyle.hint")}
-                        </div>
-                      </div>
-                      <select
-                        className="select-field"
-                        value={effectiveStyle}
-                        disabled={presetActive}
-                        onChange={(e) => s.set("buttonStyle", e.target.value as ButtonStyle)}
-                      >
-                        <option value="glass">{t("settings.appearance.buttonStyle.options.glass")}</option>
-                        <option value="flat">{t("settings.appearance.buttonStyle.options.flat")}</option>
-                        <option value="neon">{t("settings.appearance.buttonStyle.options.neon")}</option>
-                        <option value="metallic">{t("settings.appearance.buttonStyle.options.metallic")}</option>
-                      </select>
-                    </div>
-                  </section>
-                );
-              })()}
 
               <section className="settings-section">
                 <div className="settings-section-title">{t("settings.appearance.floating.title")}</div>
@@ -1199,11 +1101,47 @@ function CategoryList({
 
 // ── App rules (per-process routing, 8.D) ─────────────────────────────────────
 
+/** Запущенный процесс из `list_processes` (#3 пикер). */
+type ProcessEntry = { name: string; path: string };
+/** Агрегат трафика процесса из `app_traffic_stats` (#4). */
+type AppTrafficEntry = {
+  process: string;
+  path: string;
+  up: number;
+  down: number;
+  connections: number;
+};
+
+/** Псевдослучайный hue по строке — для цветного буквенного аватара. */
+function avatarHue(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+/** Цветной аватар-плашка с первой буквой имени процесса. Hue прокидывается
+ *  CSS-переменной `--ah` — окраска тема-зависимая (см. .app-avatar в App.css). */
+function AppAvatar({ name }: { name: string }) {
+  const hue = avatarHue(name);
+  const letter = (name.replace(/\.exe$/i, "")[0] || "?").toUpperCase();
+  return (
+    <span
+      className="app-avatar"
+      style={{ "--ah": hue } as CSSProperties}
+      aria-hidden
+    >
+      {letter}
+    </span>
+  );
+}
+
 /**
  * Секция Settings → Маршрутизация → «правила приложений (Mihomo)».
- * Список правил `<exe-name> → PROXY|DIRECT|BLOCK` + форма добавления.
+ * Список правил `<exe-name> → PROXY|DIRECT|BLOCK` + форма добавления
+ * с пикером запущенных процессов (#3) и живой статистикой трафика по
+ * приложениям (#4, через mihomo `/connections`).
  *
- * Mihomo нативно умеет PROCESS-NAME matcher (требует
+ * Mihomo нативно умеет PROCESS-NAME / PROCESS-PATH matcher (требует
  * `find-process-mode: always` в YAML).
  */
 function AppRulesSection() {
@@ -1220,29 +1158,60 @@ function AppRulesSection() {
   const [draftAction, setDraftAction] = useState<AppRuleAction>("direct");
   const [draftComment, setDraftComment] = useState("");
 
-  const addRule = () => {
-    const trimmed = draftExe.trim();
+  // #3 пикер процессов.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [procs, setProcs] = useState<ProcessEntry[]>([]);
+  const [procLoading, setProcLoading] = useState(false);
+  const [procQuery, setProcQuery] = useState("");
+
+  /** Добавить/обновить правило для конкретного exe (путь сохраняет регистр
+   *  → PROCESS-PATH; голое имя → нижний регистр PROCESS-NAME). Дедуп по exe. */
+  const addRuleFor = (raw: string, action: AppRuleAction, comment?: string) => {
+    const trimmed = raw.trim();
     if (!trimmed) return;
-    // #5: если введён полный путь (есть разделитель) — сохраняем регистр
-    // (Rust выберет PROCESS-PATH, mihomo матчит путь как есть). Для голого
-    // имени — нижний регистр (PROCESS-NAME у mihomo case-insensitive).
     const isPath = trimmed.includes("\\") || trimmed.includes("/");
     const exe = isPath ? trimmed : trimmed.toLowerCase();
-    // Дедупликация по exe — одна запись на исполняемый файл, при
-    // повторном добавлении обновляется action/comment.
-    const filtered = rules.filter((r) => r.exe.toLowerCase() !== exe.toLowerCase());
+    const filtered = rules.filter(
+      (r) => r.exe.toLowerCase() !== exe.toLowerCase()
+    );
     const next: AppRule[] = [
       ...filtered,
-      {
-        exe,
-        action: draftAction,
-        comment: draftComment.trim() || undefined,
-      },
+      { exe, action, comment: comment?.trim() || undefined },
     ];
     set("appRules", next);
+  };
+
+  const addRule = () => {
+    if (!draftExe.trim()) return;
+    addRuleFor(draftExe, draftAction, draftComment);
     setDraftExe("");
     setDraftComment("");
   };
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    setProcLoading(true);
+    try {
+      const list = await invoke<ProcessEntry[]>("list_processes");
+      setProcs(list);
+    } catch (e) {
+      console.error("[app-rules] list_processes failed:", e);
+      setProcs([]);
+    } finally {
+      setProcLoading(false);
+    }
+  };
+
+  const pickProcess = (exe: string) => {
+    setDraftExe(exe);
+    setPickerOpen(false);
+    setProcQuery("");
+  };
+
+  const filteredProcs = procs.filter((p) => {
+    const q = procQuery.trim().toLowerCase();
+    return !q || p.name.includes(q) || p.path.toLowerCase().includes(q);
+  });
 
   const removeRule = (exe: string) => {
     set(
@@ -1329,7 +1298,213 @@ function AppRulesSection() {
           {t("common.add")}
         </button>
       </div>
+
+      {/* #3: пикер запущенных процессов. */}
+      <button
+        type="button"
+        className="proc-pick-btn"
+        onClick={openPicker}
+      >
+        ⊕ {t("settings.appRules.picker.button")}
+      </button>
+
+      {pickerOpen && (
+        <div
+          className="proc-picker-backdrop"
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="proc-picker"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="proc-picker-head">
+              <div className="proc-picker-titlewrap">
+                <span className="proc-picker-title">
+                  {t("settings.appRules.picker.title")}
+                </span>
+                {!procLoading && (
+                  <span className="proc-picker-count">{filteredProcs.length}</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="proc-picker-close"
+                onClick={() => setPickerOpen(false)}
+                aria-label={t("common.close")}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="proc-picker-search-wrap">
+              <svg
+                className="proc-picker-search-icon"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" />
+              </svg>
+              <input
+                type="text"
+                className="input proc-picker-search"
+                autoFocus
+                value={procQuery}
+                onChange={(e) => setProcQuery(e.target.value)}
+                placeholder={t("settings.appRules.picker.search")}
+              />
+            </div>
+            <div className="proc-picker-list">
+              {procLoading ? (
+                <div className="proc-picker-empty">
+                  {t("settings.appRules.picker.loading")}
+                </div>
+              ) : filteredProcs.length === 0 ? (
+                <div className="proc-picker-empty">
+                  {t("settings.appRules.picker.empty")}
+                </div>
+              ) : (
+                filteredProcs.map((p) => (
+                  <div
+                    key={p.path || p.name}
+                    className="proc-row"
+                    onClick={() => pickProcess(p.name)}
+                    title={p.path}
+                  >
+                    <AppAvatar name={p.name} />
+                    <div className="proc-row-text">
+                      <span className="proc-row-name">{p.name}</span>
+                      {p.path && (
+                        <span className="proc-row-path">{p.path}</span>
+                      )}
+                    </div>
+                    {p.path && (
+                      <button
+                        type="button"
+                        className="proc-row-path-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          pickProcess(p.path);
+                        }}
+                        title={t("settings.appRules.picker.usePathTitle")}
+                      >
+                        {t("settings.appRules.picker.usePath")}
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* #4: живая статистика трафика по приложениям. */}
+      <AppTrafficPanel onAddRule={(exe) => addRuleFor(exe, "proxy")} />
     </section>
+  );
+}
+
+/**
+ * #4 per-app UX: живой трафик по приложениям через mihomo `/connections`.
+ * Видна только при активном подключении; поллинг раз в 3с. Каждая строка —
+ * аватар + имя + ↑/↓ объём + бар доли от максимума, плюс быстрая кнопка
+ * «+ правило» (добавляет процесс в app-rules с action=proxy).
+ */
+function AppTrafficPanel({ onAddRule }: { onAddRule: (exe: string) => void }) {
+  const { t } = useTranslation();
+  const status = useVpnStore((s) => s.status);
+  const running = status === "running";
+  const [stats, setStats] = useState<AppTrafficEntry[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!running) {
+      setStats([]);
+      setLoaded(false);
+      return;
+    }
+    let alive = true;
+    const tick = async () => {
+      try {
+        const list = await invoke<AppTrafficEntry[]>("app_traffic_stats");
+        if (alive) {
+          setStats(list);
+          setLoaded(true);
+        }
+      } catch {
+        if (alive) setLoaded(true);
+      }
+    };
+    void tick();
+    const id = setInterval(tick, 3000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [running]);
+
+  if (!running) {
+    return (
+      <div className="app-traffic-offline">
+        {t("settings.appRules.traffic.offline")}
+      </div>
+    );
+  }
+
+  const top = stats.slice(0, 12);
+  const max = Math.max(1, ...top.map((s) => s.up + s.down));
+
+  return (
+    <div className="app-traffic">
+      <div className="app-traffic-head">
+        <span className="settings-row-label">
+          {t("settings.appRules.traffic.title")}
+        </span>
+        <span className="settings-row-hint">
+          {t("settings.appRules.traffic.hint")}
+        </span>
+      </div>
+      {loaded && top.length === 0 ? (
+        <div className="proc-picker-empty">
+          {t("settings.appRules.traffic.empty")}
+        </div>
+      ) : (
+        <div className="app-traffic-list">
+          {top.map((s) => {
+            const total = s.up + s.down;
+            const pct = Math.round((total / max) * 100);
+            const known = s.process !== "—";
+            return (
+              <div key={s.process} className="at-row">
+                <AppAvatar name={known ? s.process : "?"} />
+                <div className="at-main">
+                  <div className="at-line">
+                    <span className="at-name">{s.process}</span>
+                    <span className="at-vol">
+                      <span className="at-dl">↓ {formatVolume(s.down)}</span>
+                      <span className="at-ul">↑ {formatVolume(s.up)}</span>
+                    </span>
+                  </div>
+                  <div className="at-bar">
+                    <div className="at-bar-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+                {known && (
+                  <button
+                    type="button"
+                    className="at-add"
+                    onClick={() => onAddRule(s.process)}
+                    title={t("settings.appRules.traffic.addRuleTitle")}
+                  >
+                    {t("settings.appRules.traffic.addRule")}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

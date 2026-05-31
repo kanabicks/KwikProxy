@@ -113,6 +113,10 @@ pub fn build(
     // #3: пользовательские DNS-серверы из настроек (высший приоритет для
     // `nameserver`). Пустой/None → дефолтная логика (профиль/anti-DPI/DoH).
     custom_dns: Option<&[String]>,
+    // external-controller для mihomo_api (тот же порт/secret, что connect
+    // сохраняет в MihomoApiState — иначе UI/статистика не достучатся).
+    external_controller_port: u16,
+    external_controller_secret: &str,
 ) -> Result<MihomoConfig> {
     let proxy = proxy_for_entry(entry)
         .with_context(|| format!("не удалось собрать mihomo-proxy для «{}»", entry.name))?;
@@ -177,14 +181,17 @@ pub fn build(
         root.insert("find-process-mode".into(), "always".into());
     }
 
-    // External controller — чтобы потенциально можно было дёргать API
-    // (для 13.I bandwidth-метра, 13.C smart failover). Secret —
-    // случайный, через UUID, чтобы посторонние процессы не достучались.
+    // External controller — для mihomo_api (proxies/connections/delay).
+    // Порт и secret приходят из connect() и совпадают с тем, что
+    // сохраняется в MihomoApiState, — иначе UI/статистика не достучатся.
     root.insert(
         "external-controller".into(),
-        format!("127.0.0.1:{}", mixed_port + 1).into(),
+        format!("127.0.0.1:{external_controller_port}").into(),
     );
-    root.insert("secret".into(), uuid::Uuid::new_v4().to_string().into());
+    root.insert(
+        "secret".into(),
+        external_controller_secret.to_string().into(),
+    );
 
     // ── DNS ──────────────────────────────────────────────────────────
     // Включаем всегда, чтобы предотвратить DNS-leak (аналог Prizrak-Box
