@@ -2098,6 +2098,9 @@ input, textarea { font: inherit; cursor: text; }
 .mihomo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  /* Все ряды одной высоты — карточки выглядят одинаковыми блоками,
+     даже если в одной больше контента (имя в две строки и т.п.). */
+  grid-auto-rows: 1fr;
   gap: 8px;
   /* padding-top (не margin-top) — чтобы спейсинг клипался overflow:hidden
      при сворачивании, а не оставлял зазор в свёрнутом состоянии. */
@@ -2111,6 +2114,11 @@ input, textarea { font: inherit; cursor: text; }
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
+  /* Критично для равных колонок: без min-width:0 грид-трек упирается в
+     min-content длинного nowrap-имени («United Kingdom») и колонки
+     получаются разной ширины. С min-width:0 все 1fr-треки строго равны,
+     а имя обрезается ellipsis'ом внутри карточки. */
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-md, 8px);
   background: rgba(255,255,255,0.025);
