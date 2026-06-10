@@ -273,8 +273,7 @@ async fn update_one(
     };
 
     let remote_sha_clean = remote_sha.as_ref().and_then(|s| {
-        s.trim()
-            .split_whitespace()
+        s.split_whitespace()
             .next()
             .filter(|h| h.len() == 64 && h.chars().all(|c| c.is_ascii_hexdigit()))
             .map(|h| h.to_lowercase())
@@ -284,8 +283,7 @@ async fn update_one(
     let local_sha: Option<String> = std::fs::read_to_string(&sha_path)
         .ok()
         .and_then(|s| {
-            s.trim()
-                .split_whitespace()
+            s.split_whitespace()
                 .next()
                 .filter(|h| h.len() == 64 && h.chars().all(|c| c.is_ascii_hexdigit()))
                 .map(|h| h.to_lowercase())
@@ -334,7 +332,7 @@ async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String> {
     if !resp.status().is_success() {
         bail!("HTTP {} для {url}", resp.status());
     }
-    resp.text().await.context("read body").map(|s| s)
+    resp.text().await.context("read body")
 }
 
 async fn fetch_bytes(client: &reqwest::Client, url: &str, max: u64) -> Result<Vec<u8>> {

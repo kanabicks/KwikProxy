@@ -320,8 +320,10 @@ pub fn spawn_scheduler(state: Arc<Mutex<RoutingStore>>, wake: Arc<Notify>) -> on
 /// нужно проснуться следующий раз» — для умного sleep'а.
 async fn run_tick(state: &Arc<Mutex<RoutingStore>>) -> u64 {
     // 1. Снимаем snapshot чтобы не держать lock пока качаем.
+    // lock(): при poisoning продолжаем с восстановленными данными —
+    // RoutingStore переживает панику чужого потока (структура валидна).
     let snapshot = {
-        let g = state.lock().unwrap();
+        let g = state.lock().unwrap_or_else(|e| e.into_inner());
         g.snapshot()
     };
 
@@ -345,7 +347,7 @@ async fn run_tick(state: &Arc<Mutex<RoutingStore>>) -> u64 {
         eprintln!("[routing-scheduler] refresh {} (overdue)", entry.id);
         match fetch_profile_from_url(url).await {
             Ok(profile) => {
-                let mut g = state.lock().unwrap();
+                let mut g = state.lock().unwrap_or_else(|e| e.into_inner());
                 if let Err(e) = g.update_profile(&entry.id, profile) {
                     eprintln!("[routing-scheduler] update {} failed: {e}", entry.id);
                 }

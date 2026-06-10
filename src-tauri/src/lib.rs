@@ -12,15 +12,14 @@ use config::{HwidState, SubscriptionState};
 use ipc::commands::{
     app_traffic_stats, autostart_disable, autostart_enable, autostart_is_enabled,
     check_routing_conflicts, connect,
-    connection_ping, count_recent_crashes, detect_competing_vpns, discard_proxy_backup, disconnect,
+    connection_ping, count_recent_crashes, discard_proxy_backup, disconnect,
     export_diagnostics, export_settings_to_documents, fetch_settings_backup, fetch_subscription,
     geofiles_refresh, geofiles_status, get_hwid, get_recovery_state, get_routing_table,
     get_servers,
-    get_subscription_meta, has_proxy_backup, hide_floating_window, is_xray_running,
-    kill_switch_apply, kill_switch_force_cleanup, kill_switch_heartbeat, leak_test,
+    get_subscription_meta, hide_floating_window, is_xray_running,
+    kill_switch_apply, kill_switch_heartbeat, leak_test,
     list_processes, mihomo_delay_test, mihomo_proxies, mihomo_select_proxy, ping_mihomo_nodes,
     ping_servers,
-    preview_server_config,
     read_xray_log, recover_network, restore_proxy_backup, routing_add_static,
     routing_add_static_from_url, routing_add_url,
     routing_list, routing_refresh, routing_remove, routing_set_active, secure_storage_delete,
@@ -123,9 +122,9 @@ pub fn run() {
                         eprintln!("[startup self-healing] orphan системный прокси очищен");
                     }
                 }
-                // Backup от прошлой сессии не трогаем: фронт сам покажет
-                // диалог CrashRecoveryDialog когда подключится к команде
-                // `has_proxy_backup` — пользователь решит restore/discard.
+                // Backup от прошлой сессии не трогаем: фронт на старте
+                // зовёт `get_recovery_state` и показывает CrashRecoveryDialog
+                // — пользователь сам решит restore/discard.
             }
 
             let hwid = load_or_create().unwrap_or_else(|_| uuid::Uuid::new_v4().to_string());
@@ -210,8 +209,8 @@ pub fn run() {
             // экрана (~8px), и контент у краёв (кнопки окна) обрезается.
             // Надёжно (минуя JS-события) выставляем флаг maximize прямо в
             // DOM через eval — CSS по нему поджимает карту/титлбар внутрь.
-            tauri::WindowEvent::Resized(_) => {
-                if window.label() == "main" {
+            tauri::WindowEvent::Resized(_)
+                if window.label() == "main" => {
                     let maximized = window.is_maximized().unwrap_or(false);
                     if let Some(wv) = window.app_handle().get_webview_window("main") {
                         // Динамически вычисляем overflow окна за края экрана
@@ -226,7 +225,6 @@ pub fn run() {
                         let _ = wv.eval(js);
                     }
                 }
-            }
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![
@@ -241,7 +239,6 @@ pub fn run() {
             ping_servers,
             ping_mihomo_nodes,
             read_xray_log,
-            has_proxy_backup,
             restore_proxy_backup,
             discard_proxy_backup,
             secure_storage_get,
@@ -255,7 +252,6 @@ pub fn run() {
             show_floating_window,
             hide_floating_window,
             leak_test,
-            kill_switch_force_cleanup,
             kill_switch_heartbeat,
             kill_switch_apply,
             recover_network,
@@ -270,8 +266,6 @@ pub fn run() {
             mihomo_proxies,
             mihomo_select_proxy,
             mihomo_delay_test,
-            preview_server_config,
-            detect_competing_vpns,
             check_routing_conflicts,
             routing_list,
             routing_add_static,

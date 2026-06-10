@@ -165,83 +165,6 @@ pub struct SubscriptionResult {
     pub meta: Option<SubscriptionMeta>,
 }
 
-/// Превью спарсенного и сгенерированного конфига сервера. Используется
-/// диалогом «view config» (стрелочка справа на server-row) — пользователь
-/// может посмотреть что именно мы получили из подписки и что подсунем
-/// движку при connect.
-#[derive(Serialize)]
-pub struct ServerPreview {
-    pub name: String,
-    pub protocol: String,
-    pub server: String,
-    pub port: u16,
-    pub engine_compat: Vec<String>,
-    /// Сырой JSON/YAML того что пришло с подписки (отформатированно).
-    pub raw: String,
-    /// Сгенерированный mihomo-YAML для этого entry (то, что будет реально
-    /// записано в `mihomo-config.yaml` при connect). `None` если это
-    /// `mihomo-profile` — там используется raw YAML напрямую.
-    pub generated_mihomo: Option<String>,
-}
-
-/// Сгенерировать mihomo-YAML для preview (без запуска). Вытащено
-/// в отдельную функцию чтобы commands.rs не разбухал.
-fn build_mihomo_preview(entry: &ProxyEntry) -> Result<Option<String>, String> {
-    // Для mihomo-profile конфиг используется как есть (raw YAML) — нечего
-    // генерировать дополнительно.
-    if entry.protocol == "mihomo-profile" {
-        return Ok(None);
-    }
-    // Превью без user-настроек (anti-DPI / app-rules применяются только
-    // при реальном connect через `connect()` команду).
-    let cfg = mihomo_config::build(
-        entry, 30000, "127.0.0.1", None, None, &[], None, false, None, false, None, 30001, "",
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(Some(cfg.yaml))
-}
-
-/// Превью конфига сервера с указанным индексом — без запуска движка.
-/// Используется UI-кнопкой «view config» (стрелочка справа на server-row).
-#[tauri::command]
-pub fn preview_server_config(
-    server_index: usize,
-    sub: State<'_, SubscriptionState>,
-) -> Result<ServerPreview, String> {
-    let entry = {
-        let servers = sub.servers.lock().map_err(|e| e.to_string())?;
-        servers
-            .get(server_index)
-            .cloned()
-            .ok_or_else(|| format!("сервер #{server_index} не найден в списке"))?
-    };
-
-    // Raw — отдаём в человекочитаемом формате. Для mihomo-profile это
-    // YAML-строка из raw.yaml; для всех остальных — JSON.
-    let raw = if entry.protocol == "mihomo-profile" {
-        entry
-            .raw
-            .get("yaml")
-            .and_then(|v| v.as_str())
-            .unwrap_or("(пустой YAML)")
-            .to_string()
-    } else {
-        serde_json::to_string_pretty(&entry.raw).map_err(|e| e.to_string())?
-    };
-
-    let generated_mihomo = build_mihomo_preview(&entry)?;
-
-    Ok(ServerPreview {
-        name: entry.name,
-        protocol: entry.protocol,
-        server: entry.server,
-        port: entry.port,
-        engine_compat: entry.engine_compat,
-        raw,
-        generated_mihomo,
-    })
-}
-
 /// Скачать подписку по URL, распарсить и сохранить список серверов.
 ///
 /// `hwid_override` — если задан и непустой, используется вместо локально
@@ -317,6 +240,7 @@ pub fn get_subscription_meta(sub: State<'_, SubscriptionState>) -> Option<Subscr
 /// `allow_lan` — если `Some(true)`, inbound слушает 0.0.0.0 вместо 127.0.0.1.
 ///
 /// Автоматически находит свободные порты начиная с 1080/1087.
+#[allow(clippy::too_many_arguments)] // IPC-команда: Tauri маппит каждый аргумент по имени из фронта — struct сломал бы вызовы
 #[tauri::command]
 pub async fn connect(
     server_index: usize,
@@ -660,7 +584,8 @@ pub async fn connect(
                 // Все возможные кандидаты sidecar — добавим все которые
                 // существуют. WFP игнорирует дубликаты с разными path
                 // как «всё allow».
-                for name in ["mihomo"] {
+                {
+                    let name = "mihomo";
                     push_if_exists(exe_dir.join(format!("{name}.exe")));
                     push_if_exists(
                         exe_dir.join(format!("{name}-x86_64-pc-windows-msvc.exe")),
@@ -862,22 +787,6 @@ pub fn tray_set_status(
 #[tauri::command]
 pub async fn kill_switch_heartbeat() -> Result<(), String> {
     platform::helper_client::kill_switch_heartbeat()
-        .await
-        .map_err(|e| e.to_string())
-}
-
-/// Аварийный сброс WFP kill-switch. Удаляет все наши фильтры через
-/// helper. UI-кнопка «авария» в Settings — для случаев когда
-/// kill-switch завис и интернет заблокирован. Идемпотентно: если
-/// ничего нет, helper вернёт Ok тихо.
-#[tauri::command]
-pub async fn kill_switch_force_cleanup() -> Result<(), String> {
-    // Гарантируем что helper доступен — иначе предложим запустить вручную
-    // через консоль (`kwik-helper killswitch-cleanup`).
-    if let Err(e) = platform::helper_bootstrap::ensure_running().await {
-        return Err(format!("helper-сервис недоступен: {e}"));
-    }
-    platform::helper_client::kill_switch_force_cleanup()
         .await
         .map_err(|e| e.to_string())
 }
@@ -1191,14 +1100,6 @@ pub fn hide_floating_window(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 // ─── Crash recovery (9.D) ─────────────────────────────────────────────────────
-
-/// Существует ли backup-файл системного прокси с прошлой сессии.
-/// UI вызывает на старте; если true — показывает диалог «обнаружены
-/// остатки прошлой сессии, восстановить настройки прокси?».
-#[tauri::command]
-pub fn has_proxy_backup() -> bool {
-    platform::proxy::has_pending_backup()
-}
 
 /// Восстановить системный прокси из backup-файла (после краша приложения
 /// в режиме proxy). Удаляет backup-файл после успеха.
@@ -1892,16 +1793,6 @@ pub fn geofiles_status() -> crate::config::geofiles::GeofilesStatus {
 }
 
 // ─── 9.B / 9.C — детект конфликтов с другими VPN ──────────────────────────────
-
-/// 9.B — Список запущенных сторонних VPN-клиентов (по whitelist'у имён exe).
-///
-/// Работает без admin-прав. Возвращает уникальные human-readable имена
-/// (например `["Happ", "Clash Verge"]`). Не блокирует connect — UI
-/// использует это для предупреждающего баннера.
-#[tauri::command]
-pub fn detect_competing_vpns() -> Vec<String> {
-    platform::processes::detect_competing_vpns()
-}
 
 /// 9.C — Список интерфейсов с активными default- или half-default-маршрутами,
 /// принадлежащих **не нам** (NextHop ≠ 198.18.0.1) и **не штатному** physic-

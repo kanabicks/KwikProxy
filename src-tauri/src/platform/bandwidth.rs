@@ -62,7 +62,7 @@ pub fn start(app: AppHandle) {
                 None => None,
             };
 
-            if tick_count % 10 == 0 {
+            if tick_count.is_multiple_of(10) {
                 eprintln!(
                     "[bandwidth] iface={:?} counters={:?} prev={:?}",
                     iface,

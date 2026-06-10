@@ -116,7 +116,9 @@ fn run_debug_foreground() -> anyhow::Result<()> {
 fn ctrlc_or_warn<F: FnMut() + Send + 'static>(handler: F) {
     use std::sync::Mutex;
     static HANDLER: Mutex<Option<Box<dyn FnMut() + Send>>> = Mutex::new(None);
-    *HANDLER.lock().unwrap() = Some(Box::new(handler));
+    // lock(): poisoning невозможен по построению (handler ставится один
+    // раз до регистрации ctrl-handler'а), но на всякий случай recovery.
+    *HANDLER.lock().unwrap_or_else(|e| e.into_inner()) = Some(Box::new(handler));
 
     unsafe extern "system" fn ctrl_handler(_: u32) -> i32 {
         if let Ok(mut g) = HANDLER.lock() {

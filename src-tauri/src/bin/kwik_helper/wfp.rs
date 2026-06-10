@@ -101,7 +101,7 @@ impl WfpEngine {
             // но WINNT эксплицитнее.
             let rc = FwpmEngineOpen0(
                 ptr::null(),
-                RPC_C_AUTHN_WINNT as u32,
+                RPC_C_AUTHN_WINNT,
                 ptr::null_mut(),
                 &session,
                 &mut handle,
@@ -276,6 +276,7 @@ impl WfpEngine {
     /// Используется для DNS-leak protection: разрешаем VPN-DNS:53/UDP,
     /// потом блокируем все остальные :53.
     /// `protocol` — `IPPROTO_UDP=17` или `IPPROTO_TCP=6`.
+    #[allow(clippy::too_many_arguments)] // параметры WFP-фильтра атомарны — группировка в struct не читается лучше
     pub fn add_filter_allow_v4_addr_port_proto(
         &self,
         layer: GUID,

@@ -92,6 +92,7 @@ pub struct MihomoConfig {
 /// `socks_auth` — `Some((user, pass))` если включён auth для inbound (9.G);
 /// иначе `None` (proxy-режим на loopback, без аутентификации).
 /// `app_rules` — per-process правила (этап 8.D); пустой slice = no-op.
+#[allow(clippy::too_many_arguments)] // аргументы зеркалят поля wire-протокола/конфига — структура здесь не упростит вызовы
 pub fn build(
     entry: &ProxyEntry,
     mixed_port: u16,
@@ -463,8 +464,8 @@ fn push_site_rules(out: &mut Vec<String>, sites: &[String], action: &str) {
         } else if let Some(rest) = s.strip_prefix("regex:") {
             // #4: mihomo умеет DOMAIN-REGEX — раньше ошибочно скипали.
             out.push(format!("DOMAIN-REGEX,{rest},{action}"));
-        } else if s.starts_with("domain:") {
-            out.push(format!("DOMAIN,{},{action}", &s[7..]));
+        } else if let Some(rest) = s.strip_prefix("domain:") {
+            out.push(format!("DOMAIN,{rest},{action}"));
         } else if s.contains('.') {
             // Простой domain — DOMAIN-SUFFIX (включает все subdomains)
             out.push(format!("DOMAIN-SUFFIX,{s},{action}"));
@@ -744,7 +745,7 @@ fn merge_profile_dns(root: &mut Mapping, profile: &super::routing_profile::Routi
 ///
 /// `override-destination: true` — подменяем dst на заснифанный домен, чтобы
 /// domain-правила и per-app сработали даже по IP/fake-ip. `force-dns-mapping`
-/// + `parse-pure-ip` — сниффим и «голый» IP-трафик. `skip-domain` — то, что
+/// и `parse-pure-ip` — сниффим и «голый» IP-трафик. `skip-domain` — то, что
 /// ломается от подмены (Apple push). Порты заданы для TLS/HTTP/QUIC.
 fn build_sniffer() -> Mapping {
     let mut s = Mapping::new();
@@ -992,7 +993,7 @@ fn build_vmess_proxy(entry: &ProxyEntry) -> Result<Mapping> {
         .get("aid")
         .and_then(|v| v.as_u64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
         .unwrap_or(0);
-    m.insert("alterId".into(), (aid as u64).into());
+    m.insert("alterId".into(), aid.into());
 
     let cipher = s(raw, "scy").unwrap_or_else(|| "auto".to_string());
     m.insert("cipher".into(), cipher.into());
@@ -1282,10 +1283,10 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
         (patch.mixed_port as u64).into(),
     );
     // Удаляем дублирующие порты — mixed-port покрывает SOCKS5 и HTTP
-    root.remove(&Value::String("socks-port".into()));
-    root.remove(&Value::String("port".into()));
-    root.remove(&Value::String("redir-port".into()));
-    root.remove(&Value::String("tproxy-port".into()));
+    root.remove(Value::String("socks-port".into()));
+    root.remove(Value::String("port".into()));
+    root.remove(Value::String("redir-port".into()));
+    root.remove(Value::String("tproxy-port".into()));
 
     root.insert("allow-lan".into(), (patch.listen == "0.0.0.0").into());
     root.insert(
@@ -1305,7 +1306,7 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
         // Удаляем чужую auth — мы хотим контролировать кто подключается
         // к нашему inbound. Если auth не задан, оставляем noauth (только
         // loopback по умолчанию).
-        root.remove(&Value::String("authentication".into()));
+        root.remove(Value::String("authentication".into()));
     }
 
     // ── external-controller (для mihomo_api) ──────────────────────────
@@ -1347,7 +1348,7 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
     // `tun.enable: false` — mihomo работает только как SOCKS-server,
     // тоннель управляется нашим helper'ом.
     if let Some(tun) = root
-        .get_mut(&Value::String("tun".into()))
+        .get_mut(Value::String("tun".into()))
         .and_then(|v| v.as_mapping_mut())
     {
         if patch.use_builtin_tun {
@@ -1452,7 +1453,7 @@ pub fn patch_full_yaml(raw_yaml: &str, patch: &FullYamlPatch) -> Result<MihomoCo
         if let Some(seq) = rules_entry.as_sequence_mut() {
             // Вставляем наши rules перед существующими — сохраняя порядок
             let mut combined = prefix_rules;
-            combined.extend(seq.drain(..));
+            combined.append(seq);
             *seq = combined;
         }
     }

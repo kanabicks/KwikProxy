@@ -76,6 +76,14 @@ fn engine_lock() -> &'static Mutex<Option<WfpEngine>> {
     ENGINE.get_or_init(|| Mutex::new(None))
 }
 
+/// Взять лок engine-состояния с восстановлением после poisoning: если
+/// другой поток запаниковал держа лок, данные (`Option<WfpEngine>`)
+/// остаются валидными — операции над WFP идемпотентны, продолжаем
+/// вместо каскадной паники всего helper'а.
+fn engine_guard() -> std::sync::MutexGuard<'static, Option<WfpEngine>> {
+    engine_lock().lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// Watchdog: timestamp последнего heartbeat (unix sec). Если main
 /// не пингует 60 секунд — watchdog-таск автоматически делает disable().
 /// Это страховка на случай если main завис / был принудительно убит /
@@ -124,6 +132,7 @@ unsafe impl Send for WfpEngine {}
 /// Полезно в TUN-режиме где DNS должен идти на VPN-DNS (типа 198.18.0.1).
 /// В proxy-режиме ломает приложения которые не используют системный
 /// прокси для DNS — поэтому опция включается явно пользователем.
+#[allow(clippy::too_many_arguments)] // аргументы зеркалят поля wire-протокола/конфига — структура здесь не упростит вызовы
 pub async fn enable(
     server_ips: Vec<String>,
     allow_lan: bool,
@@ -150,6 +159,7 @@ pub async fn enable(
     .context("spawn_blocking panic")?
 }
 
+#[allow(clippy::too_many_arguments)] // зеркалит сигнатуру enable() — см. комментарий там
 fn enable_blocking(
     server_ips: Vec<String>,
     allow_lan: bool,
@@ -183,7 +193,7 @@ fn enable_blocking(
     // Drop происходит при `*g = None` — старые фильтры уйдут перед
     // добавлением новых.
     {
-        let mut g = engine_lock().lock().unwrap();
+        let mut g = engine_guard();
         *g = None;
     }
 
@@ -486,7 +496,7 @@ fn enable_blocking(
     })?;
 
     // Сохраняем engine — пока он жив, фильтры активны.
-    *engine_lock().lock().unwrap() = Some(engine);
+    *engine_guard() = Some(engine);
 
     // Watchdog: первый heartbeat ставим прямо сейчас + запускаем таск
     // если ещё не запущен. Таск глобальный — переживает повторные
@@ -525,7 +535,7 @@ fn spawn_watchdog_once() {
             // не пытаться disable (и чтобы новый enable() мог нормально
             // включить heartbeat снова).
             LAST_HEARTBEAT.store(i64::MIN, Ordering::SeqCst);
-            *engine_lock().lock().unwrap() = None;
+            *engine_guard() = None;
             // Доп. cleanup: если фильтры остались по какой-то причине
             // (например DYNAMIC не сработал на этой версии Windows) —
             // явно удаляем provider+sublayer.
@@ -550,7 +560,7 @@ fn disable_blocking() -> Result<()> {
     // одновременно с нами и взять lock конкурентно.
     LAST_HEARTBEAT.store(i64::MIN, Ordering::SeqCst);
 
-    let mut g = engine_lock().lock().unwrap();
+    let mut g = engine_guard();
     *g = None; // drop → FwpmEngineClose0 → cleanup автоматический.
 
     // Доп. страховка: в редком случае если DYNAMIC не сработал, явно
@@ -572,7 +582,7 @@ fn disable_blocking() -> Result<()> {
 /// с удалением provider'а: операции serialized через mutex.
 pub async fn cleanup_on_startup() -> Result<()> {
     tokio::task::spawn_blocking(|| {
-        let _g = engine_lock().lock().unwrap();
+        let _g = engine_guard();
         eprintln!("[wfp-killswitch] startup cleanup of any orphan filters");
         wfp_cleanup_provider()
     })

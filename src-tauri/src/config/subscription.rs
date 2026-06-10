@@ -45,17 +45,9 @@ pub struct SubscriptionMeta {
     /// URL страницы премиума (`premium-url`). UI показывает кнопку
     /// «премиум» в карточке подписки если задана.
     pub premium_url: Option<String>,
-    /// Дефолтная тема UI (`X-Kwik-Theme`): dark/light/midnight/
-    /// sunset/sand. Применяется если пользователь не менял.
+    /// Дефолтная тема UI (`X-Kwik-Theme`): system/dark/light.
+    /// Применяется если пользователь не менял.
     pub theme: Option<String>,
-    /// 3D-фон (`X-Kwik-Background`): crystal/tunnel/globe/particles.
-    pub background: Option<String>,
-    /// Стиль кнопки питания (`X-Kwik-Button-Style`):
-    /// glass/flat/neon/metallic.
-    pub button_style: Option<String>,
-    /// Готовая тема-пресет (`X-Kwik-Preset`): none/fluent/cupertino/
-    /// vice/arcade/glacier.
-    pub preset: Option<String>,
     /// Режим VPN по умолчанию (`X-Kwik-Mode`): proxy/tun.
     pub mode: Option<String>,
     /// Желаемое VPN-ядро (`X-Kwik-Engine`): xray/mihomo. Зарезер-
@@ -151,9 +143,6 @@ pub fn parse_subscription_userinfo(raw: &str) -> SubscriptionMeta {
         announce_url: None,
         premium_url: None,
         theme: None,
-        background: None,
-        button_style: None,
-        preset: None,
         mode: None,
         engine: None,
         fragmentation_enable: None,
@@ -343,24 +332,21 @@ fn apply_inline_directives(body: &str, meta_opt: &mut Option<SubscriptionMeta>) 
             "announce" => {
                 found_announce = decode_header_value(value);
             }
-            "announce-url" => {
-                if value.starts_with("http://") || value.starts_with("https://") {
+            "announce-url"
+                if (value.starts_with("http://") || value.starts_with("https://")) => {
                     found_announce_url = Some(value.to_string());
                 }
-            }
             "profile-title" => {
                 found_title = decode_header_value(value);
             }
-            "support-url" => {
-                if value.starts_with("http://") || value.starts_with("https://") {
+            "support-url"
+                if (value.starts_with("http://") || value.starts_with("https://")) => {
                     found_support = Some(value.to_string());
                 }
-            }
-            "profile-web-page-url" => {
-                if value.starts_with("http://") || value.starts_with("https://") {
+            "profile-web-page-url"
+                if (value.starts_with("http://") || value.starts_with("https://")) => {
                     found_web = Some(value.to_string());
                 }
-            }
             "profile-update-interval" => {
                 if let Ok(n) = value.parse::<u32>() {
                     if n > 0 {
@@ -397,9 +383,6 @@ fn apply_inline_directives(body: &str, meta_opt: &mut Option<SubscriptionMeta>) 
         announce_url: None,
         premium_url: None,
         theme: None,
-        background: None,
-        button_style: None,
-        preset: None,
         mode: None,
         engine: None,
         fragmentation_enable: None,
@@ -472,9 +455,6 @@ fn build_subscription_meta(headers: &reqwest::header::HeaderMap) -> Option<Subsc
             announce_url: None,
             premium_url: None,
             theme: None,
-            background: None,
-            button_style: None,
-            preset: None,
             mode: None,
             engine: None,
             fragmentation_enable: None,
@@ -512,22 +492,9 @@ fn build_subscription_meta(headers: &reqwest::header::HeaderMap) -> Option<Subsc
     let header_enum = |name: &str, allowed: &[&str]| -> Option<String> {
         header_str(name).and_then(|v| validate_enum(&v, allowed))
     };
-    meta.theme = header_enum(
-        "x-kwik-theme",
-        &["dark", "light", "midnight", "sunset", "sand"],
-    );
-    meta.background = header_enum(
-        "x-kwik-background",
-        &["crystal", "tunnel", "globe", "particles"],
-    );
-    meta.button_style = header_enum(
-        "x-kwik-button-style",
-        &["glass", "flat", "neon", "metallic"],
-    );
-    meta.preset = header_enum(
-        "x-kwik-preset",
-        &["none", "fluent", "cupertino", "vice", "arcade", "glacier"],
-    );
+    // 0.7.x: classic/swiss look'и удалены — заголовки X-Kwik-Background /
+    // Button-Style / Preset больше не читаются (их потребители выпилены).
+    meta.theme = header_enum("x-kwik-theme", &["system", "dark", "light"]);
     meta.mode = header_enum("x-kwik-mode", &["proxy", "tun"]);
     // Mihomo-only: единственный движок. Заголовок X-Kwik-Engine
     // принимаем только со значением "mihomo"; legacy "xray"/"sing-box"
@@ -567,9 +534,6 @@ fn build_subscription_meta(headers: &reqwest::header::HeaderMap) -> Option<Subsc
         || meta.announce_url.is_some()
         || meta.premium_url.is_some()
         || meta.theme.is_some()
-        || meta.background.is_some()
-        || meta.button_style.is_some()
-        || meta.preset.is_some()
         || meta.mode.is_some()
         || meta.engine.is_some()
         || meta.fragmentation_enable.is_some()
@@ -682,7 +646,11 @@ fn engines_mihomo_only() -> Vec<String> {
 // ─── парсеры URI ──────────────────────────────────────────────────────────────
 
 fn parse_vless(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri.strip_prefix("vless://").unwrap();
+    // Диспетчер parse_proxy_uri гарантирует префикс, но при прямом
+    // вызове с чужой строкой паника недопустима — возвращаем ошибку.
+    let Some(rest) = uri.strip_prefix("vless://") else {
+        bail!("ожидали vless:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, query) = split_query(rest);
@@ -708,7 +676,9 @@ fn parse_vless(uri: &str) -> Result<ProxyEntry> {
 }
 
 fn parse_vmess(uri: &str) -> Result<ProxyEntry> {
-    let b64 = uri.strip_prefix("vmess://").unwrap().trim();
+    let Some(b64) = uri.strip_prefix("vmess://").map(str::trim) else {
+        bail!("ожидали vmess:// URI");
+    };
     let decoded = general_purpose::STANDARD
         .decode(b64)
         .or_else(|_| general_purpose::URL_SAFE_NO_PAD.decode(b64))
@@ -738,7 +708,9 @@ fn parse_vmess(uri: &str) -> Result<ProxyEntry> {
 }
 
 fn parse_trojan(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri.strip_prefix("trojan://").unwrap();
+    let Some(rest) = uri.strip_prefix("trojan://") else {
+        bail!("ожидали trojan:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, query) = split_query(rest);
@@ -764,7 +736,9 @@ fn parse_trojan(uri: &str) -> Result<ProxyEntry> {
 }
 
 fn parse_ss(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri.strip_prefix("ss://").unwrap();
+    let Some(rest) = uri.strip_prefix("ss://") else {
+        bail!("ожидали ss:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (rest, _query) = split_query(rest);
@@ -812,10 +786,12 @@ fn parse_ss(uri: &str) -> Result<ProxyEntry> {
 // поддержки Hysteria2 в Clash Meta.
 
 fn parse_hysteria2(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri
+    let Some(rest) = uri
         .strip_prefix("hysteria2://")
         .or_else(|| uri.strip_prefix("hy2://"))
-        .unwrap();
+    else {
+        bail!("ожидали hysteria2:// или hy2:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, query) = split_query(rest);
@@ -850,7 +826,9 @@ fn parse_hysteria2(uri: &str) -> Result<ProxyEntry> {
 // engine_compat: Mihomo only.
 
 fn parse_tuic(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri.strip_prefix("tuic://").unwrap();
+    let Some(rest) = uri.strip_prefix("tuic://") else {
+        bail!("ожидали tuic:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, query) = split_query(rest);
@@ -895,10 +873,12 @@ fn parse_tuic(uri: &str) -> Result<ProxyEntry> {
 // нативно.
 
 fn parse_wireguard(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri
+    let Some(rest) = uri
         .strip_prefix("wireguard://")
         .or_else(|| uri.strip_prefix("wg://"))
-        .unwrap();
+    else {
+        bail!("ожидали wireguard:// или wg:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, query) = split_query(rest);
@@ -931,10 +911,12 @@ fn parse_wireguard(uri: &str) -> Result<ProxyEntry> {
 // engine_compat: оба ядра (Xray имеет SOCKS outbound, Mihomo тоже).
 
 fn parse_socks(uri: &str) -> Result<ProxyEntry> {
-    let rest = uri
+    let Some(rest) = uri
         .strip_prefix("socks5://")
         .or_else(|| uri.strip_prefix("socks://"))
-        .unwrap();
+    else {
+        bail!("ожидали socks5:// или socks:// URI");
+    };
 
     let (rest, name) = split_fragment(rest);
     let (authority, _query) = split_query(rest);
@@ -1349,7 +1331,7 @@ fn normalize_xray_vmess(ob: &serde_json::Value, name: &str) -> Option<ProxyEntry
     raw.insert("id".into(), uuid.into());
 
     let aid = user.get("alterId").and_then(|v| v.as_u64()).unwrap_or(0);
-    raw.insert("aid".into(), (aid as u64).into());
+    raw.insert("aid".into(), aid.into());
 
     let cipher = user.get("security").and_then(|v| v.as_str()).unwrap_or("auto");
     raw.insert("scy".into(), cipher.to_string().into());
@@ -1524,7 +1506,7 @@ fn normalize_xray_wg(ob: &serde_json::Value, name: &str) -> Option<ProxyEntry> {
         }
     }
     if let Some(mtu) = settings.get("mtu").and_then(|v| v.as_u64()) {
-        raw.insert("mtu".into(), (mtu as u64).into());
+        raw.insert("mtu".into(), mtu.into());
     }
     if let Some(reserved) = settings.get("reserved").and_then(|v| v.as_array()) {
         let joined: Vec<String> = reserved.iter().filter_map(|v| v.as_u64().map(|n| n.to_string())).collect();

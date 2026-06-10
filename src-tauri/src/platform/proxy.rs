@@ -283,7 +283,7 @@ pub fn is_proxy_pointing_to_us() -> bool {
         // "socks=127.0.0.1:1080;http=127.0.0.1:1087;..."
         // Разбиваем по ; и разбираем все hint'ы.
         for part in server.split(';') {
-            let s = part.split('=').last().unwrap_or(part);
+            let s = part.split('=').next_back().unwrap_or(part);
             let (host, port) = match s.rsplit_once(':') {
                 Some(pair) => pair,
                 None => continue,

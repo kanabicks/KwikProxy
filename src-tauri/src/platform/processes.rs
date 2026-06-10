@@ -95,7 +95,7 @@ pub fn detect_competing_vpns() -> Vec<String> {
             let stem = name.strip_suffix(".exe").unwrap_or(&name);
 
             // Самоисключение.
-            if OUR_EXES.iter().any(|own| stem == *own) {
+            if OUR_EXES.contains(&stem) {
                 continue;
             }
 

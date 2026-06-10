@@ -106,16 +106,12 @@ pub async fn ensure_running() -> Result<()> {
 }
 
 /// Найти `kwik-helper.exe` в нескольких возможных локациях:
-///   1. `<exe-dir>/kwik-helper.exe`            — dev (target/debug,
-///                                                    target/release)
-///                                                    или prod если Tauri
-///                                                    стрипает triplet;
-///   2. `<exe-dir>/kwik-helper-<triplet>.exe`  — prod если Tauri
-///                                                    оставляет triplet
-///                                                    после bundle;
-///   3. `<exe-dir>/resources/...`                   — fallback на случай
-///                                                    нестандартного
-///                                                    расположения.
+/// 1. `<exe-dir>/kwik-helper.exe` — dev (target/debug, target/release)
+///    или prod если Tauri стрипает triplet;
+/// 2. `<exe-dir>/kwik-helper-<triplet>.exe` — prod если Tauri оставляет
+///    triplet после bundle;
+/// 3. `<exe-dir>/resources/...` — fallback на случай нестандартного
+///    расположения.
 fn resolve_helper_path() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     let exe_dir = exe.parent()?;
@@ -127,12 +123,7 @@ fn resolve_helper_path() -> Option<PathBuf> {
         exe_dir.join("resources").join(HELPER_FILENAME_TRIPLET),
     ];
 
-    for c in candidates {
-        if c.is_file() {
-            return Some(c);
-        }
-    }
-    None
+    candidates.into_iter().find(|c| c.is_file())
 }
 
 /// Запустить процесс с правами администратора через ShellExecuteW + verb=runas.
@@ -164,7 +155,7 @@ fn spawn_elevated(exe: &Path, arg: &str) -> Result<()> {
             file.as_ptr(),
             params.as_ptr(),
             std::ptr::null(),
-            SW_HIDE as i32,
+            SW_HIDE,
         )
     };
 

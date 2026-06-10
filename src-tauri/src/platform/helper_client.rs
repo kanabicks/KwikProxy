@@ -180,6 +180,7 @@ pub async fn version() -> Result<(String, u32)> {
 ///   через TUN). В proxy-режиме `false` чтобы не задерживать enable.
 /// - `force_disable_ipv6` — 14.D, блокировать весь IPv6 outbound пока
 ///   VPN активен. Helper пропустит все v6 allow-фильтры.
+#[allow(clippy::too_many_arguments)] // аргументы зеркалят поля wire-протокола/конфига — структура здесь не упростит вызовы
 pub async fn kill_switch_enable(
     server_ips: Vec<String>,
     allow_lan: bool,

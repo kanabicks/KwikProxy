@@ -15,22 +15,19 @@ use serde::{Deserialize, Serialize};
 /// Стратегия резолва доменов для матчинга по IP-правилам.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
+#[derive(Default)]
 pub enum DomainStrategy {
     /// Не резолвить, матчить только домены.
     AsIs,
     /// Резолвить если домен не сматчился ни одному правилу — потом матчить IP.
     #[serde(rename = "IPIfNonMatch")]
+    #[default]
     IpIfNonMatch,
     /// Всегда резолвить домен в IP перед матчингом.
     #[serde(rename = "IPOnDemand")]
     IpOnDemand,
 }
 
-impl Default for DomainStrategy {
-    fn default() -> Self {
-        Self::IpIfNonMatch
-    }
-}
 
 /// Routing-профиль — единая декларация split-routing правил.
 ///
@@ -289,7 +286,7 @@ mod tests {
         }"#;
         let p = RoutingProfile::parse_json(json).unwrap();
         assert_eq!(p.name, "Test");
-        assert_eq!(p.global_proxy.0, true);
+        assert!(p.global_proxy.0);
         assert_eq!(p.direct_sites.len(), 1);
         assert_eq!(p.direct_sites[0], "geosite:ru");
     }
@@ -298,7 +295,7 @@ mod tests {
     fn bool_string_accepts_native_bool() {
         let json = r#"{"Name":"X","GlobalProxy":true}"#;
         let p = RoutingProfile::parse_json(json).unwrap();
-        assert_eq!(p.global_proxy.0, true);
+        assert!(p.global_proxy.0);
     }
 
     #[test]
