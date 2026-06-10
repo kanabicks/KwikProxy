@@ -674,6 +674,10 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
         const restoredIndex = findSelectedIndexByName(tagged);
         if (restoredIndex >= 0) {
           useVpnStore.setState({ selectedIndex: restoredIndex });
+        } else if (tagged.length === 1) {
+          // Auto-select единственной записи (full-mihomo «профиль») —
+          // без него сетка локаций не отрисуется после смены подписки.
+          useVpnStore.setState({ selectedIndex: 0 });
         }
       }
       // Авто-пинг для этой sub.

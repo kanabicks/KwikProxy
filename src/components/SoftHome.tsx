@@ -176,20 +176,38 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
 
   // Переключение активной подписки: подменяем legacy servers/meta/pings
   // и заливаем серверы в Rust (set_servers) для connect-by-index.
+  // Серверы берутся из кеша подписки (sub.servers) — сетевой fetch при
+  // переключении НЕ нужен; он делается один раз при добавлении и далее
+  // только по кнопке «обновить» / авто-обновлению.
   const activate = (id: string) => {
     if (id !== primaryId) {
       setPrimaryId(id);
       const sub = useSubscriptionStore.getState().subscriptions.find((s) => s.id === id);
       if (sub) {
-        useSubscriptionStore.setState({
-          servers: sub.servers,
-          meta: sub.meta,
-          pings: sub.pings ?? [],
-        });
-        void invoke("set_servers", { servers: sub.servers });
-        const idx = findSelectedIndexByName(sub.servers);
-        useVpnStore.setState({ selectedIndex: idx >= 0 ? idx : null });
-        void useSubscriptionStore.getState().pingAll();
+        if (sub.servers.length === 0) {
+          // Кеша нет (например, добавлена на старой версии без кеша или
+          // кеш потёрт) — единственный случай, когда нужен fetch. Дальше
+          // серверы лягут в sub.servers + localStorage и переключение
+          // станет мгновенным.
+          void useSubscriptionStore.getState().fetchSubscriptionById(id);
+        } else {
+          useSubscriptionStore.setState({
+            servers: sub.servers,
+            meta: sub.meta,
+            pings: sub.pings ?? [],
+          });
+          void invoke("set_servers", { servers: sub.servers });
+          // Восстановление выбора: по имени; если имя из другой подписки
+          // не нашлось, а запись одна (full-mihomo «профиль») — авто-выбор,
+          // иначе сетка локаций не отрисуется и список выглядит «пустым»
+          // (раньше это и заставляло жать «обновить» при каждой смене).
+          const idx = findSelectedIndexByName(sub.servers);
+          useVpnStore.setState({
+            selectedIndex:
+              idx >= 0 ? idx : sub.servers.length === 1 ? 0 : null,
+          });
+          void useSubscriptionStore.getState().pingAll();
+        }
       }
     }
     closeSheet();
