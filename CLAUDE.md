@@ -238,8 +238,20 @@ TUN strict-route, DOMAIN-REGEX, DNS fallback, ECH passthrough, IPv6-тоггл,
   (transition inset/radius), анимация появления дашборда (grid 0fr→1fr).
 
 ## Что осталось (значимое)
-- **Редизайн добить**: судьба classic/swiss looks, полировка Settings, тест
-  frameless на чистой машине.
+- **Редизайн добить**: полировка Settings, тест frameless на чистой машине.
+  ~~Судьба classic/swiss~~ ✅ решено 2026-06-10 — **выпилены полностью**
+  (рефакторинг после 0.7.0): 13 компонентов (Scene3D/three.js, Header,
+  PowerStack, ServerSelector и др. + сироты PingBadge/ProxiesPanel/
+  ServerPreviewModal), −1.6k строк CSS (swiss-секция, палитры
+  midnight/sunset/sand, data-preset), типы Background/ButtonStyle/Preset
+  из stores, заголовки X-Kwik-Background/Button-Style/Preset из парсера
+  (Theme сужен до system/dark/light), i18n-ветки appearance.*.
+  `data-look="soft"` статично в index.html. Бандл: −521 КБ chunk three.js.
+  Попутно (аудит рефакторинга): clippy 0 warnings, unwrap-фиксы
+  (let-else в парсерах URI, mutex-poisoning recovery), −4 мёртвые IPC
+  (detect_competing_vpns, has_proxy_backup, kill_switch_force_cleanup,
+  preview_server_config), фикс one-shot флага миграции credentials
+  (ставится только после успешного invoke).
 - **14.B code signing** ⚠️ — без подписи SmartScreen ругается (релиз-блокер).
 - **14.H** privacy policy + LICENSE (до публичного релиза).
 - **11.A…G** routing-профили — ✅ **аудит проведён 2026-06-01, ядро рабочее**
