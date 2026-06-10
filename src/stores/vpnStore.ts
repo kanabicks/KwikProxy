@@ -262,6 +262,20 @@ export const useVpnStore = create<VpnState>((set, get) => ({
   async connect() {
     const { selectedIndex, mode } = get();
     if (selectedIndex === null) return;
+    // Защита от устаревшего индекса: после смены/удаления подписки
+    // selectedIndex мог остаться от прежнего (более длинного) списка.
+    // Без проверки в Rust ушёл бы out-of-range / чужой сервер.
+    const servers = useSubscriptionStore.getState().servers;
+    if (selectedIndex < 0 || selectedIndex >= servers.length) {
+      set({ selectedIndex: null });
+      showToast({
+        kind: "warning",
+        title: i18n.t("vpnStore.staleSelection.title"),
+        message: i18n.t("vpnStore.staleSelection.message"),
+        durationMs: 6000,
+      });
+      return;
+    }
 
     // 9.C: проверяем routing-таблицу на чужие default/half-default
     // маршруты до запуска connect. Если такие есть — это другой

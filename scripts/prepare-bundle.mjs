@@ -6,9 +6,8 @@
 //  2. Копирует получившийся `target/release/kwik-helper.exe` в
 //     `src-tauri/binaries/kwik-helper-<triplet>.exe` — Tauri ожидает
 //     externalBin с triplet-суффиксом.
-//  3. Проверяет, что все остальные sidecar (xray, tun2socks) и ресурсы
-//     (wintun.dll, geoip.dat, geosite.dat) на месте — иначе bundle не
-//     соберётся.
+//  3. Проверяет, что mihomo-sidecar и ресурсы (wintun.dll, geoip.dat,
+//     geosite.dat) на месте — иначе bundle не соберётся.
 //
 // Запускается автоматически через npm-скрипт `tauri:bundle` (см. package.json).
 //
@@ -33,13 +32,13 @@ const SRC_TAURI = join(ROOT, "src-tauri");
 const BINARIES = join(SRC_TAURI, "binaries");
 const TARGET_RELEASE = join(SRC_TAURI, "target", "release");
 
-// Тот же triplet что и для остальных sidecar (xray, tun2socks). Если
-// добавится поддержка ARM64 или Linux — расширим определение.
+// Тот же triplet что и для mihomo-sidecar. Если добавится поддержка
+// ARM64 или Linux — расширим определение.
 const TRIPLET = "x86_64-pc-windows-msvc";
 
 const REQUIRED_RESOURCES = [
-  // 0.1.2 sing-box миграция: основной движок (заменил xray + tun2proxy).
-  "sing-box-x86_64-pc-windows-msvc.exe",
+  // Mihomo-only (0.5.0): единственный движок. sing-box/xray/tun2proxy
+  // выпилены — больше не нужны в bundle.
   "mihomo-x86_64-pc-windows-msvc.exe",
   "wintun.dll",
   "geoip.dat",
@@ -153,10 +152,10 @@ const missing = REQUIRED_RESOURCES.filter(
 if (missing.length > 0) {
   fail(
     `в src-tauri/binaries/ отсутствуют файлы: ${missing.join(", ")}.\n` +
-      "         Скачай их вручную (xray-core, mihomo, tun2proxy, wintun.dll,\n" +
-      "         geoip.dat, geosite.dat) и положи в binaries/ перед release-сборкой.\n" +
-      "         tun2proxy: github.com/tun2proxy/tun2proxy/releases (Windows zip,\n" +
-      "         переименовать tun2proxy-bin.exe → tun2proxy-x86_64-pc-windows-msvc.exe)."
+      "         Скачай их вручную (mihomo, wintun.dll, geoip.dat, geosite.dat)\n" +
+      "         и положи в binaries/ перед release-сборкой.\n" +
+      "         mihomo: github.com/MetaCubeX/mihomo/releases (Windows amd64,\n" +
+      "         переименовать → mihomo-x86_64-pc-windows-msvc.exe)."
   );
 }
 

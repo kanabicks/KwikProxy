@@ -265,6 +265,11 @@ export function SubStrip() {
       </div>
       {showAnnounce && announceText && announceHash && (
         <AnnounceRow
+          // key по hash: при смене объявления провайдером React
+          // перемонтирует строку, сбрасывая visible/closing (иначе новое
+          // объявление унаследовало бы «закрывающееся» состояние — мёртвый
+          // крестик, если предыдущее закрыли <380мс назад).
+          key={announceHash}
           text={announceText}
           url={announceUrl}
           hash={announceHash}
@@ -318,7 +323,10 @@ export function NodePingOverview({ nodes }: { nodes: PingNode[] }) {
         {sorted.slice(0, 12).map((n, i) => (
           <div
             className="ping-row"
-            key={n.name}
+            // имя + индекс: провайдер в URI-подписках может прислать
+            // одноимённые ноды («🇩🇪 Германия» ×2) — чистое имя как key
+            // схлопнуло бы их в одну строку.
+            key={`${n.name}-${i}`}
             style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
           >
             <FlagIcon name={n.name} className="ping-flag" placeholder />

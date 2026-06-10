@@ -220,8 +220,12 @@ pub async fn fetch_and_parse(
         user_agent
     };
 
+    // Таймауты обязательны: без них недоступный/завис(ший|нувший) сервер
+    // подписки повесил бы UI-команду навсегда (нет фонового отвала).
     let client = reqwest::Client::builder()
         .user_agent(ua)
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .timeout(std::time::Duration::from_secs(45))
         .build()
         .context("не удалось создать HTTP-клиент")?;
 
@@ -236,6 +240,16 @@ pub async fn fetch_and_parse(
         .context("ошибка HTTP-запроса")?
         .error_for_status()
         .context("сервер вернул ошибку")?;
+
+    // Защита от исчерпания памяти: подписка — это текстовый список/YAML,
+    // реально она десятки-сотни КБ. Если сервер заявляет гигантское тело
+    // (битый/враждебный) — отказываемся до чтения в память.
+    const MAX_SUBSCRIPTION_BYTES: u64 = 16 * 1024 * 1024; // 16 МБ с запасом
+    if let Some(len) = response.content_length() {
+        if len > MAX_SUBSCRIPTION_BYTES {
+            bail!("тело подписки подозрительно большое ({len} байт) — отказ");
+        }
+    }
 
     // Извлекаем метаданные из заголовков ДО чтения body (после `text()`
     // response уже потреблён). Базовый заголовок — subscription-userinfo
@@ -696,7 +710,8 @@ fn parse_vmess(uri: &str) -> Result<ProxyEntry> {
     let port: u16 = json["port"]
         .as_u64()
         .or_else(|| json["port"].as_str().and_then(|s| s.parse().ok()))
-        .context("поле port обязательно")? as u16;
+        .and_then(|p| u16::try_from(p).ok())
+        .context("поле port обязательно и должно быть в диапазоне 1..=65535")?;
 
     Ok(ProxyEntry {
         name,
@@ -1767,10 +1782,15 @@ fn yaml_proxy_to_entry(v: serde_yaml::Value) -> Result<ProxyEntry> {
         .and_then(|v| v.as_str())
         .context("поле server обязательно")?
         .to_string();
-    let port = map
+    // Порт может прийти числом или строкой ("443") — панели пишут по-разному.
+    let port: u16 = map
         .get("port")
-        .and_then(|v| v.as_u64())
-        .context("поле port обязательно")? as u16;
+        .and_then(|v| {
+            v.as_u64()
+                .or_else(|| v.as_str().and_then(|s| s.trim().parse().ok()))
+        })
+        .and_then(|p| u16::try_from(p).ok())
+        .context("поле port обязательно и должно быть в диапазоне 1..=65535")?;
 
     let raw = serde_json::to_value(&v)
         .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::new()));

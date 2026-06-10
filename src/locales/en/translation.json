@@ -255,6 +255,10 @@
     "vpnConflict": {
       "title": "VPN conflict",
       "message": "active VPN on interface: {{list}}.\nDisconnect it before connecting."
+    },
+    "staleSelection": {
+      "title": "no server selected",
+      "message": "the server list changed — pick a server again."
     }
   },
   "notification": {
