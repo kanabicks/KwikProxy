@@ -191,6 +191,12 @@ export const findSelectedIndexByName = (
   return servers.findIndex((s) => normalizeName(s.name) === target);
 };
 
+/** Идёт ли уже цепочка авто-переподключения при смене сервера. Защищает
+ *  от гонки: быстрые клики по разным серверам не должны запускать
+ *  несколько параллельных disconnect→connect. Module-level (а не в state)
+ *  — это чисто внутренний мьютекс, перерисовка UI на него не нужна. */
+let switchingServer = false;
+
 export const useVpnStore = create<VpnState>((set, get) => ({
   status: "stopped",
   errorMessage: null,
@@ -221,24 +227,35 @@ export const useVpnStore = create<VpnState>((set, get) => ({
     // переподключаемся к новому серверу. Если был только что error /
     // stopping / starting — не трогаем (пусть пользователь дождётся
     // финального состояния).
-    if (prev !== null && prev !== index) {
-      const status = get().status;
-      if (status === "running") {
-        // disconnect → пауза 200мс на снятие WFP/маршрутов → connect.
-        // Без паузы новый коннект может не дождаться очистки и
-        // увидеть «old proxy still active».
-        void (async () => {
+    if (prev !== null && prev !== index && get().status === "running") {
+      // Если цепочка переподключения уже идёт — не плодим вторую.
+      // selectedIndex уже обновлён выше, и do-while ниже подхватит
+      // самый свежий выбор (подключимся к последнему, что ты выбрал).
+      if (switchingServer) return;
+      void (async () => {
+        switchingServer = true;
+        try {
           showToast({
             kind: "info",
             title: i18n.t("vpnStore.switching.title"),
             message: i18n.t("vpnStore.switching.message"),
             durationMs: 3000,
           });
-          await get().disconnect();
-          await new Promise((r) => setTimeout(r, 200));
-          await get().connect();
-        })();
-      }
+          // disconnect → пауза 200мс на снятие WFP/маршрутов → connect.
+          // Без паузы новый коннект может не дождаться очистки и увидеть
+          // «old proxy still active». Цикл повторяется, если за время
+          // переподключения пользователь выбрал ещё другой сервер.
+          let target: number | null;
+          do {
+            target = get().selectedIndex;
+            await get().disconnect();
+            await new Promise((r) => setTimeout(r, 200));
+            await get().connect();
+          } while (get().selectedIndex !== target);
+        } finally {
+          switchingServer = false;
+        }
+      })();
     }
   },
 

@@ -30,7 +30,7 @@ export function useTrustedWifi() {
     let unlisten: (() => void) | undefined;
 
     void listen<WifiChange>("wifi-changed", (event) => {
-      const { to } = event.payload;
+      const { from, to } = event.payload;
       setCurrentSsid(to);
 
       const settings = useSettingsStore.getState();
@@ -38,9 +38,13 @@ export function useTrustedWifi() {
       const vpn = useVpnStore.getState();
 
       const enteredTrusted = to !== null && settings.trustedSsids.includes(to);
+      // «Была ли предыдущая сеть доверенной» — берём из payload.from,
+      // а НЕ из runtime.currentSsid: выше мы уже вызвали setCurrentSsid(to),
+      // так что стор хранит новую сеть. from приходит от бэкенда и точно
+      // отражает сеть, из которой мы вышли (иначе reconnect-ветка ниже
+      // считала бы wasInTrusted по новой сети — авто-reconnect ломался).
       const wasInTrusted =
-        runtime.currentSsid !== null &&
-        settings.trustedSsids.includes(runtime.currentSsid);
+        from !== null && settings.trustedSsids.includes(from);
 
       if (enteredTrusted && settings.trustedSsidAction === "disconnect") {
         if (vpn.status === "running") {

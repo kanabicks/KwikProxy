@@ -364,14 +364,39 @@ type ServersCacheEntry = {
 };
 type ServersCache = Record<string, ServersCacheEntry>;
 
+/** Проверка формы одной записи кеша. Кеш — недоверенный localStorage:
+ *  битая/частичная запись (или формат от будущей версии) не должна
+ *  утекать в state.servers и Rust как мусор. Отсев поэлементный — одна
+ *  испорченная подписка не выкидывает весь кеш. */
+const isValidCacheEntry = (e: unknown): e is ServersCacheEntry => {
+  if (!e || typeof e !== "object") return false;
+  const o = e as Record<string, unknown>;
+  if (!Array.isArray(o.servers)) return false;
+  return o.servers.every((s) => {
+    if (!s || typeof s !== "object") return false;
+    const p = s as Record<string, unknown>;
+    return (
+      typeof p.name === "string" &&
+      typeof p.protocol === "string" &&
+      typeof p.server === "string" &&
+      typeof p.port === "number"
+    );
+  });
+};
+
 const loadServersCache = (): ServersCache => {
   try {
     const raw = localStorage.getItem(SERVERS_CACHE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as ServersCache)
-      : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    const out: ServersCache = {};
+    for (const [id, entry] of Object.entries(parsed)) {
+      if (isValidCacheEntry(entry)) out[id] = entry;
+    }
+    return out;
   } catch {
     return {};
   }

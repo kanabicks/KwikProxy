@@ -122,6 +122,39 @@ export function readBackupFile(file: File): Promise<string> {
   });
 }
 
+/** Отфильтровать импортируемые настройки по типам.
+ *
+ *  Backup приходит в т.ч. из deep-link (`kwik://import-settings`) —
+ *  недоверенный источник. Принимаем только значения whitelist-полей,
+ *  тип которых совпадает с текущим в сторе (boolean/number/string или
+ *  массив строк). Это перекрывает класс «инъекция чужого типа» (объект
+ *  вместо строки, NaN/Infinity вместо числа) — соответствует
+ *  whitelist-принципу проекта. Enum-строки доп. санитизируются в
+ *  settingsStore.set/load (напр. theme мигрирует невалидное значение). */
+function sanitizeImportedSettings(raw: unknown): Partial<Settings> {
+  if (!raw || typeof raw !== "object") return {};
+  const incoming = raw as Record<string, unknown>;
+  const cur = useSettingsStore.getState();
+  const out: Record<string, unknown> = {};
+  for (const key of SETTINGS_WHITELIST) {
+    const v = incoming[key as string];
+    if (v === undefined) continue;
+    const ref = cur[key];
+    if (Array.isArray(ref)) {
+      // Все массивы в whitelist — string[] (trustedSsids).
+      if (Array.isArray(v) && v.every((x) => typeof x === "string")) {
+        out[key as string] = v;
+      }
+    } else if (typeof v === "number") {
+      if (typeof ref === "number" && Number.isFinite(v)) out[key as string] = v;
+    } else if (typeof v === "boolean" || typeof v === "string") {
+      if (typeof ref === typeof v) out[key as string] = v;
+    }
+    // объекты/функции/null — молча отбрасываем.
+  }
+  return out as Partial<Settings>;
+}
+
 /** Безопасный парсер JSON-payload в `BackupSchema` или ошибка. */
 export function parseBackup(raw: string): BackupSchema {
   let obj: unknown;
@@ -165,7 +198,7 @@ export function parseBackup(raw: string): BackupSchema {
       typeof o.exported_at === "number" && Number.isFinite(o.exported_at)
         ? o.exported_at
         : 0,
-    settings: settings && typeof settings === "object" ? (settings as Partial<Settings>) : {},
+    settings: sanitizeImportedSettings(settings),
     subscription_url: sub,
     app_rules: rules,
   };
