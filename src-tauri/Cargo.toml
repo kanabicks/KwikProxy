@@ -1,8 +1,8 @@
 [package]
 name = "vpn-client"
-version = "0.7.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.7.1"
+description = "Kwik — VPN-клиент под Windows на базе Mihomo"
+authors = ["Kwik contributors"]
 edition = "2021"
 default-run = "vpn-client"
 

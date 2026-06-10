@@ -1,0 +1,53 @@
+name: Сообщить о баге
+description: Что-то не работает или работает не так, как ожидалось
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо за репорт! Чем точнее описание — тем быстрее фикс.
+        Совет: кнопка «сообщить о проблеме» в Settings → «о приложении»
+        заполняет окружение автоматически.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Что произошло
+      description: Что делал, что ожидал увидеть и что произошло на самом деле.
+      placeholder: |
+        1. Нажал «подключить» на сервере X
+        2. Ожидал: статус «подключено»
+        3. Получил: ошибка «…»
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Версия Kwik
+      description: Settings → «о приложении» (например 0.7.1)
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Режим подключения
+      options:
+        - Системный прокси
+        - TUN
+        - LAN
+        - Не дошло до подключения
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Версия Windows
+      placeholder: Windows 11 24H2 / Windows 10 22H2
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Диагностика
+      description: |
+        Settings → «системное» → «выгрузить диагностику» собирает zip с логами
+        (без URL подписки и паролей) — прикрепи его сюда перетаскиванием.
+        Если связано с kill switch / TUN — особенно полезен `helper.log` из архива.

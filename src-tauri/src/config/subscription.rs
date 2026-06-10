@@ -202,8 +202,9 @@ fn decode_header_value(raw: &str) -> Option<String> {
 
 /// Скачать подписку по URL и вернуть список серверов.
 ///
-/// `user_agent` — UA для запроса. По умолчанию `Happ/2.7.0` (так провайдеры
-/// на базе Marzban / RemnaWave отдают массив готовых Xray-конфигов).
+/// `user_agent` — UA для запроса. По умолчанию `clash-verge/v2.0.0` (так
+/// панели Marzban / Remnawave / 3x-ui отдают clash YAML, который понимает
+/// Mihomo; Happ-UA отдавал бы xray-json — для Mihomo-only клиента бесполезен).
 /// `hwid` — идентификатор устройства, шлётся в заголовке `x-hwid`. Сервер
 /// регистрирует новое устройство автоматически, если в подписке есть
 /// свободный HWID-слот. Если `send_hwid=false`, заголовок не шлётся.
@@ -214,7 +215,7 @@ pub async fn fetch_and_parse(
     send_hwid: bool,
 ) -> Result<(Vec<ProxyEntry>, Option<SubscriptionMeta>)> {
     let ua = if user_agent.trim().is_empty() {
-        "Happ/2.7.0"
+        "clash-verge/v2.0.0"
     } else {
         user_agent
     };

@@ -170,7 +170,7 @@ pub struct SubscriptionResult {
 /// `hwid_override` — если задан и непустой, используется вместо локально
 /// сгенерированного MachineGuid (нужен только для разработки / переноса
 /// с другого клиента).
-/// `user_agent` — позволяет переопределить дефолт `Happ/2.7.0`.
+/// `user_agent` — позволяет переопределить дефолт `clash-verge/v2.0.0`.
 /// `send_hwid` — если false, заголовок `x-hwid` не отправляется.
 #[tauri::command]
 pub async fn fetch_subscription(
