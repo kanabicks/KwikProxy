@@ -1636,14 +1636,99 @@ html[data-look="soft"] .shortcut-input {
 .sub-strip {
   flex: 0 0 auto;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
   margin: 0 22px 10px;
   padding: 11px 14px;
   background: #f7f7f3;
   border: 1px solid var(--s-line);
   border-radius: 14px;
   animation: dash-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Основной ряд плашки: трафик/бар слева, срок и кнопки справа. */
+.sub-strip-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* ── Строка объявления провайдера (бывший AnnounceBanner) ─────────────
+   Живёт внутри той же плашки. Появление/уход — grid-rows 0fr↔1fr +
+   opacity (тот же приём, что у дашборда соединения): высота плашки
+   меняется плавно, контент не прыгает. Длительность синхронизирована
+   с ANNOUNCE_LEAVE_MS в HomeExtras.tsx. */
+.sub-strip-announce {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.3s ease;
+}
+.sub-strip-announce.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.sub-strip-announce-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Разделитель от основного ряда — внутри inner, чтобы клипался
+     overflow'ом в свёрнутом состоянии и не оставлял полоску. */
+  border-top: 1px solid var(--s-line);
+  margin-top: 0;
+  padding-top: 0;
+}
+.sub-strip-announce.is-visible .sub-strip-announce-inner {
+  margin-top: 10px;
+  padding-top: 9px;
+}
+.sub-strip-announce-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--s-green);
+}
+.sub-strip-announce-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--s-sub);
+  text-align: left;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.sub-strip-announce-text.is-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--s-ink);
+}
+.sub-strip-announce-text.is-link:hover { text-decoration: underline; }
+.sub-strip-announce-arrow { color: var(--s-sub); }
+.sub-strip-announce-close {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--s-sub);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sub-strip-announce-close:hover {
+  background: #ebebe6;
+  color: var(--s-ink);
 }
 .sub-strip-info { flex: 1; min-width: 0; }
 .sub-strip-line {
@@ -1809,37 +1894,3 @@ html[data-look="soft"] .shortcut-input {
 .ping-val.delay-bad { color: var(--s-red); }
 .ping-val.delay-none { color: var(--s-sub); }
 .ping-fastest { color: var(--s-lime); font-size: 12px; }
-
-/* ── Announce-баннер в soft (светлый контекст) ── */
-[data-look="soft"] .soft-sheet .announce-banner {
-  background: var(--s-lime-tint);
-  border-color: var(--s-lime);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-radius: 16px;
-  margin-bottom: 14px;
-}
-[data-look="soft"] .soft-sheet .announce-banner-body {
-  color: var(--s-ink);
-  align-items: flex-start;
-  padding: 11px 14px;
-}
-[data-look="soft"] .soft-sheet .announce-banner-close {
-  color: var(--s-sub);
-  border-left-color: rgba(22, 23, 15, 0.10);
-}
-[data-look="soft"] .soft-sheet .announce-banner-close:hover {
-  background: rgba(22, 23, 15, 0.05);
-  color: var(--s-ink);
-}
-[data-look="soft"] .soft-sheet .announce-banner-icon { color: #8a9a2f; margin-top: 1px; }
-[data-look="soft"] .soft-sheet .announce-banner-arrow { color: var(--s-sub); margin-top: 2px; }
-/* Текст статуса должен влезать целиком — переносим на несколько строк,
-   а не обрезаем по ellipsis. */
-[data-look="soft"] .soft-sheet .announce-banner-text {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 1.4;
-  word-break: break-word;
-}

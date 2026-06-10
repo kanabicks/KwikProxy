@@ -13,7 +13,6 @@ import { ModeSegment } from "./ModeSegment";
 import { MihomoGroupsInline } from "./MihomoGroupsInline";
 import { FlagIcon } from "../lib/flags";
 import { ConnectionDashboard } from "./ConnectionDashboard";
-import { AnnounceBanner } from "./AnnounceBanner";
 import { SubStrip, NodePingOverview, type PingNode } from "./HomeExtras";
 import {
   PowerIcon,
@@ -299,8 +298,6 @@ export function SoftHome({ onOpenSettings }: { onOpenSettings: () => void }) {
       </aside>
 
       <main className="soft-sheet">
-        {/* Объявление провайдера (announce-заголовок подписки), если есть. */}
-        <AnnounceBanner />
         <div className="soft-sheet-head">
           <span className="soft-sheet-title">
             {isMihomoProfile ? "Локации" : "Серверы"}
