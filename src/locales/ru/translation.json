@@ -542,17 +542,8 @@
       }
     },
     "appearance": {
-      "preset": {
-        "title": "пресет",
-        "label": "готовый стиль",
-        "hint": "уникальная палитра, фон и стиль кнопки разом",
-        "options": {
-          "none": "без пресета"
-        }
-      },
       "themeStyle": {
-        "title": "тема и стиль",
-        "presetHint": "управляется пресетом"
+        "title": "тема и стиль"
       },
       "theme": {
         "title": "тема",
@@ -562,26 +553,6 @@
           "system": "как в системе",
           "dark": "тёмная",
           "light": "светлая"
-        }
-      },
-      "background": {
-        "label": "фон",
-        "hint": "3d-сцена за интерфейсом",
-        "options": {
-          "crystal": "кристалл",
-          "tunnel": "тоннель",
-          "globe": "глобус",
-          "particles": "частицы"
-        }
-      },
-      "buttonStyle": {
-        "label": "стиль кнопки",
-        "hint": "оформление главной кнопки connect",
-        "options": {
-          "glass": "стекло",
-          "flat": "плоский",
-          "neon": "неон",
-          "metallic": "металл"
         }
       },
       "memoryMonitor": {

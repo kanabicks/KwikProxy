@@ -79,192 +79,6 @@
   --power-btn-shadow: 0 18px 44px -12px rgba(0,0,0,0.18);
 }
 
-/* ── Тема Midnight: глубокий сине-фиолетовый, индиго-акценты ──────────── */
-:root[data-theme="midnight"] {
-  --bg: #0a0a18;
-  --bg-2: #11112a;
-  --bg-glass: rgba(20, 22, 50, 0.55);
-  --fg: #e8eaff;
-  --fg-dim: #a8acd8;
-  --fg-mute: #62669a;
-  --line: rgba(160, 170, 255, 0.08);
-  --line-strong: rgba(160, 170, 255, 0.18);
-  --grid: rgba(160, 170, 255, 0.04);
-  --accent: #818cf8;
-  --vignette: rgba(0, 0, 20, 0.6);
-  --overlay-strong: rgba(10, 10, 24, 0.92);
-  --overlay-blur: rgba(10, 10, 24, 0.88);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(129,140,248,0.12) 0%, rgba(129,140,248,0) 60%),
-    linear-gradient(160deg, rgba(28,28,60,0.92) 0%, rgba(12,12,30,0.98) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 32px rgba(129,140,248,0.18);
-}
-
-/* ── Тема Sand: тёплый песочный, бронзовые акценты ────────────────────── */
-:root[data-theme="sand"] {
-  --bg: #d8c2a0;
-  --bg-2: #c2a87f;
-  --bg-glass: rgba(255, 242, 220, 0.55);
-  --fg: #3a2818;
-  --fg-dim: #6b5238;
-  --fg-mute: #998060;
-  --line: rgba(95, 65, 35, 0.10);
-  --line-strong: rgba(95, 65, 35, 0.22);
-  --grid: rgba(95, 65, 35, 0.05);
-  --accent: #6e4a25;
-  --vignette: rgba(50, 30, 10, 0.10);
-  --overlay-strong: rgba(216, 194, 160, 0.92);
-  --overlay-blur: rgba(216, 194, 160, 0.88);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(120,80,40,0.05) 0%, rgba(120,80,40,0) 60%),
-    linear-gradient(160deg, rgba(255,242,220,0.95) 0%, rgba(220,200,170,0.98) 100%);
-  --power-btn-shadow: 0 18px 44px -12px rgba(80,55,25,0.25);
-}
-
-/* ════════════════════════════════════════════════════════════════════════
-   Пресеты — отдельная ось от темы. Когда `data-preset` стоит на <html>,
-   `data-theme` снят, и эти блоки работают вместо темовых.
-   ═══════════════════════════════════════════════════════════════════════ */
-
-/* ── Fluent: акрил-стекло Microsoft, синий акцент ──────────────────── */
-:root[data-preset="fluent"] {
-  --bg: #1a1c2c;
-  --bg-2: #232540;
-  --bg-glass: rgba(40, 50, 90, 0.45);
-  --fg: #f0f3ff;
-  --fg-dim: #a8b4d8;
-  --fg-mute: #5e6890;
-  --line: rgba(140, 170, 240, 0.10);
-  --line-strong: rgba(140, 170, 240, 0.22);
-  --grid: rgba(140, 170, 240, 0.05);
-  --accent: #60a5fa;
-  --vignette: rgba(0, 6, 30, 0.55);
-  --overlay-strong: rgba(20, 24, 50, 0.92);
-  --overlay-blur: rgba(20, 24, 50, 0.86);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(96,165,250,0.22) 0%, rgba(96,165,250,0) 60%),
-    linear-gradient(160deg, rgba(36,44,80,0.92) 0%, rgba(18,22,46,0.98) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 36px rgba(96,165,250,0.28);
-}
-
-/* ── Cupertino: мягкий пастельный стиль с розовым акцентом ────────── */
-:root[data-preset="cupertino"] {
-  --bg: #f0e7e7;
-  --bg-2: #e2d7d7;
-  --bg-glass: rgba(255, 255, 255, 0.7);
-  --fg: #1c1c1e;
-  --fg-dim: #4a3a3a;
-  --fg-mute: #8a7878;
-  --line: rgba(60, 30, 30, 0.07);
-  --line-strong: rgba(60, 30, 30, 0.18);
-  --grid: rgba(60, 30, 30, 0.04);
-  --accent: #ff375f;
-  --vignette: rgba(255, 100, 130, 0.06);
-  --overlay-strong: rgba(240, 231, 231, 0.92);
-  --overlay-blur: rgba(240, 231, 231, 0.86);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 25%, rgba(255,55,95,0.06) 0%, rgba(255,55,95,0) 60%),
-    linear-gradient(160deg, rgba(255,255,255,0.95) 0%, rgba(228,218,218,0.98) 100%);
-  --power-btn-shadow: 0 18px 44px -12px rgba(120, 30, 50, 0.18);
-}
-
-/* ── Vice: 80s неон — фуксия + cyan, тёмно-фиолетовый фон ─────────── */
-:root[data-preset="vice"] {
-  --bg: #15052e;
-  --bg-2: #20094a;
-  --bg-glass: rgba(60, 12, 100, 0.55);
-  --fg: #ffe0f7;
-  --fg-dim: #d496e0;
-  --fg-mute: #8a558e;
-  --line: rgba(255, 100, 220, 0.10);
-  --line-strong: rgba(255, 100, 220, 0.24);
-  --grid: rgba(0, 245, 255, 0.05);
-  --accent: #ff37a8;
-  --vignette: rgba(120, 0, 80, 0.45);
-  --overlay-strong: rgba(21, 5, 46, 0.92);
-  --overlay-blur: rgba(21, 5, 46, 0.86);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(255,55,168,0.25) 0%, rgba(255,55,168,0) 60%),
-    linear-gradient(160deg, rgba(45,10,75,0.92) 0%, rgba(20,4,40,0.98) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 32px rgba(255,55,168,0.32),
-    0 0 60px rgba(0,245,255,0.18);
-}
-
-/* ── Arcade: тёмно-зелёный игровой неон, hex-feel ─────────────────── */
-:root[data-preset="arcade"] {
-  --bg: #0a140a;
-  --bg-2: #131e13;
-  --bg-glass: rgba(20, 40, 24, 0.55);
-  --fg: #e8ffe0;
-  --fg-dim: #94c280;
-  --fg-mute: #4f7042;
-  --line: rgba(92, 198, 42, 0.10);
-  --line-strong: rgba(92, 198, 42, 0.24);
-  --grid: rgba(92, 198, 42, 0.05);
-  --accent: #5cc62a;
-  --vignette: rgba(0, 30, 0, 0.55);
-  --overlay-strong: rgba(10, 20, 10, 0.92);
-  --overlay-blur: rgba(10, 20, 10, 0.86);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(92,198,42,0.2) 0%, rgba(92,198,42,0) 60%),
-    linear-gradient(160deg, rgba(22,38,22,0.92) 0%, rgba(8,14,8,0.98) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 32px rgba(92,198,42,0.32);
-}
-
-/* ── Glacier: матовое ледяное стекло, холодный синий ───────────────── */
-:root[data-preset="glacier"] {
-  --bg: #0c1a2c;
-  --bg-2: #142540;
-  --bg-glass: rgba(120, 160, 200, 0.18);
-  --fg: #e8eef8;
-  --fg-dim: #a0b4c8;
-  --fg-mute: #5a7088;
-  --line: rgba(180, 210, 240, 0.10);
-  --line-strong: rgba(180, 210, 240, 0.22);
-  --grid: rgba(180, 210, 240, 0.06);
-  --accent: #9bc9f0;
-  --vignette: rgba(0, 30, 60, 0.5);
-  --overlay-strong: rgba(12, 26, 44, 0.92);
-  --overlay-blur: rgba(12, 26, 44, 0.86);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(155,201,240,0.15) 0%, rgba(155,201,240,0) 60%),
-    linear-gradient(160deg, rgba(28,42,64,0.85) 0%, rgba(12,22,40,0.95) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 28px rgba(155,201,240,0.25);
-}
-
-/* ── Тема Sunset: тёплый закат, янтарно-розовые акценты ───────────────── */
-:root[data-theme="sunset"] {
-  --bg: #1a0d0a;
-  --bg-2: #2a1612;
-  --bg-glass: rgba(50, 26, 22, 0.55);
-  --fg: #fff3e8;
-  --fg-dim: #d8b8a0;
-  --fg-mute: #8a6655;
-  --line: rgba(255, 180, 140, 0.08);
-  --line-strong: rgba(255, 180, 140, 0.2);
-  --grid: rgba(255, 180, 140, 0.05);
-  --accent: #ff9b6e;
-  --vignette: rgba(20, 5, 0, 0.7);
-  --overlay-strong: rgba(26, 13, 10, 0.92);
-  --overlay-blur: rgba(26, 13, 10, 0.88);
-  --power-btn-bg:
-    radial-gradient(circle at 50% 30%, rgba(255,155,110,0.14) 0%, rgba(255,155,110,0) 60%),
-    linear-gradient(160deg, rgba(58,28,22,0.92) 0%, rgba(30,12,10,0.98) 100%);
-  --power-btn-shadow:
-    0 18px 44px -12px rgba(0,0,0,0.7),
-    0 0 32px rgba(255,155,110,0.22);
-}
-
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -310,86 +124,8 @@ input, textarea { font: inherit; cursor: text; }
   will-change: transform;
 }
 .cursor.is-hover { width: 40px; height: 40px; border-radius: 12px; }
-.cursor-dot {
-  position: fixed;
-  top: 0; left: 0;
-  width: 4px; height: 4px;
-  background: #fff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2147483645;
-  mix-blend-mode: difference;
-  will-change: transform;
-}
-.cursor-trail {
-  position: fixed;
-  top: 0; left: 0;
-  width: 5px; height: 5px;
-  background: #fff;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2147483644;
-  mix-blend-mode: difference;
-  will-change: transform, opacity;
-}
-
-/* ── Фоновые слои (минималистично, без CRT) ──────────────────────────── */
-.scene-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 4;
-}
-.grid-bg {
-  position: fixed; inset: 0;
-  background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 64px 64px;
-  pointer-events: none;
-  z-index: 1;
-  mask-image: radial-gradient(ellipse at center, #000 0%, #000 55%, transparent 100%);
-}
-.vignette {
-  position: fixed; inset: 0;
-  pointer-events: none; z-index: 2;
-  background: radial-gradient(ellipse at center, transparent 35%, var(--vignette) 100%);
-}
 /* Scanlines удалены — они в эстетике CRT, не вписываются в Apple-style. */
 .scanlines { display: none; }
-
-/* ── Корневая колонка ────────────────────────────────────────────────── */
-.app {
-  position: relative;
-  z-index: 10;
-  /* dvh уважает реальную viewport-высоту мобильных адресных баров, fallback
-     для desktop = vh. min-height чтобы контент не сжимался ниже разумного. */
-  min-height: 100dvh;
-  display: flex;
-  justify-content: center;
-}
-.frame {
-  width: 100%;
-  max-width: var(--frame-w);
-  display: flex;
-  flex-direction: column;
-  padding: 18px 22px 24px;
-  gap: 16px;
-}
-
-/* main-grid: единая колонка mobile-flow на всех ширинах
-   (порядок: power → servers/welcome → error → mode-seg).
-   Ambient-инфа на широких — отдельный <WideAmbient /> по бокам frame'a. */
-.main-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  min-width: 0;
-}
 
 /* ── Header ──────────────────────────────────────────────────────────── */
 .header {
@@ -397,34 +133,6 @@ input, textarea { font: inherit; cursor: text; }
   align-items: center;
   justify-content: space-between;
   padding: 6px 4px;
-}
-.header-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: -0.02em;
-}
-.header-logo img { height: 22px; width: auto; }
-.header-meta {
-  font-family: var(--mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--fg-mute);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.header-meta .blink { color: var(--fg); animation: blink 1.4s infinite step-end; }
-@keyframes blink { 50% { opacity: 0.2; } }
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .icon-btn {
   width: 34px; height: 34px;
@@ -441,15 +149,6 @@ input, textarea { font: inherit; cursor: text; }
 }
 .icon-btn:hover { color: var(--fg); border-color: var(--line-strong); background: rgba(255,255,255,0.06); }
 .icon-btn:active { transform: scale(0.95); }
-
-/* ── Power stack ──────────────────────────────────────────────────────── */
-.power-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  padding: 14px 0 8px;
-}
 
 /* Status pill */
 .status-pill {
@@ -487,42 +186,6 @@ input, textarea { font: inherit; cursor: text; }
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
 }
-
-/* ── Power-кнопка ──────────────────────────────────────────────────────
-   Базовая структура общая для всех вариантов. Каждый вариант стиля
-   (.power-btn-glass, -flat, -neon, -metallic) даёт своё оформление:
-   фон, обводку, тени, анимации. is-running тоже имеет вариант на каждый
-   стиль — чтобы UX переключения подсветки connected был согласован. */
-.power-btn {
-  position: relative;
-  width: 188px; height: 188px;
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-family: var(--mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  cursor: none;
-  user-select: none;
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--fg);
-  transition:
-    transform 0.18s ease,
-    border-color 0.3s ease,
-    box-shadow 0.4s ease,
-    color 0.3s ease,
-    background 0.3s ease;
-}
-.power-btn:hover:not(:disabled) {
-  transform: translateY(-2px) scale(1.02);
-}
-.power-btn:active:not(:disabled) { transform: scale(0.97); }
-.power-btn:disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
 
 /* ── glass: тёмное стекло с breathing-glow (default) ─────────────────── */
 .power-btn-glass {
@@ -718,15 +381,6 @@ input, textarea { font: inherit; cursor: text; }
 .power-label.dim { color: var(--fg-dim); }
 .power-label.warn { color: var(--warn); }
 
-.power-detail {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  color: var(--fg-mute);
-  text-transform: uppercase;
-  text-align: center;
-}
-
 /* ── Glass-карточка (общий контейнер для виджетов) ───────────────────── */
 .card {
   background: var(--bg-glass);
@@ -735,300 +389,6 @@ input, textarea { font: inherit; cursor: text; }
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
-
-/* ── Subscription meta (трафик + срок подписки) ──────────────────────── */
-.sub-meta {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 36px 10px 14px; /* справа ⋯-кнопка */
-  margin-bottom: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-
-/* 0.3.0: active subscription card highlight (primary, currently used). */
-.sub-meta.is-active {
-  border-color: rgba(74, 222, 128, 0.45);
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.18) inset;
-}
-.sub-meta.is-expanded {
-  padding-bottom: 6px;
-}
-
-/* ── ⋯-меню подписки (0.2.4: удалить подписку) ───────────────────────── */
-.sub-meta-menu {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  display: flex;
-  gap: 4px;
-}
-.sub-meta-expand-btn {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg-mute);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  cursor: none;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-}
-.sub-meta-expand-btn:hover,
-.sub-meta-expand-btn[aria-expanded="true"] {
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--line-strong);
-}
-:root[data-theme="light"] .sub-meta-expand-btn:hover,
-:root[data-theme="light"] .sub-meta-expand-btn[aria-expanded="true"] {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-/* 0.3.0: server-list внутри карточки подписки (Etap 6). */
-.sub-meta-servers {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  max-height: 280px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
-}
-.sub-meta-servers::-webkit-scrollbar {
-  width: 6px;
-}
-.sub-meta-servers::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sub-meta-servers::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
-  border-radius: 999px;
-}
-.sub-meta-servers::-webkit-scrollbar-thumb:hover {
-  background: var(--fg-mute);
-}
-.sub-meta-servers-empty {
-  padding: 12px;
-  text-align: center;
-  color: var(--fg-dim);
-  font-size: 12px;
-}
-.sub-meta-server-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
-  background: transparent;
-  color: var(--fg);
-  font-size: 13px;
-  cursor: none;
-  transition: background 0.12s, border-color 0.12s;
-  text-align: left;
-}
-.sub-meta-server-row:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--line);
-}
-:root[data-theme="light"] .sub-meta-server-row:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.03);
-}
-.sub-meta-server-row.is-selected {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.35);
-}
-.sub-meta-server-row:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.sub-meta-server-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sub-meta-server-ping {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--fg-mute);
-  min-width: 50px;
-  text-align: right;
-}
-
-/* 0.3.0: Mihomo proxy-groups внутри подписочной карточки превращаем в
-   row-list (как обычные server-rows), вместо grid 2-column. Это
-   унифицирует визуал и убирает «инородность» Mihomo-cards. Override
-   scoped к `.sub-meta-servers` чтобы не задеть другие места если
-   MihomoGroupsInline где-то ещё используется. */
-.sub-meta-servers .mihomo-groups { gap: 8px; }
-.sub-meta-servers .mihomo-group {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  padding: 0;
-}
-.sub-meta-servers .mihomo-group-head {
-  padding: 4px 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--line);
-}
-.sub-meta-servers .mihomo-group-sub {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-}
-.sub-meta-servers .mihomo-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 0;
-  padding-top: 0;
-}
-.sub-meta-servers .mihomo-card {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 10px;
-  height: auto;
-  min-height: 0;
-  border: 1px solid transparent;
-  border-radius: var(--r-md);
-  background: transparent;
-  text-align: left;
-  transition: background 0.12s, border-color 0.12s;
-}
-.sub-meta-servers .mihomo-card:hover:not(:disabled):not(.is-readonly) {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: var(--line);
-}
-:root[data-theme="light"] .sub-meta-servers .mihomo-card:hover:not(:disabled):not(.is-readonly) {
-  background: rgba(0, 0, 0, 0.03);
-}
-.sub-meta-servers .mihomo-card.is-active {
-  background: rgba(74, 222, 128, 0.1);
-  border-color: rgba(74, 222, 128, 0.35);
-}
-.sub-meta-servers .mihomo-card-name {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0;
-  letter-spacing: 0;
-  text-transform: none;
-}
-.sub-meta-servers .mihomo-card-meta {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0;
-}
-.sub-meta-servers .mihomo-card-proto {
-  display: none; /* VLESS бейдж избыточен — protocol виден по subscription header */
-}
-.sub-meta-servers .mihomo-card-delay {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--fg-mute);
-  min-width: 50px;
-  text-align: right;
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
-.sub-meta-servers .mihomo-card-check {
-  position: static;
-  font-size: 12px;
-  color: rgba(74, 222, 128, 1);
-  margin-left: 4px;
-}
-.sub-meta-menu-btn {
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg-mute);
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: transparent;
-  cursor: none;
-  transition: color 0.15s, background 0.15s, border-color 0.15s;
-}
-.sub-meta-menu-btn:hover,
-.sub-meta-menu-btn[aria-expanded="true"] {
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--line-strong);
-}
-:root[data-theme="light"] .sub-meta-menu-btn:hover,
-:root[data-theme="light"] .sub-meta-menu-btn[aria-expanded="true"] {
-  background: rgba(0, 0, 0, 0.05);
-}
-.sub-meta-menu-popup {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  min-width: 220px;
-  white-space: nowrap;
-  padding: 4px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-md);
-  background: var(--bg-glass);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
-  z-index: 50;
-  animation: sub-meta-menu-in 0.14s ease-out;
-}
-@keyframes sub-meta-menu-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.sub-meta-menu-item {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: calc(var(--r-md) - 4px);
-  font-size: 12px;
-  text-align: left;
-  color: var(--fg);
-  cursor: none;
-  transition: background 0.12s, color 0.12s;
-}
-.sub-meta-menu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-:root[data-theme="light"] .sub-meta-menu-item:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-.sub-meta-menu-item.is-danger {
-  color: #f06060;
-}
-.sub-meta-menu-item.is-danger:hover {
-  background: rgba(240, 96, 96, 0.12);
-  color: #ff7878;
-}
 /* 0.3.0: engine-radio в меню подписки */
 .sub-meta-menu-section-title {
   padding: 8px 12px 4px;
@@ -1036,9 +396,6 @@ input, textarea { font: inherit; cursor: text; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--fg-mute);
-}
-.sub-meta-menu-item.is-active {
-  color: var(--accent);
 }
 .sub-meta-menu-radio {
   display: inline-block;
@@ -1052,23 +409,6 @@ input, textarea { font: inherit; cursor: text; }
   margin: 4px 4px;
   background: var(--line);
 }
-
-/* 0.3.0: глобальная add-form (открывается из Header `+`). Висит над
-   списком карточек подписок. */
-.sub-meta-global-add {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  margin-bottom: 8px;
-  padding: 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-md);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  animation: sub-meta-menu-in 0.18s ease-out;
-}
-.sub-meta-global-add .sub-meta-add-input { flex: 1; min-width: 0; }
 
 /* 0.3.0: «+ добавить ещё подписку» inline-форма */
 .sub-meta-add {
@@ -1098,208 +438,6 @@ input, textarea { font: inherit; cursor: text; }
   display: flex;
   gap: 6px;
   align-items: center;
-}
-.sub-meta-add-input {
-  flex: 1;
-  min-width: 0;
-  padding: 7px 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--bg-glass);
-  color: var(--fg);
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.sub-meta-add-input:focus {
-  border-color: var(--accent);
-}
-.sub-meta-add-confirm,
-.sub-meta-add-cancel {
-  padding: 7px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  background: var(--bg-glass);
-  color: var(--fg);
-  font-size: 12px;
-  cursor: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-.sub-meta-add-confirm:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--accent);
-}
-.sub-meta-add-cancel {
-  width: 30px;
-  padding: 0;
-  text-align: center;
-  font-size: 16px;
-  line-height: 28px;
-  color: var(--fg-mute);
-}
-.sub-meta-add-cancel:hover {
-  color: var(--fg);
-}
-.sub-meta-add-confirm:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ── Confirm-модалка для удаления ─────────────────────────────────────── */
-.sub-meta-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  animation: sub-meta-overlay-in 0.18s ease-out;
-}
-@keyframes sub-meta-overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.sub-meta-confirm {
-  max-width: 320px;
-  width: calc(100% - 32px);
-  padding: 18px 18px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-lg);
-  background: var(--bg-2);
-  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.6);
-  animation: sub-meta-confirm-in 0.22s cubic-bezier(0.32, 0.72, 0, 1);
-}
-@keyframes sub-meta-confirm-in {
-  from { opacity: 0; transform: scale(0.94); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.sub-meta-confirm-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--fg);
-  margin-bottom: 6px;
-}
-.sub-meta-confirm-message {
-  font-size: 12.5px;
-  color: var(--fg-dim);
-  line-height: 1.45;
-  margin-bottom: 14px;
-}
-.sub-meta-confirm-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-.sub-meta-confirm-cancel,
-.sub-meta-confirm-delete {
-  padding: 7px 16px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: none;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.sub-meta-confirm-cancel {
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--fg);
-}
-.sub-meta-confirm-cancel:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-.sub-meta-confirm-delete {
-  border: 1px solid rgba(240, 96, 96, 0.5);
-  background: rgba(240, 96, 96, 0.16);
-  color: #ff7878;
-}
-.sub-meta-confirm-delete:hover {
-  background: rgba(240, 96, 96, 0.26);
-  border-color: rgba(240, 96, 96, 0.7);
-}
-.sub-meta-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fg);
-  letter-spacing: 0.01em;
-}
-.sub-meta-premium {
-  padding: 3px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--accent);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  cursor: none;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
-}
-.sub-meta-premium:hover {
-  background: var(--accent);
-  color: var(--bg);
-}
-
-/* ── LAN credentials (9.G) ────────────────────────────────────────────── */
-.lan-creds {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.lan-creds-label {
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  color: var(--fg-dim);
-}
-.lan-creds-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--fg);
-  font-family: var(--mono, ui-monospace, monospace);
-  font-size: 11px;
-  cursor: none;
-  transition: background 0.15s, border-color 0.15s;
-}
-:root[data-theme="light"] .lan-creds-row,
-:root[data-preset="cupertino"] .lan-creds-row {
-  background: rgba(0, 0, 0, 0.03);
-}
-.lan-creds-row:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: var(--line-strong);
-}
-:root[data-theme="light"] .lan-creds-row:hover,
-:root[data-preset="cupertino"] .lan-creds-row:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-.lan-creds-user {
-  color: var(--fg);
-}
-.lan-creds-sep {
-  color: var(--fg-dim);
-}
-.lan-creds-pass {
-  color: var(--accent);
-  letter-spacing: 0.04em;
-}
-.lan-creds-copy {
-  margin-left: 4px;
-  color: var(--fg-dim);
-  font-size: 12px;
 }
 
 /* ── Crash recovery dialog (9.D) ─────────────────────────────────────── */
@@ -1429,8 +567,7 @@ input, textarea { font: inherit; cursor: text; }
 .announce-banner.is-clickable .announce-banner-body:hover {
   background: rgba(255, 255, 255, 0.04);
 }
-:root[data-theme="light"] .announce-banner.is-clickable .announce-banner-body:hover,
-:root[data-preset="cupertino"] .announce-banner.is-clickable .announce-banner-body:hover {
+:root[data-theme="light"] .announce-banner.is-clickable .announce-banner-body:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 .announce-banner-icon {
@@ -1466,8 +603,7 @@ input, textarea { font: inherit; cursor: text; }
   background: rgba(255, 255, 255, 0.06);
   color: var(--fg);
 }
-:root[data-theme="light"] .announce-banner-close:hover,
-:root[data-preset="cupertino"] .announce-banner-close:hover {
+:root[data-theme="light"] .announce-banner-close:hover {
   background: rgba(0, 0, 0, 0.06);
 }
 .hint-badge {
@@ -1482,126 +618,8 @@ input, textarea { font: inherit; cursor: text; }
   background: rgba(255, 255, 255, 0.04);
   white-space: nowrap;
 }
-:root[data-theme="light"] .hint-badge,
-:root[data-preset="cupertino"] .hint-badge {
+:root[data-theme="light"] .hint-badge {
   background: rgba(0, 0, 0, 0.04);
-}
-.sub-meta-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  color: var(--fg-dim);
-}
-.sub-meta-traffic {
-  font-variant-numeric: tabular-nums;
-}
-.sub-meta-expiry {
-  color: var(--fg-dim);
-  white-space: nowrap;
-}
-.sub-meta-expiry.is-warn {
-  color: #f0b840;
-}
-.sub-meta-bar {
-  height: 3px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-:root[data-theme="light"] .sub-meta-bar,
-:root[data-preset="cupertino"] .sub-meta-bar {
-  background: rgba(0, 0, 0, 0.08);
-}
-.sub-meta-bar-fill {
-  height: 100%;
-  background: var(--accent, #6ee7b7);
-  border-radius: 2px;
-  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.sub-meta-bar-fill.is-warn {
-  background: #f0b840;
-}
-.sub-meta-bar-fill.is-danger {
-  background: #f06060;
-}
-.sub-meta-fetch {
-  font-size: 10px;
-  color: var(--fg-dim);
-  letter-spacing: 0.04em;
-  text-align: right;
-  margin-top: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-.sub-meta-refresh {
-  width: 20px;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-size: 12px;
-  line-height: 1;
-  color: var(--fg-mute);
-  background: var(--bg-glass);
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, transform 0.4s;
-  flex-shrink: 0;
-}
-.sub-meta-refresh:hover:not(:disabled) {
-  color: var(--fg);
-  border-color: var(--line-strong);
-}
-.sub-meta-refresh:disabled { cursor: not-allowed; opacity: 0.4; }
-.sub-meta-refresh.is-loading { animation: spin 1s linear infinite; }
-
-/* ── Server pill ──────────────────────────────────────────────────────── */
-.server-pill {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: var(--fg);
-  cursor: none;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-  width: 100%;
-  text-align: left;
-}
-.server-pill:hover:not(:disabled) {
-  border-color: var(--line-strong);
-  background: rgba(255,255,255,0.04);
-}
-.server-pill:active:not(:disabled) { transform: scale(0.99); }
-/* Disabled — пилл «зафиксирован» (vpn активен или starting/stopping).
-   НЕ делаем opacity: на тёмных темах ушёл бы в фон, на светлых —
-   читался бы плохо. Вместо прозрачности — снимаем cursor и hover. */
-.server-pill:disabled { cursor: default; }
-/* Active — vpn подключён к этому серверу. Лёгкий зелёный акцент
-   на бордер + чуть плотнее фон, чтобы плашка читалась как «живая»
-   на любой теме и не сливалась с back-layer. */
-.server-pill.is-active {
-  border-color: rgba(74, 222, 128, 0.45);
-  background: rgba(74, 222, 128, 0.06);
-  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.18) inset,
-              0 0 14px rgba(74, 222, 128, 0.12);
-}
-:root[data-theme="light"] .server-pill.is-active,
-:root[data-theme="sand"] .server-pill.is-active {
-  /* На светлых темах зелёный «glow» исчезает — заменяем на плотный
-     border + тёплый off-white фон, чтобы плашка не сливалась с body. */
-  border-color: rgba(34, 139, 70, 0.55);
-  background: rgba(34, 139, 70, 0.08);
-  box-shadow: 0 0 0 1px rgba(34, 139, 70, 0.15) inset;
 }
 
 /* ── Тосты-уведомления (этапы 13.B / 13.H) ───────────────────────────── */
@@ -1667,87 +685,6 @@ input, textarea { font: inherit; cursor: text; }
   color: var(--fg-dim);
   font-size: 12px;
   font-family: var(--mono);
-}
-
-/* ── Bandwidth-индикатор (этап 13.O) — главное окно ──────────────────────
-   Стилизован как `.server-pill` (тот же glass-фон + line-border + radius),
-   чтобы пара «server-pill + bandwidth» читалась единым блоком. */
-.bandwidth-meter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
-  margin-top: 6px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--fg);
-  background: var(--bg-glass);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-}
-.bandwidth-meter .bw-arrow {
-  color: var(--fg-mute);
-  font-size: 13px;
-  line-height: 1;
-  font-weight: 600;
-}
-.bandwidth-meter .bw-value {
-  color: var(--fg);
-  min-width: 64px;
-  text-align: left;
-}
-.bandwidth-meter .bw-value + .bw-arrow {
-  margin-left: 6px;
-  padding-left: 10px;
-  border-left: 1px solid var(--line);
-}
-.bandwidth-meter .bw-sep {
-  color: var(--fg-mute);
-  font-weight: 400;
-  margin: 0 2px;
-}
-.bandwidth-meter .bw-mem {
-  color: var(--fg-dim);
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.server-pill-num {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  color: var(--fg-mute);
-  flex-shrink: 0;
-}
-.server-pill-name {
-  flex: 1;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-  text-transform: lowercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.server-pill-arrow {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--fg-mute);
-  flex-shrink: 0;
-}
-.server-pill-empty {
-  flex: 1;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
-  color: var(--fg-mute);
-  text-transform: uppercase;
 }
 
 /* ── Hero error ──────────────────────────────────────────────────────── */
@@ -1966,10 +903,6 @@ input, textarea { font: inherit; cursor: text; }
   transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.6, 1) 0.15s,
               margin-top 0.35s ease 0.15s;
 }
-.server-drawer-inner {
-  overflow: hidden;
-  min-height: 0;
-}
 
 /* ── Server list ──────────────────────────────────────────────────────── */
 .server-list {
@@ -2035,64 +968,6 @@ input, textarea { font: inherit; cursor: text; }
 .server-row:hover { background: rgba(255,255,255,0.035); }
 .server-row.is-selected { background: rgba(255,255,255,0.06); }
 .server-row.is-disabled { cursor: default; opacity: 0.5; }
-.server-row-num {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: var(--fg-mute);
-  width: 22px;
-  flex-shrink: 0;
-}
-.server-row-name {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--display);
-  font-weight: 500;
-  font-size: 14px;
-  letter-spacing: -0.01em;
-  text-transform: lowercase;
-  color: var(--fg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.server-row-check {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  color: var(--ok);
-  flex-shrink: 0;
-}
-/* Chevron справа на server-row — открывает превью спарсенного конфига
-   (как в Happ-клиенте). Visible-only-on-hover чтобы не отвлекать в
-   обычном просмотре. */
-.server-row-chevron {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin-left: 4px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 6px;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
-}
-.server-row:hover .server-row-chevron,
-.server-row-chevron:focus-visible {
-  opacity: 1;
-}
-.server-row-chevron:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-}
 
 /* ── ServerPreviewModal: превью конфига (raw + generated mihomo) ─── */
 .preview-modal-backdrop {
@@ -2227,7 +1102,7 @@ input, textarea { font: inherit; cursor: text; }
 }
 
 /* ── Settings: список категорий (page-based навигация) ────────────────
-   Дизайн-язык такой же как у `.server-pill` на главном экране:
+   Дизайн-язык как у плашек-кнопок главного экрана:
    --display заголовок + --mono подпись с трекингом, glass-фон,
    var(--line) рамка, cursor:none. Без больших эмодзи и closures —
    карточки выглядят как natural продолжение основного UI. */
@@ -2326,60 +1201,6 @@ input, textarea { font: inherit; cursor: text; }
   background: rgba(229, 115, 115, 0.07);
   border-radius: 4px;
   border-left: 2px solid #e57373;
-}
-
-/* ── Фильтры в drawer (12.C) ─────────────────────────────────────────── */
-.server-filter {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 12px 4px;
-}
-.server-filter-search {
-  width: 100%;
-  font-family: var(--mono);
-  font-size: 12px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--fg);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  outline: none;
-  transition: border-color 0.2s, background 0.2s;
-}
-.server-filter-search:focus {
-  border-color: var(--line-strong);
-  background: rgba(255, 255, 255, 0.06);
-}
-.server-filter-search::placeholder {
-  color: var(--fg-mute);
-}
-.server-filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.server-filter-chips .chip {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--fg-mute);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s, border-color 0.2s;
-}
-.server-filter-chips .chip:hover {
-  color: var(--fg);
-  border-color: var(--line-strong);
-}
-.server-filter-chips .chip.is-active {
-  color: var(--accent);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--accent);
 }
 
 /* ── App rules (8.D per-process routing) ────────────────────────────── */
@@ -3152,26 +1973,6 @@ input, textarea { font: inherit; cursor: text; }
   flex-shrink: 0;
 }
 
-/* ── Engine badge ─────────────────────────────────────────────────────
-   Mihomo-only: бейдж теперь маркирует только серверы, несовместимые
-   с Mihomo (не-нормализуемый xray-json) — предупреждающий "!". */
-.engine-badge {
-  font-family: var(--mono);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 1px 5px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--fg-mute);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.engine-badge[data-engine="incompatible"] {
-  color: #ff7878;
-  border-color: rgba(240, 96, 96, 0.3);
-}
-
 /* ── Пинги ───────────────────────────────────────────────────────────── */
 .ping {
   font-family: var(--mono);
@@ -3197,46 +1998,7 @@ input, textarea { font: inherit; cursor: text; }
 .ping.slow { color: var(--fg-dim); }
 .ping.offline { color: var(--fg-mute); opacity: 0.6; }
 .ping.loading { color: var(--fg-mute); animation: pulse-soft 1s infinite; }
-
-.server-pill .ping { font-size: 10px; margin-right: 4px; }
-
-.ping-refresh {
-  margin-left: auto;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--fg-mute);
-  background: var(--bg-glass);
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: color 0.2s, border-color 0.2s, transform 0.4s;
-  flex-shrink: 0;
-}
-.ping-refresh:hover:not(:disabled) {
-  color: var(--fg);
-  border-color: var(--line-strong);
-}
-.ping-refresh:disabled { cursor: not-allowed; opacity: 0.4; }
-.ping-refresh.is-loading { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.server-list-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 4px 10px;
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.22em;
-  color: var(--fg-mute);
-  text-transform: uppercase;
-}
 
 /* ── 8.F: Inline-вид прокси-групп Mihomo (FlClash-style сетка карточек) ── */
 .mihomo-groups {
@@ -3458,110 +2220,6 @@ input, textarea { font: inherit; cursor: text; }
     grid-template-columns: repeat(2, 1fr);
   }
   .mihomo-card-name { font-size: 12px; }
-}
-
-/* ── Боковые ambient-панели на широких окнах ──────────────────────────── */
-.wide-side {
-  display: none; /* по умолчанию скрыта; включается через media-query */
-}
-@media (min-width: 1280px) {
-  .wide-side {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 9; /* над scene, под frame */
-    pointer-events: none;
-    max-width: 240px;
-  }
-  .wide-side-left {
-    left: 32px;
-    align-items: flex-start;
-    text-align: left;
-  }
-  .wide-side-right {
-    right: 32px;
-    align-items: flex-end;
-    text-align: right;
-  }
-  .wide-side-block {
-    padding: 6px 0 6px 14px;
-    border-left: 1px solid var(--line-strong);
-  }
-  .wide-side-right .wide-side-block {
-    padding: 6px 14px 6px 0;
-    border-left: 0;
-    border-right: 1px solid var(--line-strong);
-  }
-  .wide-side-key {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--fg-mute);
-    margin-bottom: 4px;
-  }
-  .wide-side-val {
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: 14px;
-    letter-spacing: -0.01em;
-    color: var(--fg);
-    text-transform: lowercase;
-  }
-  .wide-side-val-mono {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    text-transform: none;
-  }
-  .wide-side-sub {
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.18em;
-    color: var(--fg-mute);
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-}
-
-/* ── Dashboard-ссылка под main-grid ───────────────────────────────────── */
-.dashboard-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  font-family: var(--mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  color: var(--fg-dim);
-  cursor: none;
-  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.15s;
-}
-.dashboard-link:hover {
-  color: var(--fg);
-  border-color: var(--line-strong);
-  background: rgba(255,255,255,0.06);
-}
-:root[data-theme="light"] .dashboard-link:hover {
-  background: rgba(0,0,0,0.04);
-}
-.dashboard-link:active { transform: scale(0.99); }
-.dashboard-link-arrow {
-  transition: transform 0.2s;
-  color: var(--fg);
-}
-.dashboard-link:hover .dashboard-link-arrow {
-  transform: translateX(3px);
 }
 
 /* ── Footer ──────────────────────────────────────────────────────────── */
@@ -4042,20 +2700,14 @@ input, textarea { font: inherit; cursor: text; }
 
 /* Узкие окна — компактнее padding, кнопка меньше */
 @media (max-width: 480px) {
-  .frame { padding: 14px 14px 22px; gap: 14px; }
-  .power-btn { width: 156px; height: 156px; }
   .power-icon { width: 44px; height: 44px; }
   .power-label { font-size: 20px; }
-  .header-meta > span:first-child { display: none; }
   .settings-body { padding: 20px 18px 40px; }
   .server-list { max-height: clamp(160px, 38vh, 320px); }
 }
 
 /* Низкие окна — кнопка ещё меньше, отступы компактнее */
 @media (max-height: 720px) {
-  .frame { padding: 12px 22px 18px; gap: 12px; }
-  .power-stack { gap: 12px; padding: 6px 0 4px; }
-  .power-btn { width: 148px; height: 148px; }
   .power-icon { width: 42px; height: 42px; }
   .power-label { font-size: 19px; }
   .welcome { padding: 14px 18px; gap: 8px; }
@@ -4066,212 +2718,9 @@ input, textarea { font: inherit; cursor: text; }
 
 /* Очень низкие — крайний компакт, footer убирается */
 @media (max-height: 600px) {
-  .frame { padding: 10px 18px 14px; gap: 10px; }
-  .power-btn { width: 130px; height: 130px; }
   .power-icon { width: 38px; height: 38px; }
   .power-label { font-size: 17px; }
   .footer { display: none; }
-}
-
-/* ════════════════════════════════════════════════════════════════════════
-   РЕДИЗАЙН «SWISS / ТИПОГРАФИКА» (data-look="swiss" на <html>)
-
-   Философия: вычитание. Ноль blur/glass/теней/градиентов/3D. Монохром,
-   крупная редакторская типографика, волосяные линии, левое выравнивание.
-   Состояние коннекта читается СЛОВОМ (гигантский .power-label) и
-   ЗАПОЛНЕНИЕМ волосяной линии под ним (::after + :has). Markup компонентов
-   не меняется — только CSS-оверрайды и flex-order.
-   ═══════════════════════════════════════════════════════════════════════ */
-
-:root[data-look="swiss"] {
-  --bg: #0c0c0c;
-  --bg-2: #0c0c0c;
-  --bg-glass: transparent;
-  --fg: #fafaf8;
-  --fg-dim: #8c8c88;
-  --fg-mute: #565652;
-  --line: rgba(255, 255, 255, 0.10);
-  --line-strong: rgba(255, 255, 255, 0.22);
-  --accent: #fafaf8;
-  --power-btn-shadow: none;
-  --vignette: transparent;
-  /* Острые углы — характерная черта швейцарского стиля. */
-  --r-sm: 0px;
-  --r-md: 0px;
-  --r-lg: 0px;
-  --r-pill: 0px;
-}
-
-html[data-look="swiss"],
-html[data-look="swiss"] body {
-  background: #0c0c0c;
-}
-
-/* Плоско: убираем blur и кастомный курсор по всему дереву. */
-[data-look="swiss"] * {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  cursor: auto;
-}
-[data-look="swiss"] button:not(:disabled),
-[data-look="swiss"] a,
-[data-look="swiss"] [role="button"]:not(:disabled) {
-  cursor: pointer;
-}
-
-/* Рамка — больше воздуха, верхне-левый якорь. */
-[data-look="swiss"] .frame {
-  max-width: 480px;
-  padding: 30px 30px 24px;
-  gap: 30px;
-}
-[data-look="swiss"] .main-grid { gap: 36px; }
-
-/* Шапка — только словесный логотип + волосяная нижняя линия. */
-[data-look="swiss"] .header {
-  padding: 0 0 16px;
-  border-bottom: 1px solid var(--line);
-}
-[data-look="swiss"] .header-logo {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-[data-look="swiss"] .header-logo img { display: none; }
-[data-look="swiss"] .icon-btn {
-  border: none;
-  background: none;
-  color: var(--fg-mute);
-  width: 30px;
-  height: 30px;
-}
-[data-look="swiss"] .icon-btn:hover { color: var(--fg); background: none; }
-
-/* ── Power-блок: переставляем порядок через flex-order ──────────────────
-   0: status-pill (мелкая mono-строка),
-   1: обёртка label+detail (гигантское слово состояния + мотив-линия),
-   2: power-btn (узкая action-строка с →). */
-[data-look="swiss"] .power-stack {
-  align-items: stretch;
-  gap: 0;
-  padding: 4px 0 0;
-}
-
-[data-look="swiss"] .status-pill {
-  order: 0;
-  align-self: flex-start;
-  border: none;
-  background: none;
-  padding: 0;
-  border-radius: 0;
-  font-size: 11px;
-  letter-spacing: 0.3em;
-  color: var(--fg-mute);
-  gap: 8px;
-}
-[data-look="swiss"] .status-pill .dot { width: 5px; height: 5px; box-shadow: none; }
-[data-look="swiss"] .status-pill.is-running { color: var(--fg-dim); }
-
-/* Обёртка label+detail (3-й ребёнок power-stack, inline-центр перебиваем). */
-[data-look="swiss"] .power-stack > div:last-child {
-  order: 1;
-  position: relative;
-  text-align: left !important;
-  margin-top: 18px;
-  padding-bottom: 20px;
-}
-/* Мотив состояния: волосяная линия. Покой — короткая тусклая,
-   подключено — заливается во всю ширину и ярчает (через :has). */
-[data-look="swiss"] .power-stack > div:last-child::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 2px;
-  width: 26%;
-  background: var(--fg-mute);
-  transition: width 0.65s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.4s ease;
-}
-[data-look="swiss"] .power-stack:has(.power-btn.is-running) > div:last-child::after {
-  width: 100%;
-  background: var(--fg);
-}
-[data-look="swiss"] .power-stack:has(.power-btn:disabled:not(.is-running)) > div:last-child::after {
-  width: 12%;
-}
-
-/* Гигантское слово состояния. */
-[data-look="swiss"] .power-label {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(40px, 13vw, 62px);
-  line-height: 0.92;
-  letter-spacing: -0.035em;
-  text-transform: uppercase;
-  color: var(--fg);
-}
-[data-look="swiss"] .power-label.dim { color: var(--fg-mute); }
-[data-look="swiss"] .power-label.warn { color: var(--fg); }
-[data-look="swiss"] .power-detail {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--fg-mute);
-  margin-top: 12px;
-}
-
-/* Action-строка вместо круглой кнопки: full-width, mono-caps, стрелка. */
-[data-look="swiss"] .power-btn {
-  order: 2;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-  border: none;
-  border-top: 1px solid var(--line);
-  border-radius: 0;
-  background: none !important;
-  box-shadow: none !important;
-  animation: none !important;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0;
-  margin-top: 6px;
-  padding: 18px 0 4px;
-  font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.24em;
-  color: var(--fg-dim);
-}
-[data-look="swiss"] .power-btn::before { display: none !important; }
-[data-look="swiss"] .power-btn::after {
-  content: "→";
-  font-size: 15px;
-  color: var(--fg-mute);
-  transition: transform 0.25s ease, color 0.25s ease;
-}
-[data-look="swiss"] .power-btn svg,
-[data-look="swiss"] .power-btn .power-icon { display: none; }
-[data-look="swiss"] .power-btn > span { font-family: var(--mono); }
-[data-look="swiss"] .power-btn:hover:not(:disabled) {
-  color: var(--fg);
-  border-color: var(--line-strong);
-}
-[data-look="swiss"] .power-btn:hover:not(:disabled)::after {
-  color: var(--fg);
-  transform: translateX(4px);
-}
-[data-look="swiss"] .power-btn.is-running { color: var(--fg); }
-[data-look="swiss"] .power-btn:disabled { opacity: 0.3; }
-
-/* Mode-сегмент, welcome, карточки — плоско и остро (наследуют токены). */
-[data-look="swiss"] .dashboard-link {
-  border-radius: 0;
-  border: none;
-  border-top: 1px solid var(--line);
-  background: none;
 }
 
 
@@ -4398,9 +2847,3 @@ html[data-maximized="true"] .resize-layer {
 .rz-nw { top: 0; left: 0; width: 14px; height: 14px; cursor: nw-resize; }
 .rz-se { bottom: 0; right: 0; width: 14px; height: 14px; cursor: se-resize; }
 .rz-sw { bottom: 0; left: 0; width: 14px; height: 14px; cursor: sw-resize; }
-
-/* classic/swiss: контент уводим ниже титлбара. */
-[data-look="classic"] .frame,
-[data-look="swiss"] .frame {
-  padding-top: 46px;
-}

@@ -18,12 +18,10 @@ export default defineConfig(async () => ({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
 
-  // Bundle optimization: splittin'g vendor-чанков снижает парс-латентность
+  // Bundle optimization: splitting vendor-чанков снижает парс-латентность
   // на старте (один большой 1MB JS парсится дольше двух 400KB). В Tauri
-  // нет HTTP-кеша → итоговый суммарный размер NSIS не меняется, но три
-  // независимых файла стартуют параллельно через <link rel="modulepreload">.
-  // Three.js НЕ включён сюда — он lazy-load'ится через React.lazy(Scene3D)
-  // и автоматически попадает в свой chunk.
+  // нет HTTP-кеша → итоговый суммарный размер NSIS не меняется, но
+  // независимые файлы стартуют параллельно через <link rel="modulepreload">.
   build: {
     rollupOptions: {
       output: {

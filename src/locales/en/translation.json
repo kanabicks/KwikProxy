@@ -532,17 +532,8 @@
       }
     },
     "appearance": {
-      "preset": {
-        "title": "preset",
-        "label": "ready-made style",
-        "hint": "a unique palette, background and button style at once",
-        "options": {
-          "none": "no preset"
-        }
-      },
       "themeStyle": {
-        "title": "theme & style",
-        "presetHint": "controlled by the preset"
+        "title": "theme & style"
       },
       "theme": {
         "title": "theme",
@@ -552,26 +543,6 @@
           "system": "system default",
           "dark": "dark",
           "light": "light"
-        }
-      },
-      "background": {
-        "label": "background",
-        "hint": "3d scene behind the interface",
-        "options": {
-          "crystal": "crystal",
-          "tunnel": "tunnel",
-          "globe": "globe",
-          "particles": "particles"
-        }
-      },
-      "buttonStyle": {
-        "label": "button style",
-        "hint": "look of the main connect button",
-        "options": {
-          "glass": "glass",
-          "flat": "flat",
-          "neon": "neon",
-          "metallic": "metallic"
         }
       },
       "memoryMonitor": {

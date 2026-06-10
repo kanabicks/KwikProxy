@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -14,17 +14,6 @@ import { useAutoUpdateCheck } from "./lib/hooks/useAutoUpdateCheck";
 import { useNativeStatusNotify } from "./lib/hooks/useNativeStatusNotify";
 import { initDeepLinks } from "./lib/deepLinks";
 
-import { BackgroundLayers } from "./components/effects/BackgroundLayers";
-// Bundle optimization: Scene3D тащит за собой three.js (~600 КБ gzip).
-// Lazy-load → отдельный chunk загружается только когда основной UI уже
-// показан. BackgroundLayers рисует базовый градиент сразу — пользователь
-// не увидит чёрного экрана пока three.js парсится.
-const Scene3D = lazy(() =>
-  import("./components/effects/Scene3D").then((m) => ({ default: m.Scene3D })),
-);
-import { CustomCursor } from "./components/effects/CustomCursor";
-import { WideAmbient } from "./components/effects/WideAmbient";
-import { AnnounceBanner } from "./components/AnnounceBanner";
 import { CrashRecoveryDialog } from "./components/CrashRecoveryDialog";
 import { BackupPreviewModal } from "./components/BackupPreviewModal";
 import { UpdateModal } from "./components/UpdateModal";
@@ -32,22 +21,12 @@ import {
   OnboardingTour,
   isOnboardingCompleted,
 } from "./components/OnboardingTour";
-import { MihomoGroupsInline } from "./components/MihomoGroupsInline";
 import { useBackupModalStore } from "./lib/backup";
-import { Header } from "./components/Header";
-import { PowerStack } from "./components/PowerStack";
 import { SoftHome } from "./components/SoftHome";
 import { TitleBar } from "./components/TitleBar";
-import { Welcome } from "./components/Welcome";
-import { ServerSelector } from "./components/ServerSelector";
-import { BandwidthMeter } from "./components/BandwidthMeter";
-import { SubscriptionMeta } from "./components/SubscriptionMeta";
 import { Toaster } from "./components/Toaster";
 import { runLeakTest } from "./lib/leakTest";
-import { ModeSegment } from "./components/ModeSegment";
-import { Footer } from "./components/Footer";
 import { SettingsPage } from "./components/SettingsPage";
-import { openDashboard, useHasDashboardUrl } from "./lib/openExternal";
 
 /**
  * Корневой компонент. Координирует:
@@ -63,7 +42,6 @@ function App() {
   const { t } = useTranslation();
   // VPN status / mode
   const status = useVpnStore((s) => s.status);
-  const errorMessage = useVpnStore((s) => s.errorMessage);
   const mode = useVpnStore((s) => s.mode);
   const selectedIndex = useVpnStore((s) => s.selectedIndex);
   const setMode = useVpnStore((s) => s.setMode);
@@ -78,11 +56,6 @@ function App() {
   const loadDeviceHwid = useSubscriptionStore((s) => s.loadDeviceHwid);
   const loadSecureCreds = useSubscriptionStore((s) => s.loadSecureCreds);
   const pingAll = useSubscriptionStore((s) => s.pingAll);
-  // 0.3.0: subscriptions.length > 0 ⇒ multi-state активен, server-list
-  // живёт внутри карточек подписок, глобальный ServerSelector прячем.
-  const hasSubscriptionState = useSubscriptionStore(
-    (s) => s.subscriptions.length > 0
-  );
 
   // Settings
   const refreshOnOpen = useSettingsStore((x) => x.refreshOnOpen);
@@ -97,41 +70,9 @@ function App() {
   const autoLeakTest = useSettingsStore((x) => x.autoLeakTest);
   const tunOnlyStrict = useSettingsStore((x) => x.tunOnlyStrict);
   const setSetting = useSettingsStore((x) => x.set);
-  // Кнопка «личный кабинет» показывается только когда подписка
-  // прислала `profile-web-page-url` (захардкоженный fallback убран).
-  const hasDashboardUrl = useHasDashboardUrl();
-  const selectedServer =
-    selectedIndex !== null ? servers[selectedIndex] : null;
-  // 8.F (UI v2): mihomo-профиль рендерится не как одна-карточка-«профиль»
-  // в ServerSelector, а как inline-сетка прокси-групп через
-  // MihomoGroupsInline (страновые карточки, FlClash-style). Когда true —
-  // ServerSelector скрываем (синтетическая запись «Профиль Mihomo»
-  // одинокая в списке смысла не несёт).
-  const showMihomoGroups = selectedServer?.protocol === "mihomo-profile";
   const socksPort = useVpnStore((s) => s.socksPort);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  // Прототипы редизайна. Значение из localStorage `kwik.look`:
-  //   "soft"    — мягкие карточки + лайм (текущий прототип, дефолт);
-  //   "swiss"   — типографика-минимализм;
-  //   "classic" — старый дизайн (3D-сцена, glass, темы).
-  // Переключение в DevTools: localStorage.setItem("kwik.look","classic").
-  // Для soft/swiss выключаем весь декор (3D, scanlines/сетка/виньетка,
-  // кастомный курсор, боковой ambient) — оба прототипа про вычитание.
-  const [look] = useState<"classic" | "swiss" | "soft">(() => {
-    try {
-      const v = localStorage.getItem("kwik.look");
-      if (v === "classic" || v === "swiss" || v === "soft") return v;
-    } catch {
-      /* приватный режим */
-    }
-    return "soft";
-  });
-  useEffect(() => {
-    document.documentElement.dataset.look = look;
-  }, [look]);
-  const decorOff = look !== "classic";
 
   // Применяем активную тему (data-theme на <html>). См. App.css :root[data-theme="light"].
   useApplyTheme();
@@ -411,101 +352,10 @@ function App() {
     return () => window.clearInterval(id);
   }, [autoRefresh, effectiveRefreshHours, fetchSubscription]);
 
-  const isBusy = status === "starting" || status === "stopping";
-  const isRunning = status === "running";
-  const canConnect = selectedIndex !== null && !isBusy;
-
   return (
     <>
       <TitleBar />
-      {!decorOff && <BackgroundLayers />}
-      {!decorOff && (
-        <Suspense fallback={null}>
-          <Scene3D status={status} />
-        </Suspense>
-      )}
-      {!decorOff && <WideAmbient />}
-      {!decorOff && <CustomCursor />}
-
-      {look === "soft" && (
-        <SoftHome onOpenSettings={() => setSettingsOpen(true)} />
-      )}
-
-      <div className="app">
-        <div className="frame">
-          <AnnounceBanner />
-          <Header onOpenSettings={() => setSettingsOpen(true)} />
-
-          {/* main-grid:
-              - на узких — flex column в порядке
-                power → servers/welcome → error → mode-seg;
-              - на широких (≥1024px) — две колонки через grid-template-areas:
-                слева power+mode, справа постоянно открытый server-list. */}
-          <div className="main-grid">
-            <div className="grid-power">
-              <PowerStack canConnect={canConnect} />
-            </div>
-            <div className="grid-servers">
-              {servers.length === 0 ? (
-                <Welcome />
-              ) : (
-                <>
-                  <SubscriptionMeta />
-                  {/* 0.3.0: server-list теперь внутри каждой карточки
-                      подписки (раскрывается chevron'ом). Глобальный
-                      ServerSelector скрываем когда multi-subscription
-                      state активен (subscriptions.length > 0); legacy
-                      single-sub без миграции — оставляем pill+drawer
-                      для backward compat. mihomo-profile — отдельный
-                      MihomoGroupsInline без изменений. */}
-                  {!showMihomoGroups && !hasSubscriptionState && (
-                    <ServerSelector />
-                  )}
-                  {showMihomoGroups && !hasSubscriptionState && (
-                    <MihomoGroupsInline />
-                  )}
-                  <BandwidthMeter />
-                </>
-              )}
-            </div>
-            {errorMessage && (
-              <pre className="hero-error grid-error">{errorMessage}</pre>
-            )}
-            {/* ModeSegment скрыт пока подписка не добавлена — переключать
-                режим прокси/tun без серверов смысла нет, и Welcome card
-                с инструкцией читается чище без лишних элементов. 13.R:
-                при tunOnlyStrict выбор режима прячем — работает только
-                TUN, useEffect выше уже гарантирует mode === "tun". */}
-            {servers.length > 0 && !tunOnlyStrict && (
-              <div className="grid-mode">
-                <ModeSegment
-                  mode={mode}
-                  onChange={setMode}
-                  disabled={isRunning || isBusy}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Быстрый доступ в личный кабинет с главного экрана.
-              Скрываем когда:
-                - показан Welcome (там своя кнопка),
-                - подписка не прислала `profile-web-page-url` (нет URL —
-                  нет кнопки, см. openExternal.ts). */}
-          {servers.length > 0 && hasDashboardUrl && (
-            <button
-              type="button"
-              onClick={openDashboard}
-              className="dashboard-link"
-            >
-              <span>{t("header.dashboard")}</span>
-              <span className="dashboard-link-arrow">→</span>
-            </button>
-          )}
-
-          <Footer />
-        </div>
-      </div>
+      <SoftHome onOpenSettings={() => setSettingsOpen(true)} />
 
       {settingsOpen && (
         <SettingsPage onClose={() => setSettingsOpen(false)} />

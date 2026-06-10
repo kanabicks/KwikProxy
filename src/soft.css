@@ -46,9 +46,6 @@ html[data-look="soft"] body,
 html[data-look="soft"] #root {
   background: transparent;
 }
-[data-look="soft"] .app {
-  display: none;
-}
 [data-look="soft"] * {
   cursor: auto;
 }

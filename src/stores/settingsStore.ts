@@ -7,15 +7,7 @@ export type SortMode = "none" | "ping" | "name";
  * → Choose your default app mode). При смене на лету — UI обновляется
  * без перезапуска. См. `useEffectiveSettings`.
  */
-export type Theme =
-  | "system"
-  | "dark"
-  | "light"
-  | "midnight"
-  | "sunset"
-  | "sand";
-export type Background = "crystal" | "tunnel" | "globe" | "particles";
-export type ButtonStyle = "glass" | "flat" | "neon" | "metallic";
+export type Theme = "system" | "dark" | "light";
 
 /**
  * VPN-движок. Mihomo-only архитектура — единственный движок.
@@ -50,59 +42,6 @@ export type AppRule = {
   comment?: string;
 };
 
-/**
- * Готовые «темы-пресеты» — отдельная ось настройки, не комбинация
- * существующих theme/background/buttonStyle. У каждого пресета своя
- * уникальная палитра (CSS-переменные через `data-preset` на <html>),
- * фиксированный 3D-фон и стиль кнопки.
- *
- * Когда выбран любой пресет кроме `none`, обычные селекты темы/фона/
- * стиля становятся недоступны (управляется пресетом).
- *
- * Названия — нейтральные ассоциации:
- *  - fluent    — стиль Microsoft Fluent (acrylic, синий акцент)
- *  - cupertino — стиль Apple (мягкие пастельные, минималистичные)
- *  - vice      — стиль 80s neon arcade (фуксия + cyan)
- *  - arcade    — игровая консоль (зелёный неон по тёмному)
- *  - glacier   — холодное матовое стекло, лёд
- */
-export type Preset = "none" | "fluent" | "cupertino" | "vice" | "arcade" | "glacier";
-
-/** Какой 3D-фон рендерить при активном пресете. */
-export const PRESET_BACKGROUND: Record<Preset, Background> = {
-  none:      "crystal",   // не используется (preset === none → берём из settings.background)
-  fluent:    "globe",
-  cupertino: "particles",
-  vice:      "tunnel",
-  arcade:    "crystal",
-  glacier:   "particles",
-};
-
-/** Какой стиль кнопки применять при активном пресете. */
-export const PRESET_BUTTON_STYLE: Record<Preset, ButtonStyle> = {
-  none:      "glass",     // не используется
-  fluent:    "glass",
-  cupertino: "flat",
-  vice:      "neon",
-  arcade:    "neon",
-  glacier:   "glass",
-};
-
-/**
- * Палитра кристалла/линий/частиц в Three.js per-preset. Используется
- * Scene3D вместо theme-палитры когда preset активен.
- */
-export const PRESET_SCENE_PALETTE: Record<
-  Exclude<Preset, "none">,
-  { base: number; dim: number; solid: number; fog: number }
-> = {
-  fluent:    { base: 0x60a5fa, dim: 0x3b6cb0, solid: 0x14203a, fog: 0x0c1424 },
-  cupertino: { base: 0xff375f, dim: 0xb87080, solid: 0xeae0e0, fog: 0xf0e7e7 },
-  vice:      { base: 0xff37a8, dim: 0xa02370, solid: 0x2a0a3a, fog: 0x1a0a3a },
-  arcade:    { base: 0x5cc62a, dim: 0x3a7a1f, solid: 0x1a261a, fog: 0x0a140a },
-  glacier:   { base: 0x9bc9f0, dim: 0x5a8bb8, solid: 0x14222e, fog: 0x0c1827 },
-};
-
 export type Settings = {
   /** Авто-обновление подписки */
   autoRefresh: boolean;
@@ -126,24 +65,12 @@ export type Settings = {
   sort: SortMode;
   /** Разрешить подключения из LAN (inbound listen 0.0.0.0) */
   allowLan: boolean;
-  /** Тема оформления (используется когда preset === "none"). */
+  /** Тема оформления (light/dark/system). */
   theme: Theme;
-  /** Тип 3D-фона (используется когда preset === "none"). */
-  background: Background;
-  /** Стиль главной кнопки (используется когда preset === "none"). */
-  buttonStyle: ButtonStyle;
-  /**
-   * Активный пресет. `none` — пользователь сам подбирает theme/bg/style.
-   * Любое другое значение переопределяет всё разом.
-   */
-  preset: Preset;
-  /** Override-флаги для server-driven UX (8.C, X-Kwik-*). Если
-   *  false — соответствующее значение из заголовка подписки имеет
-   *  приоритет над юзер-настройкой. Сбрасываются через reset(). */
+  /** Override-флаг для server-driven UX (8.C, X-Kwik-*). Если
+   *  false — значение из заголовка подписки имеет приоритет над
+   *  юзер-настройкой. Сбрасывается через reset(). */
   themeTouched: boolean;
-  backgroundTouched: boolean;
-  buttonStyleTouched: boolean;
-  presetTouched: boolean;
 
   // ── Anti-DPI (этап 10) ──────────────────────────────────────────────
   /** TCP-фрагментация: режет TLS ClientHello (или другие пакеты) на
@@ -418,13 +345,7 @@ const DEFAULTS: Settings = {
   sort: "none",
   allowLan: false,
   theme: "dark",
-  background: "crystal",
-  buttonStyle: "glass",
-  preset: "none",
   themeTouched: false,
-  backgroundTouched: false,
-  buttonStyleTouched: false,
-  presetTouched: false,
 
   // Anti-DPI: по дефолту всё выключено, разумные значения для случая
   // когда пользователь включит вручную.
@@ -527,9 +448,6 @@ export const useSettingsStore = create<Store>((setState, get) => ({
     // подхватывать значение из заголовка подписки. См. 8.C override-логику.
     if (key === "autoRefreshHours") next.autoRefreshHoursTouched = true;
     if (key === "theme") next.themeTouched = true;
-    if (key === "background") next.backgroundTouched = true;
-    if (key === "buttonStyle") next.buttonStyleTouched = true;
-    if (key === "preset") next.presetTouched = true;
     if (key === "engine") next.engineTouched = true;
     if (key === "userAgent") next.userAgentTouched = true;
     // Любая правка anti-DPI поля → touched (override от заголовков

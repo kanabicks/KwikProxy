@@ -38,7 +38,7 @@ export type ProxyEntry = {
  *  - premiumUrl: URL премиум-страницы.
  *
  *  X-Kwik-* (наше расширение, server-driven UX, 8.C):
- *  - theme / background / buttonStyle / preset / mode / engine — задают
+ *  - theme / mode / engine — задают
  *    дефолты; применяются только если пользователь не менял эти
  *    настройки вручную (override-логика).
  *
@@ -56,9 +56,6 @@ export type SubscriptionMeta = {
   announceUrl: string | null;
   premiumUrl: string | null;
   theme: string | null;
-  background: string | null;
-  buttonStyle: string | null;
-  preset: string | null;
   mode: string | null;
   engine: string | null;
   // Anti-DPI (этап 10)
@@ -93,9 +90,6 @@ type SubscriptionMetaRaw = {
   announce_url: string | null;
   premium_url: string | null;
   theme: string | null;
-  background: string | null;
-  button_style: string | null;
-  preset: string | null;
   mode: string | null;
   engine: string | null;
   fragmentation_enable: boolean | null;
@@ -224,9 +218,6 @@ const normalizeMeta = (
         announceUrl: raw.announce_url,
         premiumUrl: raw.premium_url,
         theme: raw.theme,
-        background: raw.background,
-        buttonStyle: raw.button_style,
-        preset: raw.preset,
         mode: raw.mode,
         engine: raw.engine,
         fragmentationEnable: raw.fragmentation_enable,
@@ -785,13 +776,16 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
         }
         try {
           await invoke("secure_storage_migrate_legacy", { keys });
-        } catch (e) {
-          console.warn("[subscription] миграция keyring nemefisto→kwik:", e);
-        }
-        try {
+          // Флаг ставим ТОЛЬКО после успешного вызова: если invoke упал
+          // (транзиентная ошибка Credential Manager на старте), миграция
+          // повторится при следующем запуске — иначе подписка «пропала бы»
+          // навсегда при единственном неудачном старте.
           localStorage.setItem("kwik.migrated.credentials.rebrand.v1", "1");
-        } catch {
-          // приватный режим — повторим на следующем старте, не критично
+        } catch (e) {
+          console.warn(
+            "[subscription] миграция keyring nemefisto→kwik не удалась, повторим при следующем старте:",
+            e
+          );
         }
       }
     } catch {
