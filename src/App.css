@@ -776,8 +776,8 @@ input, textarea { font: inherit; cursor: text; }
   position: fixed;
   padding: 11px 13px;
   border-radius: 12px;
-  background: #ffffff;
-  color: #2a2b22;
+  background: var(--s-sheet, #ffffff);
+  color: var(--s-ink, #2a2b22);
   font-family: var(--body, system-ui);
   font-size: 12px;
   font-weight: 500;
@@ -1325,8 +1325,8 @@ input, textarea { font: inherit; cursor: text; }
   justify-content: center;
   width: 30px;
   height: 30px;
-  background: #f4f4ef;
-  border: 1px solid #e7e6df;
+  background: var(--s-control, #f4f4ef);
+  border: 1px solid var(--s-border, #e7e6df);
   color: var(--s-sub, #93938c);
   font-size: 12px;
   cursor: pointer;
@@ -1335,7 +1335,7 @@ input, textarea { font: inherit; cursor: text; }
 }
 .proc-picker-close:hover {
   color: var(--s-ink, #16170f);
-  background: #ecece5;
+  background: var(--s-hover, #ecece5);
   transform: rotate(90deg);
 }
 .proc-picker-search-wrap {
@@ -1360,13 +1360,13 @@ input, textarea { font: inherit; cursor: text; }
   font-size: 13px;
   padding: 11px 12px 11px 38px;
   border-radius: 13px;
-  background: #faf9f5;
-  border: 1px solid #e7e6df;
+  background: var(--s-input, #faf9f5);
+  border: 1px solid var(--s-border, #e7e6df);
   color: var(--s-ink, #16170f);
 }
 .proc-picker-search.input:focus {
   border-color: var(--s-lime, #d8ec5a);
-  background: #ffffff;
+  background: var(--s-input, #ffffff);
 }
 .proc-picker-list {
   overflow-y: auto;
@@ -1425,8 +1425,8 @@ input, textarea { font: inherit; cursor: text; }
   font-weight: 600;
   padding: 4px 10px;
   color: var(--s-sub, #93938c);
-  background: #ffffff;
-  border: 1px solid #e7e6df;
+  background: var(--s-sheet, #ffffff);
+  border: 1px solid var(--s-border, #e7e6df);
   border-radius: 9px;
   cursor: pointer;
   opacity: 0;
@@ -1447,8 +1447,8 @@ input, textarea { font: inherit; cursor: text; }
   text-align: center;
   font-size: 12px;
   color: var(--s-sub, #93938c);
-  background: #faf9f5;
-  border: 1px dashed #e0dfd6;
+  background: var(--s-input, #faf9f5);
+  border: 1px dashed var(--s-border, #e0dfd6);
   border-radius: 14px;
 }
 .app-traffic {
@@ -1508,7 +1508,7 @@ input, textarea { font: inherit; cursor: text; }
 .at-bar {
   height: 6px;
   border-radius: 3px;
-  background: #f0efe8;
+  background: var(--s-track, #f0efe8);
   overflow: hidden;
 }
 .at-bar-fill {
@@ -1523,8 +1523,8 @@ input, textarea { font: inherit; cursor: text; }
   font-weight: 600;
   padding: 4px 9px;
   color: var(--s-sub, #93938c);
-  background: #ffffff;
-  border: 1px solid #e7e6df;
+  background: var(--s-sheet, #ffffff);
+  border: 1px solid var(--s-border, #e7e6df);
   border-radius: 9px;
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
@@ -1546,18 +1546,18 @@ input, textarea { font: inherit; cursor: text; }
   font-family: var(--display, "Inter Tight", system-ui, sans-serif);
   font-weight: 600;
   color: var(--s-ink, #16170f);
-  background: #faf9f5;
-  border: 1px solid #e7e6df;
+  background: var(--s-input, #faf9f5);
+  border: 1px solid var(--s-border, #e7e6df);
   border-radius: 12px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .soft-select:hover:not(:disabled) {
-  border-color: #d6d5ca;
+  border-color: var(--s-border-strong, #d6d5ca);
 }
 .soft-select.is-open {
   border-color: var(--s-lime, #d8ec5a);
-  background: #ffffff;
+  background: var(--s-sheet, #ffffff);
 }
 .soft-select:disabled {
   opacity: 0.5;
@@ -1595,7 +1595,7 @@ input, textarea { font: inherit; cursor: text; }
   gap: 1px;
   padding: 6px;
   background: var(--s-sheet, #ffffff);
-  border: 1px solid #e7e6df;
+  border: 1px solid var(--s-border, #e7e6df);
   border-radius: 14px;
   box-shadow: 0 16px 44px rgba(20, 22, 16, 0.22);
   overflow-y: auto;
@@ -1635,7 +1635,7 @@ input, textarea { font: inherit; cursor: text; }
   width: 15px;
   height: 15px;
   fill: none;
-  stroke: #6f8f1a;
+  stroke: var(--s-lime);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -2718,10 +2718,10 @@ input, textarea { font: inherit; cursor: text; }
    Никакого chip — чисто, фон титлбара прозрачный. */
 @media (min-width: 820px) {
   [data-look="soft"] .win-btn {
-    color: #50504a;
+    color: var(--s-win-ctrl);
   }
   [data-look="soft"] .win-btn:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--s-win-hover);
     color: var(--s-ink);
   }
   [data-look="soft"] .win-close:hover {
@@ -2737,7 +2737,7 @@ html[data-look="soft"]:has(.settings-page) .win-btn {
   color: #50504a;
 }
 html[data-look="soft"]:has(.settings-page) .win-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--s-win-hover);
   color: var(--s-ink);
 }
 html[data-look="soft"]:has(.settings-page) .win-close:hover {

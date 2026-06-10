@@ -16,27 +16,133 @@
      каскадятся на все scroll-контейнеры: список локаций, настройки,
      шторки). Системный скроллбар выглядел чужеродно. */
   scrollbar-width: thin;
-  scrollbar-color: #cfcfc7 transparent;
+  scrollbar-color: var(--s-scroll) transparent;
+  /* Подложка за «шторкой» (тёмная зона — .soft-aside/.dash). В обеих
+     темах остаётся тёмной, в dark-теме лишь чуть глубже листа. */
   --bg: #0d0d0f;
   --fg: #f5f5f3;
   --display: "Inter Tight", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
   --body: "Inter Tight", "Noto Color Emoji", ui-sans-serif, system-ui, sans-serif;
-  /* Спокойный жёлто-лаймовый как в референсе (не неон). */
+  /* Спокойный жёлто-лаймовый как в референсе (не неон). Акцент общий
+     для обеих тем — на тёмном фоне lime читается так же. */
   --s-lime: #d8ec5a;
   --s-lime-soft: #eaf69a;
-  --s-lime-tint: #f6fae6;
-  --s-ink: #16170f;
-  --s-sheet: #ffffff;
-  --s-sub: #93938c;
-  --s-line: #f1f1ed;
+  --s-lime-tint: #f6fae6;     /* фон активной строки/чипа (light) */
+  /* Текст НА lime-кнопке — всегда тёмный (lime светлый в обеих темах),
+     поэтому НЕ инвертируется вместе с --s-ink. */
+  --s-on-lime: #16170f;
+
+  /* ── Поверхности «шторки» (light = текущие значения) ────────────── */
+  --s-sheet: #ffffff;         /* основной лист/карточка */
+  --s-sheet-2: #fbfbf8;       /* вложенная карточка (mihomo-group/pick) */
+  --s-input: #f7f7f3;         /* поля ввода/select/textarea */
+  --s-control: #f3f3f0;       /* иконка-кнопки, ghost, cancel */
+  --s-chip: #f4f4f0;          /* мелкие чипы (счётчик) */
+  --s-canvas: #ecebe4;        /* фон страницы настроек (за карточками) */
+  --s-header-bg: rgba(236, 235, 228, 0.86); /* sticky-шапка настроек (blur) */
+  --s-win-ctrl: #50504a;      /* иконки окна над светлой поверхностью */
+  --s-win-hover: rgba(0, 0, 0, 0.06);
+  --s-track: #e8e8e1;         /* трек прогресс-/ping-баров */
+  --s-knob: #ffffff;          /* кружок тумблера off (на сером треке) */
+  --s-knob-on: #ffffff;       /* кружок тумблера on (на ink-треке) */
+
+  /* ── Текст на «шторке» ──────────────────────────────────────────── */
+  --s-ink: #16170f;           /* основной */
+  --s-ink-2: #56564f;         /* вторичный (подписи кнопок) */
+  --s-sub: #93938c;           /* приглушённый (mute) */
+  --s-faint: #c5c5bd;         /* очень бледный (arrow/placeholder) */
+
+  /* ── Границы на «шторке» ────────────────────────────────────────── */
+  --s-line: #f1f1ed;          /* hairline-разделитель */
+  --s-border: #e7e6df;        /* граница карточки */
+  --s-border-2: #e2e2dd;      /* граница инпута */
+  --s-border-strong: #d8d8d2; /* граница контрола/hover */
+
+  /* ── Hover/active на «шторке» ───────────────────────────────────── */
+  --s-hover: #ebebe6;
+  --s-hover-subtle: #fafaf7;
+  --s-active: #f3f2ec;
+
+  /* ── Скроллбар ──────────────────────────────────────────────────── */
+  --s-scroll: #d3d3cb;
+  --s-scroll-hover: #b9b9ae;
+
   /* Системные (Apple-like) цвета статуса пинга — приглушённые. */
   --s-green: #2f9e58;
   --s-amber: #b8861f;
+  --s-orange: #c2702a;        /* промежуточный «slow» между amber и red */
   --s-red: #cf5b43;
+
+  /* ── Боксы-подсказки (фон/текст/граница) ────────────────────────── */
+  --s-hint-bg: var(--s-lime-tint);
+  --s-hint-fg: #5b6b15;
+  --s-hint-border: #e6efbf;
+  --s-warn-bg: #fff7e6;
+  --s-warn-fg: #8a6d1f;
+  --s-warn-border: #f0e2bd;
+  --s-danger-bg: #fdecea;
+  --s-danger-fg: #c0392b;
+  --s-danger-border: #f3cfc8;
+
   /* Крупные «континуальные» скругления для squircle-ощущения. */
   --s-r-card: 30px;
   --s-r-sheet: 28px;
   --s-r-row: 14px;
+}
+
+/* ── ТЁМНАЯ ТЕМА (data-theme="dark" ставит useApplyTheme; "system"
+   резолвится в JS через useSystemTheme) ──────────────────────────────
+   Философия: подложка остаётся тёмной, «шторка» из белой становится
+   тёплой угольно-серой, текст инвертируется. lime-акцент общий. */
+:root[data-look="soft"][data-theme="dark"] {
+  --bg: #08080a;              /* подложка ещё глубже листа */
+  --fg: #f3f3ee;
+  --s-lime-tint: #2b3019;     /* тёмный оливковый фон-акцент */
+
+  --s-sheet: #1a1b17;
+  --s-sheet-2: #212220;
+  --s-input: #242420;
+  --s-control: #2b2c27;
+  --s-chip: #26271f;
+  --s-canvas: #121310;
+  --s-header-bg: rgba(18, 19, 16, 0.86);
+  --s-win-ctrl: #c8c8c0;
+  --s-win-hover: rgba(255, 255, 255, 0.08);
+  --s-track: #2f302a;
+  --s-knob: #e9e9e2;          /* светлый кружок off на тёмно-сером треке */
+  --s-knob-on: #1a1b17;       /* тёмный кружок on (ink-трек теперь светлый) */
+
+  --s-ink: #f1f1ea;           /* инверсия: светлый текст */
+  --s-ink-2: #bdbdb4;
+  --s-sub: #86867d;
+  --s-faint: #5c5c54;
+
+  --s-line: #2a2b25;
+  --s-border: #303129;
+  --s-border-2: #393a31;
+  --s-border-strong: #45463c;
+
+  --s-hover: #2c2d28;
+  --s-hover-subtle: #222320;
+  --s-active: #33342d;
+
+  --s-scroll: #3a3b34;
+  --s-scroll-hover: #4c4d44;
+
+  /* Статусы чуть осветлены для контраста на тёмном. */
+  --s-green: #46b66e;
+  --s-amber: #d6a23f;
+  --s-orange: #e08a45;
+  --s-red: #e07258;
+
+  --s-hint-fg: #c2d96a;
+  --s-hint-border: #3a4420;
+  --s-warn-bg: #332a14;
+  --s-warn-fg: #e2bd66;
+  --s-warn-border: #4a3d1c;
+  --s-danger-bg: #3a1f1a;
+  --s-danger-fg: #ef9784;
+  --s-danger-border: #5a2e26;
 }
 
 /* Прозрачное окно: фон отдаёт скруглённая карта .soft, а по углам видно
@@ -64,13 +170,13 @@ html[data-look="soft"] #root {
   background: transparent;
 }
 [data-look="soft"] ::-webkit-scrollbar-thumb {
-  background: #d3d3cb;
+  background: var(--s-scroll);
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 [data-look="soft"] ::-webkit-scrollbar-thumb:hover {
-  background: #b9b9ae;
+  background: var(--s-scroll-hover);
   background-clip: padding-box;
 }
 [data-look="soft"] ::-webkit-scrollbar-corner {
@@ -100,9 +206,9 @@ html[data-look="soft"] #root {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  color: #f5f5f3;
+  color: var(--fg);
   font-family: var(--body);
-  background: #0d0d0f;
+  background: var(--bg);
   overflow: hidden;
   /* Скруглённые углы окна (по углам видно desktop — frameless). */
   border-radius: 14px;
@@ -134,7 +240,7 @@ html[data-maximized="true"] .soft {
   padding-bottom: 8px;
   background:
     radial-gradient(110% 70% at 50% -8%, rgba(216, 236, 90, 0.10), transparent 60%),
-    linear-gradient(180deg, #161618 0%, #0d0d0f 100%);
+    linear-gradient(180deg, #161618 0%, var(--bg) 100%);
 }
 
 /* Десктоп: двухпанельная раскладка, карта заполняет окно (скруглена через
@@ -246,7 +352,7 @@ html[data-maximized="true"] .soft {
   border-radius: 24px;
   /* Деликатный вертикальный градиент + верхний блик — глубина без неона. */
   background: linear-gradient(180deg, #e2f072 0%, #d4e84f 100%);
-  color: var(--s-ink);
+  color: var(--s-on-lime);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -331,7 +437,7 @@ html[data-maximized="true"] .soft {
   transition: background 0.2s, color 0.2s;
 }
 [data-look="soft"] .mode-seg button.is-active {
-  background: #fafafa;
+  background: var(--s-sheet);
   color: var(--s-ink);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
@@ -410,8 +516,8 @@ html[data-maximized="true"] .soft {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 500;
-  color: #a8a89e;
-  background: #f4f4f0;
+  color: var(--s-sub);
+  background: var(--s-chip);
   border-radius: 999px;
   padding: 2px 8px;
   font-variant-numeric: tabular-nums;
@@ -424,15 +530,15 @@ html[data-maximized="true"] .soft {
   height: 34px;
   border: none;
   border-radius: 11px;
-  background: #f3f3f0;
-  color: #56564f;
+  background: var(--s-control);
+  color: var(--s-ink-2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s, color 0.2s, transform 0.12s;
 }
 .soft-iconbtn:hover {
-  background: #ebebe6;
+  background: var(--s-hover);
   color: var(--s-ink);
 }
 .soft-iconbtn:active {
@@ -498,7 +604,7 @@ html[data-maximized="true"] .soft {
   border-bottom: none;
 }
 .soft-row:hover {
-  background: #fafaf7;
+  background: var(--s-hover-subtle);
 }
 .soft-row[data-sel="true"] {
   background: var(--s-lime-tint);
@@ -508,7 +614,7 @@ html[data-maximized="true"] .soft {
   height: 22px;
   flex: 0 0 auto;
   border-radius: 8px;
-  border: 2px solid #dadad4;
+  border: 2px solid var(--s-border-strong);
   position: relative;
   transition: background 0.2s, border-color 0.2s;
 }
@@ -556,7 +662,7 @@ html[data-maximized="true"] .soft {
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 500;
-  color: #adada3;
+  color: var(--s-sub);
   font-variant-numeric: tabular-nums;
 }
 .soft-row-ping.is-good {
@@ -600,8 +706,8 @@ html[data-maximized="true"] .soft {
   height: 52px;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.04);
-  background: #ffffff;
-  color: #3a3a34;
+  background: var(--s-sheet);
+  color: var(--s-ink-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -661,7 +767,7 @@ html[data-maximized="true"] .soft {
 .soft-bottomsheet {
   width: 100%;
   max-width: 440px;
-  background: #fff;
+  background: var(--s-sheet);
   color: var(--s-ink);
   border-radius: 26px;
   padding: 12px 16px 18px;
@@ -690,7 +796,7 @@ html[data-maximized="true"] .soft {
   width: 40px;
   height: 4px;
   border-radius: 999px;
-  background: #e2e2dc;
+  background: var(--s-border-2);
   align-self: center;
   margin: 2px 0 4px;
 }
@@ -712,13 +818,13 @@ html[data-maximized="true"] .soft {
   position: relative;
   display: flex;
   align-items: center;
-  border: 1px solid #ececea;
+  border: 1px solid var(--s-border);
   border-radius: 18px;
-  background: #fcfcfa;
+  background: var(--s-sheet-2);
   transition: border-color 0.2s, background 0.2s;
 }
 .soft-pick-card.is-active {
-  background: #f3f8d8;
+  background: var(--s-lime-tint);
   border-color: #e0ef93;
 }
 .soft-pick-main {
@@ -743,7 +849,7 @@ html[data-maximized="true"] .soft {
   height: 16px;
   flex: 0 0 auto;
   border-radius: 50%;
-  border: 2px solid #cfcfc8;
+  border: 2px solid var(--s-border-strong);
   position: relative;
 }
 .soft-pick-card.is-active .soft-pick-radio {
@@ -771,8 +877,8 @@ html[data-maximized="true"] .soft {
   letter-spacing: 0.04em;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--s-ink);
-  color: var(--s-lime);
+  background: var(--s-lime);
+  color: var(--s-on-lime);
 }
 .soft-pick-meta {
   font-family: var(--mono);
@@ -787,7 +893,7 @@ html[data-maximized="true"] .soft {
   margin-right: 8px;
   border: none;
   background: none;
-  color: #c2c2ba;
+  color: var(--s-faint);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -795,8 +901,8 @@ html[data-maximized="true"] .soft {
   transition: background 0.2s, color 0.2s;
 }
 .soft-pick-del:hover {
-  background: #fbe3df;
-  color: #c0392b;
+  background: var(--s-danger-bg);
+  color: var(--s-danger-fg);
 }
 .soft-pick-confirm {
   display: flex;
@@ -805,16 +911,16 @@ html[data-maximized="true"] .soft {
 }
 .soft-pick-confirm button {
   border: none;
-  background: #f0f0ec;
-  color: #56564f;
+  background: var(--s-control);
+  color: var(--s-ink-2);
   border-radius: 999px;
   padding: 7px 14px;
   font-size: 12px;
   font-weight: 600;
 }
 .soft-pick-confirm button.is-danger {
-  background: #f4c8c0;
-  color: #8e2b1c;
+  background: var(--s-danger-bg);
+  color: var(--s-danger-fg);
 }
 
 .soft-bs-add {
@@ -826,7 +932,7 @@ html[data-maximized="true"] .soft {
   border-radius: 16px;
   padding: 14px;
   background: var(--s-lime);
-  color: var(--s-ink);
+  color: var(--s-on-lime);
   font-weight: 700;
   font-size: 14px;
   box-shadow: 0 12px 26px -12px rgba(214, 242, 58, 0.6);
@@ -838,13 +944,13 @@ html[data-maximized="true"] .soft {
 /* Форма добавления. */
 .soft-bs-input {
   width: 100%;
-  border: 1px solid #e2e2dd;
+  border: 1px solid var(--s-border-2);
   border-radius: 14px;
   padding: 13px 14px;
   font-size: 14px;
   font-family: var(--mono);
   color: var(--s-ink);
-  background: #f7f7f4;
+  background: var(--s-input);
   outline: none;
   transition: border-color 0.2s;
 }
@@ -853,7 +959,7 @@ html[data-maximized="true"] .soft {
 }
 .soft-bs-err {
   font-size: 12px;
-  color: #c0392b;
+  color: var(--s-danger-fg);
   word-break: break-word;
 }
 .soft-bs-actions {
@@ -870,12 +976,12 @@ html[data-maximized="true"] .soft {
   font-weight: 600;
 }
 .soft-bs-cancel {
-  background: #f0f0ec;
-  color: #56564f;
+  background: var(--s-control);
+  color: var(--s-ink-2);
 }
 .soft-bs-go {
   background: var(--s-lime);
-  color: var(--s-ink);
+  color: var(--s-on-lime);
 }
 .soft-bs-go:disabled {
   opacity: 0.5;
@@ -890,7 +996,7 @@ html[data-maximized="true"] .soft {
   gap: 10px;
 }
 [data-look="soft"] .soft-mihomo .mihomo-group {
-  background: #fbfbf8;
+  background: var(--s-sheet-2);
   border: 1px solid var(--s-line);
   border-radius: var(--s-r-row);
   backdrop-filter: none;
@@ -911,31 +1017,31 @@ html[data-maximized="true"] .soft {
   font-size: 11px;
 }
 [data-look="soft"] .soft-mihomo .mihomo-group-active {
-  color: #56564f;
+  color: var(--s-ink-2);
 }
 [data-look="soft"] .soft-mihomo .mihomo-group-arrow {
-  color: #adada3;
+  color: var(--s-sub);
 }
 [data-look="soft"] .soft-mihomo .mihomo-test-btn {
-  color: #56564f;
+  color: var(--s-ink-2);
   border-color: var(--s-line);
-  background: #f3f3f0;
+  background: var(--s-control);
   letter-spacing: 0.04em;
 }
 [data-look="soft"] .soft-mihomo .mihomo-test-btn:hover:not(:disabled) {
   color: var(--s-ink);
-  border-color: #d8d8d2;
-  background: #ebebe6;
+  border-color: var(--s-border-strong);
+  background: var(--s-hover);
 }
 [data-look="soft"] .soft-mihomo .mihomo-card {
-  background: #ffffff;
+  background: var(--s-sheet);
   border: 1px solid var(--s-line);
   border-radius: 12px;
   color: var(--s-ink);
 }
 [data-look="soft"] .soft-mihomo .mihomo-card:hover {
-  border-color: #e2e2dc;
-  background: #fafaf7;
+  border-color: var(--s-border-2);
+  background: var(--s-hover-subtle);
 }
 [data-look="soft"] .soft-mihomo .mihomo-card.is-active {
   border-color: var(--s-ink);
@@ -943,7 +1049,7 @@ html[data-maximized="true"] .soft {
   box-shadow: none;
 }
 [data-look="soft"] .soft-mihomo .mihomo-card.is-readonly:hover {
-  background: #ffffff;
+  background: var(--s-sheet);
   border-color: var(--s-line);
 }
 [data-look="soft"] .soft-mihomo .mihomo-card-name {
@@ -961,7 +1067,7 @@ html[data-maximized="true"] .soft {
 }
 [data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-good { color: var(--s-green); }
 [data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-ok   { color: var(--s-amber); }
-[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-slow { color: #c2702a; }
+[data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-slow { color: var(--s-orange); }
 [data-look="soft"] .soft-mihomo .mihomo-card-delay.delay-bad  { color: var(--s-red); }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -972,7 +1078,7 @@ html[data-maximized="true"] .soft {
    тёплый фон, сгруппированные белые контейнеры с hairline-разделителями,
    тёмный ink-текст, лайм только как тонкий акцент. */
 html[data-look="soft"] .settings-page {
-  background: #ecebe4;
+  background: var(--s-canvas);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border-radius: 14px;
@@ -995,10 +1101,10 @@ html[data-look="soft"] .settings-frame {
 
 /* Шапка — светлая, sticky */
 html[data-look="soft"] .settings-header {
-  background: rgba(236, 235, 228, 0.86);
+  background: var(--s-header-bg);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border-bottom: 1px solid #e1e0d8;
+  border-bottom: 1px solid var(--s-border);
 }
 html[data-look="soft"] .back-btn {
   display: inline-flex;
@@ -1009,8 +1115,8 @@ html[data-look="soft"] .back-btn {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: #56564f;
-  background: #ffffff;
+  color: var(--s-ink-2);
+  background: var(--s-sheet);
   border: 1px solid var(--s-line);
   border-radius: 999px;
   padding: 8px 14px;
@@ -1018,9 +1124,9 @@ html[data-look="soft"] .back-btn {
   transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
 html[data-look="soft"] .back-btn:hover {
-  background: #fafaf7;
+  background: var(--s-hover-subtle);
   color: var(--s-ink);
-  border-color: #e2e2dc;
+  border-color: var(--s-border-2);
 }
 html[data-look="soft"] .settings-title {
   font-family: var(--display);
@@ -1034,8 +1140,8 @@ html[data-look="soft"] .settings-title {
    hairline-разделителями (iOS grouped list). Без отдельных карточек/теней. */
 html[data-look="soft"] .settings-categories {
   gap: 0;
-  background: #ffffff;
-  border: 1px solid #e7e6df;
+  background: var(--s-sheet);
+  border: 1px solid var(--s-border);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(20, 20, 12, 0.05),
@@ -1044,7 +1150,7 @@ html[data-look="soft"] .settings-categories {
 html[data-look="soft"] .settings-category {
   background: transparent;
   border: 0;
-  border-bottom: 1px solid #f0efe9;
+  border-bottom: 1px solid var(--s-line);
   border-radius: 0;
   box-shadow: none;
   backdrop-filter: none;
@@ -1056,12 +1162,12 @@ html[data-look="soft"] .settings-category:last-child {
   border-bottom: 0;
 }
 html[data-look="soft"] .settings-category:hover {
-  background: #fafaf7;
-  border-color: #f0efe9;
+  background: var(--s-hover-subtle);
+  border-color: var(--s-line);
 }
 html[data-look="soft"] .settings-category:active {
   transform: none;
-  background: #f3f2ec;
+  background: var(--s-active);
 }
 /* Эмодзи-иконки ненадёжно рендерятся в WebView2 (пустой блоб) — в soft
    делаем чистый текстовый список без иконок. */
@@ -1084,7 +1190,7 @@ html[data-look="soft"] .settings-category-desc {
   color: var(--s-sub);
 }
 html[data-look="soft"] .settings-category-arrow {
-  color: #c8c8c0;
+  color: var(--s-faint);
 }
 
 /* Секции — мягкие белые группы, тонкая граница, почти без тени */
@@ -1104,8 +1210,8 @@ html[data-look="soft"] .settings-body {
   }
 }
 html[data-look="soft"] .settings-section {
-  background: #ffffff;
-  border: 1px solid #e7e6df;
+  background: var(--s-sheet);
+  border: 1px solid var(--s-border);
   border-radius: 16px;
   padding: 16px 16px 18px;
   gap: 14px;
@@ -1144,14 +1250,14 @@ html[data-look="soft"] .settings-row-hint {
 html[data-look="soft"] .settings-page input,
 html[data-look="soft"] .settings-page select,
 html[data-look="soft"] .settings-page textarea {
-  background: #f7f7f3;
+  background: var(--s-input);
   color: var(--s-ink);
-  border: 1px solid #e2e2dd;
+  border: 1px solid var(--s-border-2);
   border-radius: 12px;
 }
 html[data-look="soft"] .settings-page input::placeholder,
 html[data-look="soft"] .settings-page textarea::placeholder {
-  color: #adada3;
+  color: var(--s-sub);
 }
 html[data-look="soft"] .select-field {
   font-family: var(--body);
@@ -1162,7 +1268,7 @@ html[data-look="soft"] .select-field {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'><path fill='%2393938c' d='M0 0h8L4 5z'/></svg>");
 }
 html[data-look="soft"] .select-field option {
-  background: #ffffff;
+  background: var(--s-sheet);
   color: var(--s-ink);
 }
 html[data-look="soft"] .select-field option:checked,
@@ -1173,17 +1279,17 @@ html[data-look="soft"] .select-field option:hover {
 
 /* Toggle: вкл — ink-трек + белый knob (как чек на soft-row), выкл — серый */
 html[data-look="soft"] .toggle {
-  background: #e2e2dd;
+  background: var(--s-border-strong);
 }
 html[data-look="soft"] .toggle.is-on {
   background: var(--s-ink);
 }
 html[data-look="soft"] .toggle-knob {
-  background: #ffffff;
+  background: var(--s-knob);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 html[data-look="soft"] .toggle.is-on .toggle-knob {
-  background: #ffffff;
+  background: var(--s-knob-on);
 }
 
 /* Радио */
@@ -1195,8 +1301,8 @@ html[data-look="soft"] .radio-row {
   color: var(--s-ink);
 }
 html[data-look="soft"] .radio-row input[type="radio"] {
-  background: #f7f7f3;
-  border-color: #d8d8d2;
+  background: var(--s-input);
+  border-color: var(--s-border-strong);
 }
 html[data-look="soft"] .radio-row input[type="radio"]:checked {
   border-color: var(--s-ink);
@@ -1211,13 +1317,13 @@ html[data-look="soft"] .btn-ghost {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
-  color: #56564f;
-  background: #f3f3f0;
+  color: var(--s-ink-2);
+  background: var(--s-control);
   border: 1px solid var(--s-line);
   border-radius: 999px;
 }
 html[data-look="soft"] .btn-ghost:hover:not(:disabled) {
-  background: #ebebe6;
+  background: var(--s-hover);
   color: var(--s-ink);
 }
 html[data-look="soft"] .btn-primary {
@@ -1225,7 +1331,7 @@ html[data-look="soft"] .btn-primary {
   text-transform: none;
   letter-spacing: 0;
   font-weight: 700;
-  color: var(--s-ink);
+  color: var(--s-on-lime);
   background: var(--s-lime);
   border: 0;
   border-radius: 999px;
@@ -1234,21 +1340,21 @@ html[data-look="soft"] .btn-primary {
 /* Бейджи / предупреждения */
 html[data-look="soft"] .hint-badge {
   background: var(--s-lime-tint);
-  color: #5b6b15;
-  border: 1px solid #e6efbf;
+  color: var(--s-hint-fg);
+  border: 1px solid var(--s-hint-border);
   text-transform: none;
   letter-spacing: 0;
 }
 html[data-look="soft"] .hint-warning {
-  background: #fff7e6;
-  color: #8a6d1f;
-  border: 1px solid #f0e2bd;
+  background: var(--s-warn-bg);
+  color: var(--s-warn-fg);
+  border: 1px solid var(--s-warn-border);
 }
 html[data-look="soft"] .hint-danger,
 html[data-look="soft"] .warn-box {
-  background: #fdecea;
-  color: #b23c2b;
-  border-color: #f3cfc8;
+  background: var(--s-danger-bg);
+  color: var(--s-danger-fg);
+  border-color: var(--s-danger-border);
 }
 
 /* About / схемы */
@@ -1260,7 +1366,7 @@ html[data-look="soft"] .about-val {
 }
 html[data-look="soft"] .about-link {
   color: var(--s-ink);
-  border-bottom-color: #cfcfc8;
+  border-bottom-color: var(--s-border-strong);
 }
 html[data-look="soft"] .scheme-row {
   border-color: var(--s-line);
@@ -1275,12 +1381,12 @@ html[data-look="soft"] .scheme-desc {
 /* App-rules / shortcuts / trusted — светлые контролы */
 html[data-look="soft"] .app-rule-row,
 html[data-look="soft"] .trusted-current {
-  background: #f7f7f3;
+  background: var(--s-input);
   border: 1px solid var(--s-line);
 }
 html[data-look="soft"] .shortcut-input {
-  background: #f7f7f3;
-  border: 1px solid #e2e2dd;
+  background: var(--s-input);
+  border: 1px solid var(--s-border-2);
   color: var(--s-ink);
 }
 
@@ -1639,7 +1745,7 @@ html[data-look="soft"] .shortcut-input {
   flex-direction: column;
   margin: 0 22px 10px;
   padding: 11px 14px;
-  background: #f7f7f3;
+  background: var(--s-input);
   border: 1px solid var(--s-line);
   border-radius: 14px;
   animation: dash-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -1727,7 +1833,7 @@ html[data-look="soft"] .shortcut-input {
   transition: background 0.15s, color 0.15s;
 }
 .sub-strip-announce-close:hover {
-  background: #ebebe6;
+  background: var(--s-hover);
   color: var(--s-ink);
 }
 .sub-strip-info { flex: 1; min-width: 0; }
@@ -1764,7 +1870,7 @@ html[data-look="soft"] .shortcut-input {
   margin-top: 7px;
   height: 6px;
   border-radius: 999px;
-  background: #e8e8e1;
+  background: var(--s-track);
   overflow: hidden;
 }
 .sub-strip-bar-fill {
@@ -1788,8 +1894,8 @@ html[data-look="soft"] .shortcut-input {
   border-radius: 10px;
   /* Заметный контур на светлой полосе (раньше брался почти невидимый
      --s-line) + лёгкая тень — чтобы кнопка читалась как кнопка. */
-  border: 1px solid #d4d4cb;
-  background: #fff;
+  border: 1px solid var(--s-border-strong);
+  background: var(--s-sheet);
   color: var(--s-ink);
   font-family: var(--body);
   font-size: 12px;
@@ -1799,7 +1905,7 @@ html[data-look="soft"] .shortcut-input {
   box-shadow: 0 1px 2px rgba(20, 23, 15, 0.06);
   transition: background 0.15s, border-color 0.15s;
 }
-.sub-strip-link:hover { background: #f3f3ee; border-color: #bdbdb2; }
+.sub-strip-link:hover { background: var(--s-active); border-color: var(--s-border-strong); }
 .sub-strip-link.is-premium {
   background: var(--s-lime-tint);
   border-color: var(--s-lime);
@@ -1808,8 +1914,8 @@ html[data-look="soft"] .shortcut-input {
 
 /* ── Карточка-блок (обзор задержек) — теперь внутри скролла soft-rows ── */
 .home-card {
-  background: #fff;
-  border: 1px solid #e7e6df;
+  background: var(--s-sheet);
+  border: 1px solid var(--s-border);
   border-radius: 18px;
   padding: 16px 18px;
   box-shadow: 0 1px 2px rgba(20, 23, 15, 0.03), 0 16px 32px -28px rgba(20, 23, 15, 0.22);
@@ -1860,7 +1966,7 @@ html[data-look="soft"] .shortcut-input {
   flex: 1;
   height: 6px;
   border-radius: 999px;
-  background: #efeee8;
+  background: var(--s-track);
   overflow: hidden;
 }
 .ping-bar-fill {
@@ -1879,7 +1985,7 @@ html[data-look="soft"] .shortcut-input {
 }
 .ping-bar-fill.delay-good { background: var(--s-green); }
 .ping-bar-fill.delay-ok { background: var(--s-amber); }
-.ping-bar-fill.delay-slow { background: #c2702a; }
+.ping-bar-fill.delay-slow { background: var(--s-orange); }
 .ping-bar-fill.delay-bad { background: var(--s-red); }
 .ping-val {
   flex: 0 0 auto;
@@ -1890,7 +1996,7 @@ html[data-look="soft"] .shortcut-input {
 }
 .ping-val.delay-good { color: var(--s-green); }
 .ping-val.delay-ok { color: var(--s-amber); }
-.ping-val.delay-slow { color: #c2702a; }
+.ping-val.delay-slow { color: var(--s-orange); }
 .ping-val.delay-bad { color: var(--s-red); }
 .ping-val.delay-none { color: var(--s-sub); }
 .ping-fastest { color: var(--s-lime); font-size: 12px; }
